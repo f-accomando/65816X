@@ -106,6 +106,18 @@ The cycle counts differ in all vectors. The core uses 2 clocks for each read.
 The first `make ref-public` run found two errors in the reference model. Both are fixed:
 the high byte of S in emulation mode, and a read of the second byte of `WDM`.
 
+### Public vectors on the new core
+
+Run on 2026-11-27 with `CORE=c816`, all vectors, with the cycle and bus checks.
+
+| Run | Result |
+|---|---|
+| `make cpu-public CORE=c816 SST_FLAGS="--bus"` | **50 of 256 opcodes**; 1,032,847 of 1,060,000 vectors; 0 cycle differences |
+| `make cpu-public CORE=c816 SST_FLAGS="--bus --d0"` | **53 of 256 opcodes**; 529,750 of 529,750 vectors; 0 cycle differences |
+
+In the first run, only `$69`, `$6D`, and `$E9` fail, only in A and P, because decimal mode is missing.
+No vector of any opcode has a cycle or bus difference.
+
 ### CI on GitHub
 
 First run on 2026-11-27, commit `b7903f3`, `ubuntu-24.04`, Icarus Verilog 12.0 and Yosys 0.33:

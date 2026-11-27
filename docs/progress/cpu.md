@@ -26,15 +26,15 @@ The list of what must continue to pass is in `tests/cpu_pass.txt`.
 
 To close a step, make its opcodes pass the test bench and make `make check` pass.
 
-- **C2** (in progress, design: [cpu-core.md](../design/cpu-core.md), work orders in its section 8)
-  reorganize the core: table decode, one ALU, separate address calculation, one sequence step
-  for each cycle of the real chip; D register and D flag; high byte of S held at 01 in emulation;
-  signal for an unimplemented opcode (`dbg_illegal`). This fixes the differences in the table above.
-  Then compare the cycle counts with the public vectors. Today they all differ: the core uses 2 clocks
-  for each read.
-  Done: work orders 1-5. The new core `rtl/cpu/c816_core.v` runs all sequences of the 53 opcodes
-  and the `WDM` extensions. `make cpu-c816` passes 53 of 256 opcodes in both modes.
-  Next: work order 6 (full run on the public vectors).
+- **C2** (in progress). Design and work orders: [cpu-core.md](../design/cpu-core.md).
+  Reorganize the core: table decode, one ALU, separate address calculation.
+  Run one sequence step for each cycle of the real chip.
+  Add the D register and D flag. Hold the high byte of S at 01 in emulation mode.
+  Signal an unimplemented opcode (`dbg_illegal`). This fixes the differences in the table above.
+  Done: work orders 1-6. The new core `rtl/cpu/c816_core.v` runs all sequences of the 53 opcodes
+  and the `WDM` extensions. On all public vectors, unchanged, 50 opcodes pass cycle by cycle.
+  `ADC` and `SBC` fail only with D = 1 (step C5). The system does not use the new core yet.
+  Next: work order 7 (faults for the new core), then work order 8 (the system).
 - **C3** all addressing modes, with loads, stores, and arithmetic.
 - **C4** remaining instructions: shifts, stack, transfers, jumps, block moves.
 - **C5** interrupts (NMI, IRQ, BRK, COP, RTI, WAI, STP) and decimal mode: **256 of 256**.

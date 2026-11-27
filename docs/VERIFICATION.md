@@ -11,7 +11,9 @@
 | `make cpu` | CPU only: one instruction for each vector, score in `build/cpu_score.txt` | iverilog |
 | `make cpu-update` | same as above, and writes `tests/cpu_pass.txt` again | iverilog |
 | `make synth` | ECP5 synthesis and budget check (default `BUDGET=B`) | yosys |
-| `make check` | all of the above | iverilog, yosys |
+| `make ref-public SST=<folder>` | reference model against the public vectors | public vectors |
+| `make cpu-public SST=<folder>` | CPU against the public vectors, score in `build/cpu_public_score.txt` | iverilog, public vectors |
+| `make check` | all of the above, except the public vectors | iverilog, yosys |
 
 Keep `sim/vsim.py` while the RTL needs no parameters, `generate`, or `function`.
 Do not shape the RTL for the mini simulator: the design would get worse.
@@ -26,6 +28,17 @@ The CI (`.github/workflows/ci.yml`) runs the same commands on each pull request 
 - `sim/cpu_ref.py`: reference model of the CPU. `sim/cpu_vectors.py` makes the vectors from it
   (fixed seed). `tests/cpu_pass.txt`: opcodes and modes that must continue to pass.
 - New check: add one line to the `.expect` file. New mutant: add one line to `MUTANTS` in `sim/mutation_check.py`.
+
+### Public vectors
+
+Source: [SingleStepTests/65816](https://github.com/SingleStepTests/65816), MIT license, commit `307c63f`.
+Each opcode has 10,000 vectors for native mode and 10,000 for emulation mode. Keep the files outside
+the repository, in `<folder>/v1/`. The 106 files of the 53 opcodes of today take 457 MB.
+`sim/cpu_sst.py` converts them. `SST_FLAGS` accepts `--limit N`, `--d0`, and `--page1`.
+The CI does not run these commands, because it does not have the files.
+
+In emulation mode, the vectors start with any value in the high byte of S. The real chip holds it at 01,
+and the expected results follow the chip. `--page1` changes the start value, for diagnosis only.
 
 ## 3. Rule for each change
 
@@ -57,7 +70,7 @@ In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, with `make check
 | `make mutation` | 10 of 10 faults found |
 | `make iverilog` | 56/56 |
 | `make unit` | 0 differences, 28,123 accesses to the WRAM port |
-| `make cpu` | 47 of 256 opcodes; 20,838 of 21,200 vectors |
+| `make cpu` | 47 of 256 opcodes; 20,845 of 21,200 vectors |
 | equivalent LUT4 | 4393 (5% of the 85F, 10% of the 45F) |
 | `DP16KD` | 125 (60% of the 85F, 116% of the 45F) |
 | `MULT18X18D` | 2 |
@@ -69,6 +82,19 @@ calculated). The full synthesis did not end in 570 s.
 
 One test inserted three faults by hand in the CPU (one extra byte written, Z flag not updated,
 core stopped). The CPU test bench found all three.
+
+### Public vectors
+
+| Run | Result |
+|---|---|
+| `make ref-public` | 0 of 1,030,026 vectors differ; 29,974 decimal vectors skipped |
+| `make cpu-public` | 0 of 256 opcodes; 266,966 of 1,060,000 vectors; 3 min 22 s |
+| `make cpu-public SST_FLAGS="--d0 --page1"` | 47 of 256 opcodes; 523,405 of 529,750 vectors |
+
+The cycle counts differ in all vectors. The core uses 2 clocks for each read.
+
+The first `make ref-public` run found two errors in the reference model. Both are fixed:
+the high byte of S in emulation mode, and a read of the second byte of `WDM`.
 
 ### CI on GitHub
 
@@ -90,7 +116,8 @@ The cause of the LUT difference is not investigated. Quote the LUT count with th
 
 ## 6. Not verified
 
-- The CPU test bench compares the core with our own model. It finds differences between the two.
-  It does not prove that the core matches the chip. It does not check cycles or decimal mode.
+- `make cpu` compares the core with our own model. The public vectors confirm this model only for the
+  53 opcodes of today, without decimal mode and without cycles.
+- Decimal mode and cycle counts of the core.
 - Placement and maximum frequency (nextpnr is not installed).
 - Operation on a real board.

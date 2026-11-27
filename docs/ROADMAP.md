@@ -19,14 +19,14 @@ criterion and make `make check` pass.
 
 ## Current order: CPU first
 
-For now, develop only the CPU, in the steps C1-C7 of [progress/cpu.md](progress/cpu.md).
-C1-C5 cover phase F2 and the part of F3 about internal cycles. C6 includes the `WDM DIV` divider of F1.
+For now, develop only the CPU, in the steps C2-C7 of [progress/cpu.md](progress/cpu.md).
+C2-C5 cover phase F2 and the part of F3 about internal cycles. C6 includes the `WDM DIV` divider of F1.
 C7 is the CPU part of F8. The SNES bus timing (6, 8, 12 clock cycles) stays in F3.
 
 ## Next steps
 
-1. C1: public vectors and cycle check.
-2. C2: reorganize the core.
+1. C2: reorganize the core.
+2. C3: all addressing modes.
 
 ## To decide: host port
 

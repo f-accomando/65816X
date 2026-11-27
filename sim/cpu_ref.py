@@ -145,6 +145,8 @@ class Cpu:
 
     # ---- esecuzione ----
     def step(self):
+        if self.e:  # in emulazione il byte alto di S vale sempre 01
+            self.s = 0x0100 | (self.s & 0xFF)
         op = self.fetch()
         name, arg = OPCODES[op]
         getattr(self, 'op_' + name)(arg)
@@ -275,4 +277,5 @@ class Cpu:
         pass
 
     def op_wdm(self, _):
-        self.fetch()
+        # il secondo byte viene saltato: il chip non lo legge come dato valido
+        self.pc = (self.pc + 1) & 0xFFFF

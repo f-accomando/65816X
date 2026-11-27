@@ -37,7 +37,7 @@ Verification done (measured, `make check`):
 - `make test` and `make iverilog`: 56 checks.
 - `make mutation`: 10 of 10 faults found.
 - `make unit`: no differences.
-- `make cpu`: 47 of 256 opcodes.
+- `make cpu`: 47 of 256 opcodes. The public vectors run locally with `make cpu-public`.
 - yosys synthesis: 125 BRAM blocks; about 4,400 LUT with Yosys 0.52 and 12,600 with Yosys 0.33.
 - The CI on GitHub passes.
 
@@ -218,13 +218,13 @@ of the SNES mode.
    SPI host port; Pi Zero W first, CM3 only if it is not sufficient. It blocks phase F4 and the place of the host port.
 8. Which ULX3S do you have (45F or 85F, how much SDRAM)? It blocks the board tests of F4.
 9. Permission to download the 65816 test vectors (SingleStepTests) in the CI, without a copy in the repository?
-   It blocks the second part of F2.
+   The user permitted a local download on 2026-11-27 (folder `65816-test-vectors`, next to the repository).
 
 Question 1 blocks F4; questions 2 and 3 block F8 and F10; question 4 blocks the import of third-party files.
 
 ## 10. Suggested next step
 
-The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. First step: C1 in
+The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. First step: C2 in
 `docs/progress/cpu.md`.
 Criteria for each step:
 - `make check` passes.

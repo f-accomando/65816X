@@ -8,7 +8,7 @@ BUDGET ?= B
 
 RTL := $(filter %.v,$(shell cat rtl/files.f))
 
-.PHONY: test mutation rom iverilog unit cpu cpu-run cpu-update synth check clean
+.PHONY: test mutation rom iverilog unit cpu cpu-run cpu-update cpu-public ref-public synth check clean
 
 # Collaudo con il mini simulatore Python (nessuna dipendenza esterna)
 test:
@@ -41,8 +41,11 @@ unit:
 build/cpu_vectors.txt: sim/cpu_vectors.py sim/cpu_ref.py
 	$(PY) sim/cpu_vectors.py $@
 
-cpu-run: build/cpu_vectors.txt
-	$(IVERILOG) -g2012 -s tb_cpu -o build/tb_cpu.vvp $(RTL) tb/tb_cpu.v
+build/tb_cpu.vvp: $(RTL) rtl/files.f tb/tb_cpu.v
+	mkdir -p build
+	$(IVERILOG) -g2012 -s tb_cpu -o $@ $(RTL) tb/tb_cpu.v
+
+cpu-run: build/cpu_vectors.txt build/tb_cpu.vvp
 	$(VVP) -n build/tb_cpu.vvp +vec=build/cpu_vectors.txt +out=build/cpu_results.txt
 
 cpu: cpu-run
@@ -51,6 +54,21 @@ cpu: cpu-run
 # riscrive tests/cpu_pass.txt con cio' che passa oggi: guardare la differenza prima di tenerla
 cpu-update: cpu-run
 	$(PY) sim/cpu_score.py build/cpu_results.txt build/cpu_score.txt --update
+
+# Vettori pubblici SingleStepTests/65816, tenuti fuori dal repository (vedi docs/VERIFICATION.md)
+# SST = cartella che contiene v1/; SST_FLAGS: --limit N, --d0, --page1
+SST ?=
+SST_FLAGS ?=
+
+cpu-public: build/tb_cpu.vvp
+	@test -n "$(SST)" || { echo "manca SST=<cartella dei vettori>"; exit 1; }
+	$(PY) -I sim/cpu_sst.py convert "$(SST)" build/sst_vectors.txt $(SST_FLAGS)
+	$(VVP) -n build/tb_cpu.vvp +vec=build/sst_vectors.txt +out=build/sst_results.txt
+	$(PY) sim/cpu_score.py build/sst_results.txt build/cpu_public_score.txt --report-only
+
+ref-public:
+	@test -n "$(SST)" || { echo "manca SST=<cartella dei vettori>"; exit 1; }
+	$(PY) -I sim/cpu_sst.py check-ref "$(SST)" $(SST_FLAGS)
 
 # Sintesi ECP5 con yosys: conteggio reale delle celle e controllo del budget
 synth: rom.hex

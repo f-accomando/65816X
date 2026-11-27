@@ -11,6 +11,7 @@ Read files in small slices (`grep`, or `offset` and `limit`). The current state 
 | Open work of an area | `grep -n -A 20 '^## Open work' docs/progress/<area>.md` |
 | Binding rules of an area | `grep -n -A 20 '^## Rules' docs/progress/<area>.md` |
 | CPU compatibility score | `make cpu`, then `build/cpu_score.txt` |
+| CPU score on the public vectors | `make cpu-public SST=../65816-test-vectors`, then `build/cpu_public_score.txt` |
 | Owner decisions and open questions | `HANDOFF.md`, sections 3 and 9 |
 | Phases of the project | `docs/ROADMAP.md` |
 | Bus, memory map, opcodes, extensions | `docs/ARCHITECTURE.md` |

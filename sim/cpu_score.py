@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """cpu_score.py - pagella della CPU dai risultati di tb/tb_cpu.v.
 
-Uso: cpu_score.py <risultati> <pagella_uscita> [--update]
+Uso: cpu_score.py <risultati> <pagella_uscita> [--update | --report-only]
 Un opcode "passa" in un modo (n = nativo, e = emulazione) se tutti i suoi vettori passano.
 tests/cpu_pass.txt elenca cio' che passa: se qualcosa dell'elenco smette di passare si esce con
-errore. --update riscrive l'elenco.
+errore. --update riscrive l'elenco. --report-only scrive solo la pagella (vettori pubblici).
 """
 import collections
 import os
@@ -85,7 +85,7 @@ def report(res):
 
 
 def main(argv):
-    args = [a for a in argv[1:] if a != '--update']
+    args = [a for a in argv[1:] if a not in ('--update', '--report-only')]
     if len(args) != 2:
         raise SystemExit(__doc__)
     res = read_results(args[0])
@@ -94,6 +94,8 @@ def main(argv):
     passing, text = report(res)
     open(args[1], 'w', newline='\n').write(text)
     sys.stdout.write(text)
+    if '--report-only' in argv:  # vettori diversi da quelli dell'elenco: solo pagella
+        return 0
     if '--update' in argv:
         with open(PASSLIST, 'w', newline='\n') as f:
             f.write("# Opcode (e modo) che il banco di prova deve continuare a superare.\n"

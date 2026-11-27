@@ -14,10 +14,11 @@
 | `make synth` | ECP5 synthesis and budget check (default `BUDGET=B`) | yosys |
 | `make ref-public SST=<folder>` | reference model against the public vectors | public vectors |
 | `make cpu-public SST=<folder>` | CPU against the public vectors, score in `build/cpu_public_score.txt` | iverilog, public vectors |
+| `make cpu-mutation` | inserts faults in the new core; fails if our own vectors miss even one | iverilog |
 | `make manual-check` | the manual matches its sources (see `manuals/README.md`) | Python 3 |
 | `make tables` | writes the generated tables of the new CPU core | Python 3 |
 | `make tables-check` | the generated tables match `rtl/cpu/c816_tables.txt` | Python 3 |
-| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `cpu-c816`, `synth`, `manual-check` | iverilog, yosys |
+| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `cpu-c816`, `cpu-mutation`, `synth`, `manual-check` | iverilog, yosys |
 
 Keep `sim/vsim.py` while the RTL needs no parameters, `generate`, or `function`.
 Do not shape the RTL for the mini simulator: the design would get worse.
@@ -138,8 +139,10 @@ The cause of the LUT difference is not investigated. Quote the LUT count with th
 
 ## 6. Not verified
 
+- The cycle counts of the new core in the CI. Our own vectors carry no cycle counts. Only the public
+  vectors check the cycles, and they run only on a local computer.
 - `make cpu` compares the core with our own model. The public vectors confirm this model only for the
   53 opcodes of today, without decimal mode and without cycles.
-- Decimal mode and cycle counts of the core.
+- Decimal mode of the two cores, and the cycle counts of the old core.
 - Placement and maximum frequency (nextpnr is not installed).
 - Operation on a real board.

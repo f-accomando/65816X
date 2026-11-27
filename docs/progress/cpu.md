@@ -34,7 +34,9 @@ To close a step, make its opcodes pass the test bench and make `make check` pass
   Done: work orders 1-6. The new core `rtl/cpu/c816_core.v` runs all sequences of the 53 opcodes
   and the `WDM` extensions. On all public vectors, unchanged, 50 opcodes pass cycle by cycle.
   `ADC` and `SBC` fail only with D = 1 (step C5). The system does not use the new core yet.
-  Next: work order 7 (faults for the new core), then work order 8 (the system).
+  Work order 7 is done: `make cpu-mutation` finds 7 faults of 7. The fault "abs,X dummy cycle never
+  skipped" of the design is not in the list: our own vectors carry no cycle counts.
+  Next: work order 8 (the system).
 - **C3** all addressing modes, with loads, stores, and arithmetic.
 - **C4** remaining instructions: shifts, stack, transfers, jumps, block moves.
 - **C5** interrupts (NMI, IRQ, BRK, COP, RTI, WAI, STP) and decimal mode: **256 of 256**.

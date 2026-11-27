@@ -8,7 +8,7 @@ BUDGET ?= B
 
 RTL := $(filter %.v,$(shell cat rtl/files.f))
 
-.PHONY: test mutation rom iverilog unit cpu cpu-c816 cpu-illegal cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
+.PHONY: test mutation cpu-mutation rom iverilog unit cpu cpu-c816 cpu-illegal cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
 
 # Collaudo con il mini simulatore Python (nessuna dipendenza esterna)
 test:
@@ -17,6 +17,10 @@ test:
 # Verifica che il collaudo scopra guasti introdotti di proposito nell'RTL
 mutation:
 	$(PY) sim/mutation_check.py
+
+# Faults in the new core: the CPU test bench must find each one (needs iverilog)
+cpu-mutation:
+	$(PY) sim/mutation_check.py --cpu
 
 # Assembla il programma di collaudo in rom.hex (letto da cart_rom.v con $$readmemh)
 rom: rom.hex
@@ -116,7 +120,7 @@ manual-check:
 	$(PY) manuals/tools/manuals.py check
 
 # Tutto quello che esegue la CI
-check: tables-check test mutation iverilog unit cpu cpu-c816 synth manual-check
+check: tables-check test mutation iverilog unit cpu cpu-c816 cpu-mutation synth manual-check
 
 clean:
 	rm -rf build rom.hex

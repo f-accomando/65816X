@@ -18,6 +18,7 @@ Read files in small slices (`grep`, or `offset` and `limit`). The current state 
 | Check commands, synthesis budget, measured results | `docs/VERIFICATION.md` |
 | Variants A and B, resource estimates | `docs/VARIANTS.md` |
 | User manual: text, build, rules | `manuals/README.md` |
+| Design of the new CPU core, work orders | `docs/design/cpu-core.md` |
 
 ## 2. Rules
 

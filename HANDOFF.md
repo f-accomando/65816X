@@ -69,6 +69,8 @@ project did not fit in either FPGA.
 5. **Audio of B: 16 voices at 44.1 kHz** (the user proposed 24 voices as on the PS1, then chose 16).
 6. **Resolution**: no 480/720; keep SNES resolutions (the user was interested in double resolution and sprites with the same architecture).
 7. **Look**: "Wind Waker" sharpness (clean polygons and textures, without the blur of the N64) without GameCube emulation.
+8. **CPU core** (2026-11-27): 2 FPGA clocks for each CPU cycle. The design in `docs/design/cpu-core.md`
+   is approved, with the proposals of its section 9.3. Ask before you delete the old core.
 
 ## 4. Proposals of the user (from ChatGPT chats) and results
 

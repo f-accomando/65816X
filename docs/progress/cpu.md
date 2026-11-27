@@ -26,7 +26,8 @@ The list of what must continue to pass is in `tests/cpu_pass.txt`.
 
 To close a step, make its opcodes pass the test bench and make `make check` pass.
 
-- **C2** reorganize the core: table decode, one ALU, separate address calculation, one sequence step
+- **C2** (in progress, design: [cpu-core.md](../design/cpu-core.md), work orders in its section 8)
+  reorganize the core: table decode, one ALU, separate address calculation, one sequence step
   for each cycle of the real chip; D register and D flag; high byte of S held at 01 in emulation;
   signal for an unimplemented opcode (`dbg_illegal`). This fixes the differences in the table above.
   Then compare the cycle counts with the public vectors. Today they all differ: the core uses 2 clocks

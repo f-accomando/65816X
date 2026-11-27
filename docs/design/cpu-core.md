@@ -552,3 +552,24 @@ Checked on 2026-11-27 with a second script, written from the text of this docume
 Corrected in the review: the cycle and bus checks of section 7.2 apply only to the new core.
 Not checked: the module port lists, the resource estimates, and the rules of section 5.4.
 
+## 11. Step C3: all addressing modes (done 2026-11-28)
+
+The structure of the sections above did not change. The additions:
+
+| Part | Addition |
+|---|---|
+| Latch | `OF`, the offset byte of a direct page or stack relative instruction (`cap` code 7) |
+| `asel` (now 5 bits) | `DUMI` replaces `DUMX` (X or Y); `DP0 DP1` pointer of (dp) and (dp),Y; `DX0 DX1` pointer of (dp,X); `LP0 LP1 LP2` pointer of [dp]; `SR0 SR1` pointer of (sr,S),Y |
+| `ea` | `ABSY LONGX LONGY DP DPX DPY SR` |
+| `skip` | `DL0`: skip the next step if D[7:0] = 0 |
+| Sequences | `DP DPX DPIND DPXIND DPINDY DPLONG SR SRINDY`; `abs,Y` uses `ABSX`, and `long,X` uses `LONG` |
+| Ports | `c816_addr` has `y`, `d`, and `of`; `c816_seq` has `dlz` |
+
+Rules that the public vectors confirm:
+
+- Direct page and stack relative data stay in bank 0, also the second byte of a 16-bit value.
+- In emulation mode with D[7:0] = 0, direct page indexing and the pointers of (dp), (dp,X), and
+  (dp),Y stay in one page. The pointer of [dp] does not.
+- (sr,S),Y has an internal cycle with the address of the high byte of the pointer.
+- The internal cycles of direct page and stack relative instructions drive the address of the offset byte.
+

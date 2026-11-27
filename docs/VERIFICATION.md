@@ -37,8 +37,8 @@ The CI (`.github/workflows/ci.yml`) runs the same commands on each pull request 
 ### Public vectors
 
 Source: [SingleStepTests/65816](https://github.com/SingleStepTests/65816), MIT license, commit `307c63f`.
-Each opcode has 10,000 vectors for native mode and 10,000 for emulation mode. Keep the files outside
-the repository, in `<folder>/v1/`. The 106 files of the 53 opcodes of today take 457 MB.
+Each opcode has 10,000 vectors for native mode and 10,000 for emulation mode (`MVN` and `MVP` have 200). Keep the files outside
+the repository, in `<folder>/v1/`. The 354 files of the 177 opcodes of today take 1.8 GB.
 `sim/cpu_sst.py` converts them. `SST_FLAGS` accepts `--limit N`, `--d0`, `--page1`, and `--bus`.
 `--bus` adds the bus cycles of each vector, for a check cycle by cycle.
 Only the adapter file `tb/cpu_adapt_c816.vh` reads the internal registers of the core.
@@ -64,7 +64,7 @@ Trap: with `iverilog -g2012`, the word `ref` is reserved. Do not use it as an in
 
 Check the device numbers in the script against the Lattice datasheet.
 
-Today variant A **does not fit** (125 blocks of 108: placeholder ROM and WRAM in BRAM). The CI checks
+Today variant A **does not fit** (126 blocks of 108: placeholder ROM and WRAM in BRAM). The CI checks
 only B. Add A to the CI when the memory is on SDRAM (roadmap phase F4).
 
 ## 5. Results measured on 2026-11-27
@@ -78,12 +78,12 @@ The system uses the new core `c816`.
 | `make mutation` | 11 of 11 faults found |
 | `make iverilog` | 56/56 |
 | `make unit` | 0 differences, 28,123 accesses to the WRAM port |
-| `make cpu` | 53 of 256 opcodes; 21,200 of 21,200 vectors |
-| `make cpu-mutation` | 9 of 9 faults found |
-| equivalent LUT4 | 4224 (5% of the 85F, 10% of the 45F) |
-| `DP16KD` | 125 (60% of the 85F, 116% of the 45F) |
+| `make cpu` | 177 of 256 opcodes; 70,800 of 70,800 vectors |
+| `make cpu-mutation` | 15 of 15 faults found |
+| equivalent LUT4 | 4568 (5% of the 85F, 10% of the 45F) |
+| `DP16KD` | 126 (61% of the 85F, 117% of the 45F); yosys puts the decode table in one block |
 | `MULT18X18D` | 2 |
-| `TRELLIS_FF` | 680 |
+| `TRELLIS_FF` | 690 |
 | `TRELLIS_DPR16X4` | 12 |
 
 With the old core, the system took 1321 cycles for the test program, 4393 equivalent LUT4, and 726 FF.
@@ -124,6 +124,19 @@ cores, and `CORE=c816` selected the one that is the only core today.
 
 In the first run, only `$69`, `$6D`, and `$E9` fail, only in A and P, because decimal mode is missing.
 No vector of any opcode has a cycle or bus difference.
+
+### Public vectors after step C3 (all addressing modes)
+
+Run on 2026-11-28, all vectors of the 177 opcodes, with the cycle and bus checks.
+
+| Run | Result |
+|---|---|
+| `make ref-public` | 0 of 3,239,910 vectors differ, cycles included; 300,090 decimal vectors skipped |
+| `make cpu-public SST_FLAGS="--bus"` | **147 of 256 opcodes**; 3,277,325 of 3,540,000 vectors; 0 cycle differences |
+| `make cpu-public SST_FLAGS="--limit 500 --bus --d0"` | 177 of 256 opcodes; 88,622 of 88,622 vectors |
+
+In the full run, only the 15 forms of `ADC` and of `SBC` fail, only in A and P, because decimal mode
+is missing.
 
 ### CI on GitHub
 

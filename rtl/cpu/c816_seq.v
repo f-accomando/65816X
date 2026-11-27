@@ -16,6 +16,7 @@ module c816_seq (
   input xcarry,
   input is_store,
   input e,
+  input dlz,
   output reg [3:0] t,
   output reg ph,
   output reg illegal,
@@ -33,8 +34,9 @@ module c816_seq (
   // last codes: 0 NO, 1 ALW, 2 W8, 3 NTK, 4 NEC
   wire is_last = (last == 3'd1) || ((last == 3'd2) && w8) || ((last == 3'd3) && !taken) ||
                  ((last == 3'd4) && !(e && br_cross));
-  // skip codes: 0 NO, 1 XNC, 2 W8
-  assign skip1 = ((skip == 3'd1) && !is_store && !xcarry) || ((skip == 3'd2) && w8);
+  // skip codes: 0 NO, 1 XNC, 2 W8, 3 DL0 (dlz = 1: D[7:0] is 0)
+  assign skip1 = ((skip == 3'd1) && !is_store && !xcarry) || ((skip == 3'd2) && w8) ||
+                 ((skip == 3'd3) && dlz);
 
   assign rd = !ph && !halt && reads;
   assign wr = !ph && !halt && writes;

@@ -1,7 +1,8 @@
 // c816_core.v - top of the c816 core, a cycle-accurate 65C816 (docs/design/cpu-core.md).
 // One CPU cycle is two FPGA clocks: phase 0 drives addr and one rd or wr pulse, phase 1 waits
 // for din. The core captures din at the clock that ends phase 1 (cyc_end).
-// Latches: IR (9 bits, bit 8 = pseudo-opcode), AL, AH, BA, DL, DH. Execute happens at commit.
+// Latches: IR (9 bits, bit 8 = pseudo-opcode), AL, AH, BA, DL, DH, OF (direct page or stack
+// offset). Execute happens at commit.
 // nmi and irq are reserved and have no effect yet. WDM runs the extensions only with ext_en = 1.
 module c816_core (
   input clk,
@@ -27,7 +28,7 @@ module c816_core (
   output [15:0] dbg_y
 );
   reg [8:0] ir;
-  reg [7:0] al, ah, ba, dl, dh;
+  reg [7:0] al, ah, ba, dl, dh, of;
 
   // ---- decode ----
   wire [4:0] seq;
@@ -48,7 +49,7 @@ module c816_core (
   // ---- cycle descriptor ----
   wire [3:0] t;
   wire [2:0] bus;
-  wire [3:0] asel;
+  wire [4:0] asel;
   wire [2:0] cap;
   wire pcinc;
   wire [1:0] sop;
@@ -141,8 +142,8 @@ module c816_core (
 
   // ---- address unit ----
   c816_addr u_addr (
-    .asel(asel), .ea(ea), .pc(r_pc), .pbr(r_pbr), .dbr(r_dbr), .s(r_s), .x(r_x), .e(r_e),
-    .al(al), .ah(ah), .ba(ba), .vec(8'hFC),
+    .asel(asel), .ea(ea), .pc(r_pc), .pbr(r_pbr), .dbr(r_dbr), .s(r_s), .x(r_x), .y(r_y),
+    .d(r_d), .e(r_e), .al(al), .ah(ah), .ba(ba), .of(of), .vec(8'hFC),
     .addr(addr), .xcarry(xcarry), .br_cross(br_cross), .br_target(br_target), .pc_m1(pc_m1)
   );
 
@@ -151,7 +152,7 @@ module c816_core (
   c816_seq u_seq (
     .clk(clk), .rst(rst), .halt(halt), .bus_wait(bus_wait), .bus(bus), .last(last),
     .skip(skip), .imp(imp), .w8(w8), .taken(taken), .br_cross(br_cross),
-    .xcarry(xcarry || !r_p[4]), .is_store(is_store), .e(r_e),
+    .xcarry(xcarry || !r_p[4]), .is_store(is_store), .e(r_e), .dlz(r_d[7:0] == 8'h00),
     .t(t), .ph(ph), .illegal(illegal), .cyc_end(cyc_end), .commit(commit), .skip1(skip1),
     .rd(rd), .wr(wr), .sync(sync)
   );
@@ -165,6 +166,7 @@ module c816_core (
       ba <= 8'h00;
       dl <= 8'h00;
       dh <= 8'h00;
+      of <= 8'h00;
     end else if (cyc_end && reads) begin
       case (cap)
         3'd1: al <= din;
@@ -173,6 +175,7 @@ module c816_core (
         3'd4: dl <= din;
         3'd5: dh <= din;
         3'd6: ir <= {1'b0, din};
+        3'd7: of <= din;
         default: ;
       endcase
     end

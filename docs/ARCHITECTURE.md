@@ -61,8 +61,9 @@ In emulation mode, the high byte of S stays at 01.
 
 | Group | Opcodes |
 |---|---|
-| Load and store | `LDA` imm/abs/abs,X/long, `LDX`/`LDY` imm/abs, `STA` abs/abs,X/long, `STX`/`STY` abs |
-| Arithmetic | `ADC` imm/abs, `SBC` imm, `CMP` imm/abs, `AND`/`ORA`/`EOR` imm, `INC A`, `DEC A`, `INX/DEX/INY/DEY` |
+| Load, store, arithmetic, logic | `LDA`, `STA` (no immediate), `ADC`, `SBC`, `CMP`, `AND`, `ORA`, `EOR` with all addressing modes: immediate, absolute, absolute,X, absolute,Y, long, long,X, direct page, direct page,X, (dp), (dp,X), (dp),Y, [dp], [dp],Y, sr,S, (sr,S),Y |
+| Index and zero | `LDX`, `LDY`, `STX`, `STY`, `STZ`, `CPX`, `CPY` with all their addressing modes |
+| Increment | `INC A`, `DEC A`, `INX/DEX/INY/DEY` |
 | Transfers | `TAX TXA TAY TYA` |
 | Flags and mode | `CLC SEC SEI CLI XCE REP SEP` |
 | Jumps | `BRA BNE BEQ BCC BCS BPL BMI`, `JMP abs`, `JML long`, `JSR abs`, `RTS` |
@@ -89,8 +90,8 @@ Planned and not yet done: DOT3, CROSS3, ROT, BLIT, FILL, 32-bit registers R0-R7.
 ## Known limits
 
 - No interrupts (NMI, IRQ, BRK, COP) and no decimal arithmetic (the D flag exists).
-- Many addressing modes are missing (direct page, stack-relative, indirect). Many instructions are missing (shift, BIT, MVN/MVP, PHX/PLX...).
-- The cycle counts match the real chip for the 53 opcodes. The 6/8/12 master clocks of the original bus are not emulated.
+- Many instructions are missing (shifts, BIT, memory increment, MVN/MVP, PHX/PLX, V branches...).
+- The cycle counts match the real chip for the 177 opcodes. The 6/8/12 master clocks of the original bus are not emulated.
 - The reset sequence reads only the vector. The real chip takes more cycles.
 - The 5A22 multiplies and divides instantly. WDM DIV uses a combinational divider. Replace it with a sequential divider.
 - DMA: no HDMA. The DMA moves 1 byte every 2 cycles.

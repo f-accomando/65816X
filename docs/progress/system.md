@@ -9,6 +9,7 @@ The phases are in [ROADMAP.md](../ROADMAP.md). The open questions are in [HANDOF
   which is deprecated. Move to versions that use Node.js 24.
 - **Synthesis**: find why Yosys 0.33 (CI) counts 11245 equivalent LUT4 and Yosys 0.52 counts 4219
   (see [VERIFICATION.md](../VERIFICATION.md), section 5).
+- **Assembler**: `sim/asm.py` knows only part of the instructions and addressing modes of the core.
 - **F1**: sequential divider in the 5A22, with the latency of the original.
 - **F1b**: minimal board top, pins, nextpnr in the CI. It depends on the choice of the board.
 - From F3: see the roadmap.

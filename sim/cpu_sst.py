@@ -24,7 +24,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cpu_ref
 
-DECIMAL = (0x69, 0x6D, 0xE9)  # the reference model has no decimal ADC and SBC
+# the reference model has no decimal ADC and SBC
+DECIMAL = tuple(op for op, (name, _) in cpu_ref.OPCODES.items() if name in ('adc', 'sbc'))
 
 
 def files(folder):

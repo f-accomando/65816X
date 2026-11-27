@@ -11,15 +11,29 @@ N, V, M, X, D, I, Z, C = 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01
 
 REGS = ('pc', 's', 'p', 'a', 'x', 'y', 'dbr', 'd', 'pbr', 'e')
 
+# modi di indirizzamento delle otto istruzioni del primo gruppo: scostamento dall'opcode base
+# dp = direct page, i = indiretto, il = indiretto lungo, sr = relativo alla pila
+GROUP_ONE_MODES = (
+    (0x01, 'dpxi'), (0x03, 'sr'), (0x05, 'dp'), (0x07, 'dpil'), (0x09, 'imm'), (0x0D, 'abs'),
+    (0x0F, 'long'), (0x11, 'dpiy'), (0x12, 'dpi'), (0x13, 'sriy'), (0x15, 'dpx'), (0x17, 'dpily'),
+    (0x19, 'absy'), (0x1D, 'absx'), (0x1F, 'longx'),
+)
+GROUP_ONE = ((0x00, 'ora'), (0x20, 'and_'), (0x40, 'eor'), (0x60, 'adc'), (0x80, 'sta'),
+             (0xA0, 'lda'), (0xC0, 'cmp'), (0xE0, 'sbc'))
+
 # opcode -> (operazione, modo di indirizzamento o argomento)
-OPCODES = {
-    0xA9: ('lda', 'imm'), 0xAD: ('lda', 'abs'), 0xBD: ('lda', 'absx'), 0xAF: ('lda', 'long'),
-    0xA2: ('ldx', 'imm'), 0xAE: ('ldx', 'abs'), 0xA0: ('ldy', 'imm'), 0xAC: ('ldy', 'abs'),
-    0x8D: ('sta', 'abs'), 0x9D: ('sta', 'absx'), 0x8F: ('sta', 'long'),
-    0x8E: ('stx', 'abs'), 0x8C: ('sty', 'abs'),
-    0x69: ('adc', 'imm'), 0x6D: ('adc', 'abs'), 0xE9: ('sbc', 'imm'),
-    0xC9: ('cmp', 'imm'), 0xCD: ('cmp', 'abs'),
-    0x29: ('and_', 'imm'), 0x09: ('ora', 'imm'), 0x49: ('eor', 'imm'),
+OPCODES = {base + offset: (name, mode) for base, name in GROUP_ONE for offset, mode in GROUP_ONE_MODES
+           if not (name == 'sta' and mode == 'imm')}
+OPCODES.update({
+    0xA2: ('ldx', 'imm'), 0xA6: ('ldx', 'dp'), 0xAE: ('ldx', 'abs'), 0xB6: ('ldx', 'dpy'),
+    0xBE: ('ldx', 'absy'),
+    0xA0: ('ldy', 'imm'), 0xA4: ('ldy', 'dp'), 0xAC: ('ldy', 'abs'), 0xB4: ('ldy', 'dpx'),
+    0xBC: ('ldy', 'absx'),
+    0x86: ('stx', 'dp'), 0x8E: ('stx', 'abs'), 0x96: ('stx', 'dpy'),
+    0x84: ('sty', 'dp'), 0x8C: ('sty', 'abs'), 0x94: ('sty', 'dpx'),
+    0x64: ('stz', 'dp'), 0x74: ('stz', 'dpx'), 0x9C: ('stz', 'abs'), 0x9E: ('stz', 'absx'),
+    0xE0: ('cpx', 'imm'), 0xE4: ('cpx', 'dp'), 0xEC: ('cpx', 'abs'),
+    0xC0: ('cpy', 'imm'), 0xC4: ('cpy', 'dp'), 0xCC: ('cpy', 'abs'),
     0xE8: ('step', ('x', 1)), 0xCA: ('step', ('x', -1)),
     0xC8: ('step', ('y', 1)), 0x88: ('step', ('y', -1)),
     0x1A: ('step', ('a', 1)), 0x3A: ('step', ('a', -1)),
@@ -34,7 +48,7 @@ OPCODES = {
     0x4C: ('jmp', None), 0x5C: ('jml', None), 0x20: ('jsr', None), 0x60: ('rts', None),
     0x48: ('pha', None), 0x68: ('pla', None),
     0xEA: ('nop', None), 0x42: ('wdm', None),
-}
+})
 
 
 class Cpu:
@@ -101,35 +115,97 @@ class Cpu:
         self.setf(N, value & sign)
         self.setf(Z, (value & mask) == 0)
 
+    # direct page: indirizzo nel banco 0
+    def old_wrap(self):
+        """in emulazione con D allineato alla pagina, i modi del 6502 restano nella pagina"""
+        return bool(self.e) and (self.d & 0xFF) == 0
+
+    def dp_address(self, offset, index=0):
+        if self.old_wrap():
+            return (self.d & 0xFF00) | ((offset + index) & 0xFF)
+        return (self.d + offset + index) & 0xFFFF
+
+    def direct_offset(self):
+        offset = self.fetch()
+        if self.d & 0xFF:  # un ciclo in piu' per sommare D quando non e' allineato
+            self.io(self.code_address(1))
+        return offset
+
+    def pointer(self, base, count, wrap=False):
+        value = 0
+        for i in range(count):
+            addr = (base & 0xFF00) | ((base + i) & 0xFF) if wrap else (base + i) & 0xFFFF
+            value |= self.read(addr) << (8 * i)
+        return value
+
+    def indexed(self, base, index, store):
+        """ciclo in piu' per correggere il byte alto: sempre nelle scritture e con indici a 16 bit,
+        altrimenti solo se si cambia pagina"""
+        low = (base & 0xFF) + (index & 0xFF)
+        if store or not self.x8() or low > 0xFF:
+            self.io((base & 0xFFFF00) | (low & 0xFF))
+        return (base + index) & 0xFFFFFF
+
     def effective(self, mode, store=False):
+        """restituisce (indirizzo, True se il secondo byte resta nel banco 0)"""
         if mode == 'abs':
-            return (self.dbr << 16) | self.fetch(2)
-        if mode == 'absx':
-            base = self.fetch(2)
-            low = (base & 0xFF) + (self.x & 0xFF)
-            # ciclo in piu' per correggere il byte alto: sempre nelle scritture e con X a 16 bit,
-            # altrimenti solo se si cambia pagina
-            if store or not self.x8() or low > 0xFF:
-                self.io((self.dbr << 16) | (base & 0xFF00) | (low & 0xFF))
-            return (((self.dbr << 16) | base) + self.x) & 0xFFFFFF
+            return (self.dbr << 16) | self.fetch(2), False
+        if mode in ('absx', 'absy'):
+            base = (self.dbr << 16) | self.fetch(2)
+            return self.indexed(base, self.x if mode == 'absx' else self.y, store), False
         if mode == 'long':
-            return self.fetch(3)
+            return self.fetch(3), False
+        if mode == 'longx':
+            return (self.fetch(3) + self.x) & 0xFFFFFF, False
+        if mode == 'sr':
+            offset = self.fetch()
+            self.io(self.code_address(1))
+            return (self.s + offset) & 0xFFFF, True
+        if mode == 'sriy':
+            offset = self.fetch()
+            self.io(self.code_address(1))
+            base = (self.s + offset) & 0xFFFF
+            low = self.pointer(base, 2)
+            self.io((base + 1) & 0xFFFF)
+            return (((self.dbr << 16) | low) + self.y) & 0xFFFFFF, False
+        offset = self.direct_offset()
+        if mode == 'dp':
+            return self.dp_address(offset), True
+        if mode in ('dpx', 'dpy'):
+            self.io(self.code_address(1))
+            return self.dp_address(offset, self.x if mode == 'dpx' else self.y), True
+        if mode == 'dpi':
+            return (self.dbr << 16) | self.pointer(self.dp_address(offset), 2, self.old_wrap()), False
+        if mode == 'dpxi':
+            self.io(self.code_address(1))
+            low = self.pointer(self.dp_address(offset, self.x), 2, self.old_wrap())
+            return (self.dbr << 16) | low, False
+        if mode == 'dpiy':
+            base = (self.dbr << 16) | self.pointer(self.dp_address(offset), 2, self.old_wrap())
+            return self.indexed(base, self.y, store), False
+        if mode in ('dpil', 'dpily'):
+            base = self.pointer((self.d + offset) & 0xFFFF, 3)
+            return (base + (self.y if mode == 'dpily' else 0)) & 0xFFFFFF, False
         raise ValueError(mode)
+
+    @staticmethod
+    def second(ea, bank0):
+        return (ea + 1) & (0xFFFF if bank0 else 0xFFFFFF)
 
     def operand(self, mode, w8):
         if mode == 'imm':
             return self.fetch(1 if w8 else 2)
-        ea = self.effective(mode)
+        ea, bank0 = self.effective(mode)
         value = self.read(ea)
         if not w8:
-            value |= self.read(ea + 1) << 8
+            value |= self.read(self.second(ea, bank0)) << 8
         return value
 
     def store(self, mode, value, w8):
-        ea = self.effective(mode, True)
+        ea, bank0 = self.effective(mode, True)
         self.write(ea, value)
         if not w8:
-            self.write(ea + 1, value >> 8)
+            self.write(self.second(ea, bank0), value >> 8)
 
     def set_a(self, value):
         if self.m8():
@@ -210,12 +286,24 @@ class Cpu:
         mask = 0xFF if self.m8() else 0xFFFF
         self.add(self.operand(mode, self.m8()) ^ mask)
 
+    def compare(self, reg, mode, w8):
+        value = self.operand(mode, w8)
+        mask = 0xFF if w8 else 0xFFFF
+        left = reg & mask
+        self.setf(C, left >= value)
+        self.nz((left - value) & mask, w8)
+
     def op_cmp(self, mode):
-        value = self.operand(mode, self.m8())
-        mask = 0xFF if self.m8() else 0xFFFF
-        a = self.a & mask
-        self.setf(C, a >= value)
-        self.nz((a - value) & mask, self.m8())
+        self.compare(self.a, mode, self.m8())
+
+    def op_cpx(self, mode):
+        self.compare(self.x, mode, self.x8())
+
+    def op_cpy(self, mode):
+        self.compare(self.y, mode, self.x8())
+
+    def op_stz(self, mode):
+        self.store(mode, 0, self.m8())
 
     def op_and_(self, mode):
         self.set_a(self.a & self.operand(mode, self.m8()))

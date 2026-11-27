@@ -15,27 +15,90 @@ module c816_decode (
   always @* begin
     seq = 5'd0; op = 5'd0; ea = 4'd0; w = 3'd0; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b0;
     case (ir)
+      9'h001: begin seq = 5'd19; op = 5'd8; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
+      9'h003: begin seq = 5'd22; op = 5'd8; ea = 4'd10; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
+      9'h005: begin seq = 5'd16; op = 5'd8; ea = 4'd7; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
+      9'h007: begin seq = 5'd21; op = 5'd8; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
       9'h009: begin seq = 5'd3; op = 5'd8; ea = 4'd0; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
+      9'h00D: begin seq = 5'd5; op = 5'd8; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
+      9'h00F: begin seq = 5'd7; op = 5'd8; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
       9'h010: begin seq = 5'd10; op = 5'd16; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd7; imp = 1'b1; end  // BPL
+      9'h011: begin seq = 5'd20; op = 5'd8; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
+      9'h012: begin seq = 5'd18; op = 5'd8; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
+      9'h013: begin seq = 5'd23; op = 5'd8; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
+      9'h015: begin seq = 5'd17; op = 5'd8; ea = 4'd8; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
+      9'h017: begin seq = 5'd21; op = 5'd8; ea = 4'd6; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
       9'h018: begin seq = 5'd0; op = 5'd12; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CLC
+      9'h019: begin seq = 5'd6; op = 5'd8; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
       9'h01A: begin seq = 5'd0; op = 5'd10; ea = 4'd0; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // INC
+      9'h01D: begin seq = 5'd6; op = 5'd8; ea = 4'd2; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
+      9'h01F: begin seq = 5'd7; op = 5'd8; ea = 4'd5; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ORA
       9'h020: begin seq = 5'd11; op = 5'd0; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // JSR
+      9'h021: begin seq = 5'd19; op = 5'd7; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
+      9'h023: begin seq = 5'd22; op = 5'd7; ea = 4'd10; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
+      9'h025: begin seq = 5'd16; op = 5'd7; ea = 4'd7; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
+      9'h027: begin seq = 5'd21; op = 5'd7; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
       9'h029: begin seq = 5'd3; op = 5'd7; ea = 4'd0; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
+      9'h02D: begin seq = 5'd5; op = 5'd7; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
+      9'h02F: begin seq = 5'd7; op = 5'd7; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
       9'h030: begin seq = 5'd10; op = 5'd16; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd15; imp = 1'b1; end  // BMI
+      9'h031: begin seq = 5'd20; op = 5'd7; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
+      9'h032: begin seq = 5'd18; op = 5'd7; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
+      9'h033: begin seq = 5'd23; op = 5'd7; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
+      9'h035: begin seq = 5'd17; op = 5'd7; ea = 4'd8; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
+      9'h037: begin seq = 5'd21; op = 5'd7; ea = 4'd6; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
       9'h038: begin seq = 5'd0; op = 5'd12; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd8; imp = 1'b1; end  // SEC
+      9'h039: begin seq = 5'd6; op = 5'd7; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
       9'h03A: begin seq = 5'd0; op = 5'd11; ea = 4'd0; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // DEC
+      9'h03D: begin seq = 5'd6; op = 5'd7; ea = 4'd2; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
+      9'h03F: begin seq = 5'd7; op = 5'd7; ea = 4'd5; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // AND
+      9'h041: begin seq = 5'd19; op = 5'd9; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
       9'h042: begin seq = 5'd1; op = 5'd18; ea = 4'd0; w = 3'd3; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // WDM
+      9'h043: begin seq = 5'd22; op = 5'd9; ea = 4'd10; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
+      9'h045: begin seq = 5'd16; op = 5'd9; ea = 4'd7; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
+      9'h047: begin seq = 5'd21; op = 5'd9; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
       9'h048: begin seq = 5'd13; op = 5'd0; ea = 4'd0; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // PHA
       9'h049: begin seq = 5'd3; op = 5'd9; ea = 4'd0; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
       9'h04C: begin seq = 5'd8; op = 5'd0; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // JMP
+      9'h04D: begin seq = 5'd5; op = 5'd9; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
+      9'h04F: begin seq = 5'd7; op = 5'd9; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
+      9'h051: begin seq = 5'd20; op = 5'd9; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
+      9'h052: begin seq = 5'd18; op = 5'd9; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
+      9'h053: begin seq = 5'd23; op = 5'd9; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
+      9'h055: begin seq = 5'd17; op = 5'd9; ea = 4'd8; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
+      9'h057: begin seq = 5'd21; op = 5'd9; ea = 4'd6; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
       9'h058: begin seq = 5'd0; op = 5'd12; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd2; imp = 1'b1; end  // CLI
+      9'h059: begin seq = 5'd6; op = 5'd9; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
       9'h05C: begin seq = 5'd9; op = 5'd0; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // JML
+      9'h05D: begin seq = 5'd6; op = 5'd9; ea = 4'd2; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
+      9'h05F: begin seq = 5'd7; op = 5'd9; ea = 4'd5; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // EOR
       9'h060: begin seq = 5'd12; op = 5'd0; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // RTS
+      9'h061: begin seq = 5'd19; op = 5'd4; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
+      9'h063: begin seq = 5'd22; op = 5'd4; ea = 4'd10; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
+      9'h064: begin seq = 5'd16; op = 5'd2; ea = 4'd7; w = 3'd0; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STZ
+      9'h065: begin seq = 5'd16; op = 5'd4; ea = 4'd7; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
+      9'h067: begin seq = 5'd21; op = 5'd4; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
       9'h068: begin seq = 5'd14; op = 5'd1; ea = 4'd0; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // PLA
       9'h069: begin seq = 5'd3; op = 5'd4; ea = 4'd0; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
       9'h06D: begin seq = 5'd5; op = 5'd4; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
+      9'h06F: begin seq = 5'd7; op = 5'd4; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
+      9'h071: begin seq = 5'd20; op = 5'd4; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
+      9'h072: begin seq = 5'd18; op = 5'd4; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
+      9'h073: begin seq = 5'd23; op = 5'd4; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
+      9'h074: begin seq = 5'd17; op = 5'd2; ea = 4'd8; w = 3'd0; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STZ
+      9'h075: begin seq = 5'd17; op = 5'd4; ea = 4'd8; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
+      9'h077: begin seq = 5'd21; op = 5'd4; ea = 4'd6; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
       9'h078: begin seq = 5'd0; op = 5'd12; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd10; imp = 1'b1; end  // SEI
+      9'h079: begin seq = 5'd6; op = 5'd4; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
+      9'h07D: begin seq = 5'd6; op = 5'd4; ea = 4'd2; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
+      9'h07F: begin seq = 5'd7; op = 5'd4; ea = 4'd5; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // ADC
       9'h080: begin seq = 5'd10; op = 5'd17; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // BRA
+      9'h081: begin seq = 5'd19; op = 5'd2; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
+      9'h083: begin seq = 5'd22; op = 5'd2; ea = 4'd10; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
+      9'h084: begin seq = 5'd16; op = 5'd2; ea = 4'd7; w = 3'd1; src = 3'd3; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STY
+      9'h085: begin seq = 5'd16; op = 5'd2; ea = 4'd7; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
+      9'h086: begin seq = 5'd16; op = 5'd2; ea = 4'd7; w = 3'd1; src = 3'd2; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STX
+      9'h087: begin seq = 5'd21; op = 5'd2; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
       9'h088: begin seq = 5'd0; op = 5'd11; ea = 4'd0; w = 3'd1; src = 3'd3; dst = 3'd3; arg = 4'd0; imp = 1'b1; end  // DEY
       9'h08A: begin seq = 5'd0; op = 5'd3; ea = 4'd0; w = 3'd0; src = 3'd2; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // TXA
       9'h08C: begin seq = 5'd5; op = 5'd2; ea = 4'd1; w = 3'd1; src = 3'd3; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STY
@@ -43,10 +106,27 @@ module c816_decode (
       9'h08E: begin seq = 5'd5; op = 5'd2; ea = 4'd1; w = 3'd1; src = 3'd2; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STX
       9'h08F: begin seq = 5'd7; op = 5'd2; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
       9'h090: begin seq = 5'd10; op = 5'd16; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // BCC
+      9'h091: begin seq = 5'd20; op = 5'd2; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
+      9'h092: begin seq = 5'd18; op = 5'd2; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
+      9'h093: begin seq = 5'd23; op = 5'd2; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
+      9'h094: begin seq = 5'd17; op = 5'd2; ea = 4'd8; w = 3'd1; src = 3'd3; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STY
+      9'h095: begin seq = 5'd17; op = 5'd2; ea = 4'd8; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
+      9'h096: begin seq = 5'd17; op = 5'd2; ea = 4'd9; w = 3'd1; src = 3'd2; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STX
+      9'h097: begin seq = 5'd21; op = 5'd2; ea = 4'd6; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
       9'h098: begin seq = 5'd0; op = 5'd3; ea = 4'd0; w = 3'd0; src = 3'd3; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // TYA
+      9'h099: begin seq = 5'd6; op = 5'd2; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
+      9'h09C: begin seq = 5'd5; op = 5'd2; ea = 4'd1; w = 3'd0; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STZ
       9'h09D: begin seq = 5'd6; op = 5'd2; ea = 4'd2; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
+      9'h09E: begin seq = 5'd6; op = 5'd2; ea = 4'd2; w = 3'd0; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STZ
+      9'h09F: begin seq = 5'd7; op = 5'd2; ea = 4'd5; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // STA
       9'h0A0: begin seq = 5'd3; op = 5'd1; ea = 4'd0; w = 3'd1; src = 3'd0; dst = 3'd3; arg = 4'd0; imp = 1'b1; end  // LDY
+      9'h0A1: begin seq = 5'd19; op = 5'd1; ea = 4'd1; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
       9'h0A2: begin seq = 5'd3; op = 5'd1; ea = 4'd0; w = 3'd1; src = 3'd0; dst = 3'd2; arg = 4'd0; imp = 1'b1; end  // LDX
+      9'h0A3: begin seq = 5'd22; op = 5'd1; ea = 4'd10; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
+      9'h0A4: begin seq = 5'd16; op = 5'd1; ea = 4'd7; w = 3'd1; src = 3'd0; dst = 3'd3; arg = 4'd0; imp = 1'b1; end  // LDY
+      9'h0A5: begin seq = 5'd16; op = 5'd1; ea = 4'd7; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
+      9'h0A6: begin seq = 5'd16; op = 5'd1; ea = 4'd7; w = 3'd1; src = 3'd0; dst = 3'd2; arg = 4'd0; imp = 1'b1; end  // LDX
+      9'h0A7: begin seq = 5'd21; op = 5'd1; ea = 4'd3; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
       9'h0A8: begin seq = 5'd0; op = 5'd3; ea = 4'd0; w = 3'd1; src = 3'd1; dst = 3'd3; arg = 4'd0; imp = 1'b1; end  // TAY
       9'h0A9: begin seq = 5'd3; op = 5'd1; ea = 4'd0; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
       9'h0AA: begin seq = 5'd0; op = 5'd3; ea = 4'd0; w = 3'd1; src = 3'd1; dst = 3'd2; arg = 4'd0; imp = 1'b1; end  // TAX
@@ -55,19 +135,63 @@ module c816_decode (
       9'h0AE: begin seq = 5'd5; op = 5'd1; ea = 4'd1; w = 3'd1; src = 3'd0; dst = 3'd2; arg = 4'd0; imp = 1'b1; end  // LDX
       9'h0AF: begin seq = 5'd7; op = 5'd1; ea = 4'd3; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
       9'h0B0: begin seq = 5'd10; op = 5'd16; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd8; imp = 1'b1; end  // BCS
+      9'h0B1: begin seq = 5'd20; op = 5'd1; ea = 4'd4; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
+      9'h0B2: begin seq = 5'd18; op = 5'd1; ea = 4'd1; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
+      9'h0B3: begin seq = 5'd23; op = 5'd1; ea = 4'd4; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
+      9'h0B4: begin seq = 5'd17; op = 5'd1; ea = 4'd8; w = 3'd1; src = 3'd0; dst = 3'd3; arg = 4'd0; imp = 1'b1; end  // LDY
+      9'h0B5: begin seq = 5'd17; op = 5'd1; ea = 4'd8; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
+      9'h0B6: begin seq = 5'd17; op = 5'd1; ea = 4'd9; w = 3'd1; src = 3'd0; dst = 3'd2; arg = 4'd0; imp = 1'b1; end  // LDX
+      9'h0B7: begin seq = 5'd21; op = 5'd1; ea = 4'd6; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
+      9'h0B9: begin seq = 5'd6; op = 5'd1; ea = 4'd4; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
+      9'h0BC: begin seq = 5'd6; op = 5'd1; ea = 4'd2; w = 3'd1; src = 3'd0; dst = 3'd3; arg = 4'd0; imp = 1'b1; end  // LDY
       9'h0BD: begin seq = 5'd6; op = 5'd1; ea = 4'd2; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
+      9'h0BE: begin seq = 5'd6; op = 5'd1; ea = 4'd4; w = 3'd1; src = 3'd0; dst = 3'd2; arg = 4'd0; imp = 1'b1; end  // LDX
+      9'h0BF: begin seq = 5'd7; op = 5'd1; ea = 4'd5; w = 3'd0; src = 3'd0; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // LDA
+      9'h0C0: begin seq = 5'd3; op = 5'd6; ea = 4'd0; w = 3'd1; src = 3'd3; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CPY
+      9'h0C1: begin seq = 5'd19; op = 5'd6; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
       9'h0C2: begin seq = 5'd4; op = 5'd13; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // REP
+      9'h0C3: begin seq = 5'd22; op = 5'd6; ea = 4'd10; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
+      9'h0C4: begin seq = 5'd16; op = 5'd6; ea = 4'd7; w = 3'd1; src = 3'd3; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CPY
+      9'h0C5: begin seq = 5'd16; op = 5'd6; ea = 4'd7; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
+      9'h0C7: begin seq = 5'd21; op = 5'd6; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
       9'h0C8: begin seq = 5'd0; op = 5'd10; ea = 4'd0; w = 3'd1; src = 3'd3; dst = 3'd3; arg = 4'd0; imp = 1'b1; end  // INY
       9'h0C9: begin seq = 5'd3; op = 5'd6; ea = 4'd0; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
       9'h0CA: begin seq = 5'd0; op = 5'd11; ea = 4'd0; w = 3'd1; src = 3'd2; dst = 3'd2; arg = 4'd0; imp = 1'b1; end  // DEX
+      9'h0CC: begin seq = 5'd5; op = 5'd6; ea = 4'd1; w = 3'd1; src = 3'd3; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CPY
       9'h0CD: begin seq = 5'd5; op = 5'd6; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
+      9'h0CF: begin seq = 5'd7; op = 5'd6; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
       9'h0D0: begin seq = 5'd10; op = 5'd16; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd1; imp = 1'b1; end  // BNE
+      9'h0D1: begin seq = 5'd20; op = 5'd6; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
+      9'h0D2: begin seq = 5'd18; op = 5'd6; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
+      9'h0D3: begin seq = 5'd23; op = 5'd6; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
+      9'h0D5: begin seq = 5'd17; op = 5'd6; ea = 4'd8; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
+      9'h0D7: begin seq = 5'd21; op = 5'd6; ea = 4'd6; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
+      9'h0D9: begin seq = 5'd6; op = 5'd6; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
+      9'h0DD: begin seq = 5'd6; op = 5'd6; ea = 4'd2; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
+      9'h0DF: begin seq = 5'd7; op = 5'd6; ea = 4'd5; w = 3'd0; src = 3'd1; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CMP
+      9'h0E0: begin seq = 5'd3; op = 5'd6; ea = 4'd0; w = 3'd1; src = 3'd2; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CPX
+      9'h0E1: begin seq = 5'd19; op = 5'd5; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
       9'h0E2: begin seq = 5'd4; op = 5'd14; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // SEP
+      9'h0E3: begin seq = 5'd22; op = 5'd5; ea = 4'd10; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
+      9'h0E4: begin seq = 5'd16; op = 5'd6; ea = 4'd7; w = 3'd1; src = 3'd2; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CPX
+      9'h0E5: begin seq = 5'd16; op = 5'd5; ea = 4'd7; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
+      9'h0E7: begin seq = 5'd21; op = 5'd5; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
       9'h0E8: begin seq = 5'd0; op = 5'd10; ea = 4'd0; w = 3'd1; src = 3'd2; dst = 3'd2; arg = 4'd0; imp = 1'b1; end  // INX
       9'h0E9: begin seq = 5'd3; op = 5'd5; ea = 4'd0; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
       9'h0EA: begin seq = 5'd0; op = 5'd0; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // NOP
+      9'h0EC: begin seq = 5'd5; op = 5'd6; ea = 4'd1; w = 3'd1; src = 3'd2; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // CPX
+      9'h0ED: begin seq = 5'd5; op = 5'd5; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
+      9'h0EF: begin seq = 5'd7; op = 5'd5; ea = 4'd3; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
       9'h0F0: begin seq = 5'd10; op = 5'd16; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd9; imp = 1'b1; end  // BEQ
+      9'h0F1: begin seq = 5'd20; op = 5'd5; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
+      9'h0F2: begin seq = 5'd18; op = 5'd5; ea = 4'd1; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
+      9'h0F3: begin seq = 5'd23; op = 5'd5; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
+      9'h0F5: begin seq = 5'd17; op = 5'd5; ea = 4'd8; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
+      9'h0F7: begin seq = 5'd21; op = 5'd5; ea = 4'd6; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
+      9'h0F9: begin seq = 5'd6; op = 5'd5; ea = 4'd4; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
       9'h0FB: begin seq = 5'd0; op = 5'd15; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // XCE
+      9'h0FD: begin seq = 5'd6; op = 5'd5; ea = 4'd2; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
+      9'h0FF: begin seq = 5'd7; op = 5'd5; ea = 4'd5; w = 3'd0; src = 3'd1; dst = 3'd1; arg = 4'd0; imp = 1'b1; end  // SBC
       9'h100: begin seq = 5'd15; op = 5'd0; ea = 4'd0; w = 3'd2; src = 3'd0; dst = 3'd0; arg = 4'd0; imp = 1'b1; end  // RST
       default: ;
     endcase

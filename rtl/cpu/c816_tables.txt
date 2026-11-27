@@ -22,7 +22,7 @@
 [seq ABSX]                      # load 4-6, store 5-6
     1 PRG PC   AL  INC -   -    -    -    -    -
     2 PRG PC   AH  INC -   -    -    XNC  -    -
-    3 IO  DUMX -   -   -   -    -    -    -    -
+    3 IO  DUMI -   -   -   -    -    -    -    -
     4 DAT EA   DL  -   -   RLO  W8   -    -    -
     5 DAT EA1  DH  -   -   RHI  ALW  -    -    -
 [seq LONG]                      # 5 or 6
@@ -66,6 +66,62 @@
 [seq RST]                       # pseudo-op 100: simplified reset (C5 makes it exact)
     1 DRD VEC  AL  -   -   -    -    -    -    -
     2 DRD VEC1 AH  -   -   -    ALW  -    ABS  -
+
+[seq DP]                        # direct page: 3 to 5, one more cycle if D[7:0] != 0
+    1 PRG PC   OF  INC -   -    -    DL0  -    -
+    2 IO  PCD  -   -   -   -    -    -    -    -
+    3 DAT EA   DL  -   -   RLO  W8   -    -    -
+    4 DAT EA1  DH  -   -   RHI  ALW  -    -    -
+[seq DPX]                       # direct page,X and ,Y
+    1 PRG PC   OF  INC -   -    -    DL0  -    -
+    2 IO  PCD  -   -   -   -    -    -    -    -
+    3 IO  PCD  -   -   -   -    -    -    -    -
+    4 DAT EA   DL  -   -   RLO  W8   -    -    -
+    5 DAT EA1  DH  -   -   RHI  ALW  -    -    -
+[seq DPIND]                     # (dp)
+    1 PRG PC   OF  INC -   -    -    DL0  -    -
+    2 IO  PCD  -   -   -   -    -    -    -    -
+    3 DRD DP0  AL  -   -   -    -    -    -    -
+    4 DRD DP1  AH  -   -   -    -    -    -    -
+    5 DAT EA   DL  -   -   RLO  W8   -    -    -
+    6 DAT EA1  DH  -   -   RHI  ALW  -    -    -
+[seq DPXIND]                    # (dp,X)
+    1 PRG PC   OF  INC -   -    -    DL0  -    -
+    2 IO  PCD  -   -   -   -    -    -    -    -
+    3 IO  PCD  -   -   -   -    -    -    -    -
+    4 DRD DX0  AL  -   -   -    -    -    -    -
+    5 DRD DX1  AH  -   -   -    -    -    -    -
+    6 DAT EA   DL  -   -   RLO  W8   -    -    -
+    7 DAT EA1  DH  -   -   RHI  ALW  -    -    -
+[seq DPINDY]                    # (dp),Y: the dummy cycle as in abs,X
+    1 PRG PC   OF  INC -   -    -    DL0  -    -
+    2 IO  PCD  -   -   -   -    -    -    -    -
+    3 DRD DP0  AL  -   -   -    -    -    -    -
+    4 DRD DP1  AH  -   -   -    -    XNC  -    -
+    5 IO  DUMI -   -   -   -    -    -    -    -
+    6 DAT EA   DL  -   -   RLO  W8   -    -    -
+    7 DAT EA1  DH  -   -   RHI  ALW  -    -    -
+[seq DPLONG]                    # [dp] and [dp],Y
+    1 PRG PC   OF  INC -   -    -    DL0  -    -
+    2 IO  PCD  -   -   -   -    -    -    -    -
+    3 DRD LP0  AL  -   -   -    -    -    -    -
+    4 DRD LP1  AH  -   -   -    -    -    -    -
+    5 DRD LP2  BA  -   -   -    -    -    -    -
+    6 DAT EA   DL  -   -   RLO  W8   -    -    -
+    7 DAT EA1  DH  -   -   RHI  ALW  -    -    -
+[seq SR]                        # stack relative
+    1 PRG PC   OF  INC -   -    -    -    -    -
+    2 IO  PCD  -   -   -   -    -    -    -    -
+    3 DAT EA   DL  -   -   RLO  W8   -    -    -
+    4 DAT EA1  DH  -   -   RHI  ALW  -    -    -
+[seq SRINDY]                    # (sr,S),Y
+    1 PRG PC   OF  INC -   -    -    -    -    -
+    2 IO  PCD  -   -   -   -    -    -    -    -
+    3 DRD SR0  AL  -   -   -    -    -    -    -
+    4 DRD SR1  AH  -   -   -    -    -    -    -
+    5 IO  SR1  -   -   -   -    -    -    -    -
+    6 DAT EA   DL  -   -   RLO  W8   -    -    -
+    7 DAT EA1  DH  -   -   RHI  ALW  -    -    -
 
 [ops]
 # opc mnem seq   op  ea   w   src dst arg
@@ -123,3 +179,128 @@
 010 BPL  BR    BR   -    -   -   -   7
 030 BMI  BR    BR   -    -   -   -   F
 100 RST  RST   NOP  -    -   -   -   0
+# step C3: all addressing modes
+001 ORA  DPXIND ORA  ABS   M   A   A   0
+003 ORA  SR     ORA  SR    M   A   A   0
+005 ORA  DP     ORA  DP    M   A   A   0
+007 ORA  DPLONG ORA  LONG  M   A   A   0
+00D ORA  ABS    ORA  ABS   M   A   A   0
+00F ORA  LONG   ORA  LONG  M   A   A   0
+011 ORA  DPINDY ORA  ABSY  M   A   A   0
+012 ORA  DPIND  ORA  ABS   M   A   A   0
+013 ORA  SRINDY ORA  ABSY  M   A   A   0
+015 ORA  DPX    ORA  DPX   M   A   A   0
+017 ORA  DPLONG ORA  LONGY M   A   A   0
+019 ORA  ABSX   ORA  ABSY  M   A   A   0
+01D ORA  ABSX   ORA  ABSX  M   A   A   0
+01F ORA  LONG   ORA  LONGX M   A   A   0
+021 AND  DPXIND AND  ABS   M   A   A   0
+023 AND  SR     AND  SR    M   A   A   0
+025 AND  DP     AND  DP    M   A   A   0
+027 AND  DPLONG AND  LONG  M   A   A   0
+02D AND  ABS    AND  ABS   M   A   A   0
+02F AND  LONG   AND  LONG  M   A   A   0
+031 AND  DPINDY AND  ABSY  M   A   A   0
+032 AND  DPIND  AND  ABS   M   A   A   0
+033 AND  SRINDY AND  ABSY  M   A   A   0
+035 AND  DPX    AND  DPX   M   A   A   0
+037 AND  DPLONG AND  LONGY M   A   A   0
+039 AND  ABSX   AND  ABSY  M   A   A   0
+03D AND  ABSX   AND  ABSX  M   A   A   0
+03F AND  LONG   AND  LONGX M   A   A   0
+041 EOR  DPXIND EOR  ABS   M   A   A   0
+043 EOR  SR     EOR  SR    M   A   A   0
+045 EOR  DP     EOR  DP    M   A   A   0
+047 EOR  DPLONG EOR  LONG  M   A   A   0
+04D EOR  ABS    EOR  ABS   M   A   A   0
+04F EOR  LONG   EOR  LONG  M   A   A   0
+051 EOR  DPINDY EOR  ABSY  M   A   A   0
+052 EOR  DPIND  EOR  ABS   M   A   A   0
+053 EOR  SRINDY EOR  ABSY  M   A   A   0
+055 EOR  DPX    EOR  DPX   M   A   A   0
+057 EOR  DPLONG EOR  LONGY M   A   A   0
+059 EOR  ABSX   EOR  ABSY  M   A   A   0
+05D EOR  ABSX   EOR  ABSX  M   A   A   0
+05F EOR  LONG   EOR  LONGX M   A   A   0
+061 ADC  DPXIND ADC  ABS   M   A   A   0
+063 ADC  SR     ADC  SR    M   A   A   0
+064 STZ  DP     ST   DP    M   -   -   0
+065 ADC  DP     ADC  DP    M   A   A   0
+067 ADC  DPLONG ADC  LONG  M   A   A   0
+06F ADC  LONG   ADC  LONG  M   A   A   0
+071 ADC  DPINDY ADC  ABSY  M   A   A   0
+072 ADC  DPIND  ADC  ABS   M   A   A   0
+073 ADC  SRINDY ADC  ABSY  M   A   A   0
+074 STZ  DPX    ST   DPX   M   -   -   0
+075 ADC  DPX    ADC  DPX   M   A   A   0
+077 ADC  DPLONG ADC  LONGY M   A   A   0
+079 ADC  ABSX   ADC  ABSY  M   A   A   0
+07D ADC  ABSX   ADC  ABSX  M   A   A   0
+07F ADC  LONG   ADC  LONGX M   A   A   0
+081 STA  DPXIND ST   ABS   M   A   -   0
+083 STA  SR     ST   SR    M   A   -   0
+084 STY  DP     ST   DP    X   Y   -   0
+085 STA  DP     ST   DP    M   A   -   0
+086 STX  DP     ST   DP    X   X   -   0
+087 STA  DPLONG ST   LONG  M   A   -   0
+091 STA  DPINDY ST   ABSY  M   A   -   0
+092 STA  DPIND  ST   ABS   M   A   -   0
+093 STA  SRINDY ST   ABSY  M   A   -   0
+094 STY  DPX    ST   DPX   X   Y   -   0
+095 STA  DPX    ST   DPX   M   A   -   0
+096 STX  DPX    ST   DPY   X   X   -   0
+097 STA  DPLONG ST   LONGY M   A   -   0
+099 STA  ABSX   ST   ABSY  M   A   -   0
+09C STZ  ABS    ST   ABS   M   -   -   0
+09E STZ  ABSX   ST   ABSX  M   -   -   0
+09F STA  LONG   ST   LONGX M   A   -   0
+0A1 LDA  DPXIND LD   ABS   M   -   A   0
+0A3 LDA  SR     LD   SR    M   -   A   0
+0A4 LDY  DP     LD   DP    X   -   Y   0
+0A5 LDA  DP     LD   DP    M   -   A   0
+0A6 LDX  DP     LD   DP    X   -   X   0
+0A7 LDA  DPLONG LD   LONG  M   -   A   0
+0B1 LDA  DPINDY LD   ABSY  M   -   A   0
+0B2 LDA  DPIND  LD   ABS   M   -   A   0
+0B3 LDA  SRINDY LD   ABSY  M   -   A   0
+0B4 LDY  DPX    LD   DPX   X   -   Y   0
+0B5 LDA  DPX    LD   DPX   M   -   A   0
+0B6 LDX  DPX    LD   DPY   X   -   X   0
+0B7 LDA  DPLONG LD   LONGY M   -   A   0
+0B9 LDA  ABSX   LD   ABSY  M   -   A   0
+0BC LDY  ABSX   LD   ABSX  X   -   Y   0
+0BE LDX  ABSX   LD   ABSY  X   -   X   0
+0BF LDA  LONG   LD   LONGX M   -   A   0
+0C0 CPY  IMM    CMP  -     X   Y   -   0
+0C1 CMP  DPXIND CMP  ABS   M   A   -   0
+0C3 CMP  SR     CMP  SR    M   A   -   0
+0C4 CPY  DP     CMP  DP    X   Y   -   0
+0C5 CMP  DP     CMP  DP    M   A   -   0
+0C7 CMP  DPLONG CMP  LONG  M   A   -   0
+0CC CPY  ABS    CMP  ABS   X   Y   -   0
+0CF CMP  LONG   CMP  LONG  M   A   -   0
+0D1 CMP  DPINDY CMP  ABSY  M   A   -   0
+0D2 CMP  DPIND  CMP  ABS   M   A   -   0
+0D3 CMP  SRINDY CMP  ABSY  M   A   -   0
+0D5 CMP  DPX    CMP  DPX   M   A   -   0
+0D7 CMP  DPLONG CMP  LONGY M   A   -   0
+0D9 CMP  ABSX   CMP  ABSY  M   A   -   0
+0DD CMP  ABSX   CMP  ABSX  M   A   -   0
+0DF CMP  LONG   CMP  LONGX M   A   -   0
+0E0 CPX  IMM    CMP  -     X   X   -   0
+0E1 SBC  DPXIND SBC  ABS   M   A   A   0
+0E3 SBC  SR     SBC  SR    M   A   A   0
+0E4 CPX  DP     CMP  DP    X   X   -   0
+0E5 SBC  DP     SBC  DP    M   A   A   0
+0E7 SBC  DPLONG SBC  LONG  M   A   A   0
+0EC CPX  ABS    CMP  ABS   X   X   -   0
+0ED SBC  ABS    SBC  ABS   M   A   A   0
+0EF SBC  LONG   SBC  LONG  M   A   A   0
+0F1 SBC  DPINDY SBC  ABSY  M   A   A   0
+0F2 SBC  DPIND  SBC  ABS   M   A   A   0
+0F3 SBC  SRINDY SBC  ABSY  M   A   A   0
+0F5 SBC  DPX    SBC  DPX   M   A   A   0
+0F7 SBC  DPLONG SBC  LONGY M   A   A   0
+0F9 SBC  ABSX   SBC  ABSY  M   A   A   0
+0FD SBC  ABSX   SBC  ABSX  M   A   A   0
+0FF SBC  LONG   SBC  LONGX M   A   A   0

@@ -38,6 +38,18 @@ CPU_MUTANTS = [
     ('c816_core', ".xcarry(xcarry || !r_p[4])", ".xcarry(1'b1)", "absolute,X dummy cycle never skipped"),
     ('c816_core', "wire load_br = (pcop == 3'd4) || ((pcop == 3'd3) && commit);",
      "wire load_br = (pcop == 3'd4) || (pcop == 3'd3);", "taken branch loads PC one cycle early"),
+    ('c816_seq', "((skip == 3'd3) && dlz);", "((skip == 3'd3) && 1'b0);",
+     "direct page: extra cycle also when D is aligned"),
+    ('c816_addr', "wire wrap = e && (d[7:0] == 8'h00);", "wire wrap = 1'b0;",
+     "direct page does not stay in the page in emulation mode"),
+    ('c816_addr', "wire [23:0] eff1 = bank0 ? {8'h00, eff_low1} : eff_next;", "wire [23:0] eff1 = eff_next;",
+     "second byte of direct page data leaves bank 0"),
+    ('c816_addr', "4'd4: eff = {dbr, ah, al} + {8'h00, y};", "4'd4: eff = {dbr, ah, al} + {8'h00, x};",
+     "absolute,Y uses X"),
+    ('c816_addr', "5'd15: addr = {8'h00, lp2};", "5'd15: addr = {8'h00, dp0_next};",
+     "long pointer reads the wrong bank byte"),
+    ('c816_addr', "5'd17: addr = {8'h00, sr1};", "5'd17: addr = {8'h00, sr0};",
+     "(sr,S),Y reads the wrong pointer byte"),
 ]
 CPU_CASES = 20   # vectors for each opcode and mode
 

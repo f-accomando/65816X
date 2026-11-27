@@ -6,13 +6,17 @@ The list of what must continue to pass is in `tests/cpu_pass.txt`.
 
 ## Status
 
-- 53 of 256 opcodes implemented, cycle by cycle. One CPU cycle is 2 FPGA clocks.
-- Own vectors (`make cpu`): 53 opcodes pass, 21,200 of 21,200 vectors.
-- Public vectors, unchanged: **50 opcodes pass**; 1,032,847 of 1,060,000 vectors; 0 cycle differences.
-- Public vectors with D = 0: 53 opcodes pass; 529,750 of 529,750 vectors.
-- The reference model agrees with all 1,030,026 public vectors that are not decimal `ADC` or `SBC`,
+- 177 of 256 opcodes implemented, cycle by cycle. One CPU cycle is 2 FPGA clocks.
+- Own vectors (`make cpu`): 177 opcodes pass, 70,800 of 70,800 vectors, with all cycles.
+- Public vectors, unchanged: **147 opcodes pass**; 3,277,325 of 3,540,000 vectors; 0 cycle differences.
+  The 30 opcodes that fail are the 15 forms of `ADC` and of `SBC`, only with D = 1.
+- The reference model agrees with all 3,239,910 public vectors that are not decimal `ADC` or `SBC`,
   cycle by cycle. Our own vectors thus check the cycles in the CI.
+- `make cpu-mutation`: 15 of 15 faults found.
 - `WDM` extensions: the system test checks them (MUL, DIV, MAC, MACRD, and the two modes without effect).
+- Done: all addressing modes for the loads, stores, comparisons, arithmetic, and logic.
+  The instructions are `ORA`, `AND`, `EOR`, `ADC`, `STA`, `LDA`, `CMP`, and `SBC`.
+  They are also `LDX`, `LDY`, `STX`, `STY`, `STZ`, `CPX`, and `CPY`.
 - Differences from the real chip:
 
 | Opcode | Difference |
@@ -22,15 +26,11 @@ The list of what must continue to pass is in `tests/cpu_pass.txt`.
 | interrupts | NMI, IRQ, BRK, and COP do not exist (step C5) |
 | reset | two reads of the vector only; the real sequence is longer (step C5) |
 
-
 ## Open work
 
 To close a step, make its opcodes pass the test bench and make `make check` pass.
 
-
-
-- **C3** all addressing modes, with loads, stores, and arithmetic.
-- **C4** remaining instructions: shifts, stack, transfers, jumps, block moves.
+- **C4** remaining instructions: shifts, `BIT`, memory increment, stack, transfers, jumps, block moves.
 - **C5** interrupts (NMI, IRQ, BRK, COP, RTI, WAI, STP) and decimal mode: **256 of 256**.
 - **C6** speed: multi-cycle divider (`WDM DIV`), measurement of the maximum frequency.
 - **C7** extensions: more `WDM`, prefetch, optional 32-bit mode.

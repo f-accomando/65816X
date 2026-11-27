@@ -52,8 +52,8 @@ additions are estimates.
 | **Total** | **94 / 108 (87%)** | **181 / 208 (87%)** |
 
 In A, the original SNES memories alone (130 blocks) exceed the capacity: the WRAM must be in SDRAM.
-The ROM is always in SDRAM. Today (measured) the skeleton uses 125 blocks: WRAM 64, VRAM 32, and 29
-for the placeholder ROM.
+The ROM is always in SDRAM. Today (measured) the skeleton uses 126 blocks: WRAM 64, VRAM 32, 29
+for the placeholder ROM, and 1 for the decode table of the processor.
 
 ## Bottlenecks
 

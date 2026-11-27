@@ -24,7 +24,7 @@ The Verilog skeleton follows the **multi-chip structure of the original SNES** (
 
 | Module | File | Status |
 |---|---|---|
-| Core 65816X | `rtl/cpu/` | 53 opcodes, cycle by cycle; no interrupts |
+| Core 65816X | `rtl/cpu/` | 177 opcodes, cycle by cycle; no interrupts |
 | Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registers `$42xx`, instant mul/div, general DMA 8 channels (modes 0-7), no HDMA |
 | PPU1/PPU2 | `rtl/ppu_stub.v` | only timing and VRAM (`$2115-$2119`, `$2139-$213A`) |
 | SPC700 + DSP | `rtl/apu_stub.v` | 4 ports with echo, signature `$AA/$BB` |
@@ -37,9 +37,9 @@ Verification done (measured, `make check`):
 - `make test` and `make iverilog`: 56 checks.
 - `make mutation`: 11 of 11 faults found.
 - `make unit`: no differences.
-- `make cpu`: 53 of 256 opcodes, cycle by cycle. The public vectors run locally with `make cpu-public`.
-- `make cpu-mutation`: 9 of 9 faults found.
-- yosys synthesis: 125 BRAM blocks; about 4,200 LUT with Yosys 0.52.
+- `make cpu`: 177 of 256 opcodes, cycle by cycle. The public vectors run locally with `make cpu-public`.
+- `make cpu-mutation`: 15 of 15 faults found.
+- yosys synthesis: 126 BRAM blocks; about 4,600 LUT with Yosys 0.52.
 - The CI on GitHub passes.
 
 **Never run with verilator or nextpnr, or on a board.** Details are in `docs/VERIFICATION.md`.
@@ -227,8 +227,8 @@ Question 1 blocks F4; questions 2 and 3 block F8 and F10; question 4 blocks the 
 
 ## 10. Suggested next step
 
-The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. First step: the two open
-points of C2 in `docs/progress/cpu.md`, then C3.
+The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. First step: C4 in
+`docs/progress/cpu.md`.
 Criteria for each step:
 - `make check` passes.
 - Each new function has a check and at least one fault in `sim/mutation_check.py`.

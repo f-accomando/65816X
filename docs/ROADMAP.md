@@ -5,7 +5,6 @@ criterion and make `make check` pass.
 
 | Phase | Content | Verifiable completion | Risks |
 |---|---|---|---|
-| F0 | Structure and verification | `make check` passes (done locally) and the CI passes (to do) | the yosys of the CI differs from the local one |
 | F1 | Sequential dividers: 5A22 with the latency of the original, `WDM DIV` | no `$div`/`$mod` cell before mapping; mutants on the divider | tests that depend on the instant division |
 | F1b | Minimal board top, ULX3S pin file, nextpnr in the CI for 45k and 85k | placement report with maximum frequency | license of the imported pin file |
 | F2 | NMI/IRQ/BRK/COP interrupts, all opcodes, signal for an unimplemented opcode (`dbg_illegal`), subfolders in `rtl/` | CPU-only harness in iverilog: vectors for all 256 opcodes in native and emulation mode | license and download of the vectors (SingleStepTests) |
@@ -26,9 +25,8 @@ C7 is the CPU part of F8. The SNES bus timing (6, 8, 12 clock cycles) stays in F
 
 ## Next steps
 
-1. Push `main` and make the CI pass (this closes F0).
-2. C1: public vectors and cycle check.
-3. C2: reorganize the core.
+1. C1: public vectors and cycle check.
+2. C2: reorganize the core.
 
 ## To decide: host port
 

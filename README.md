@@ -10,7 +10,8 @@ The project starts from the **multi-chip structure of the original SNES** (not t
 ## Status
 
 The skeleton works. The Python mini simulator, Icarus Verilog, and yosys synthesis for ECP5 verify it.
-Measured: 125 BRAM blocks and about 4,400 LUT. It fits in the 85F. It does not fit in the 45F yet (BRAM).
+The CI on GitHub passes. Measured: 125 BRAM blocks, and about 4,400 LUT with Yosys 0.52 (12,600 with
+Yosys 0.33). It fits in the 85F. It does not fit in the 45F yet (BRAM).
 CPU: 47 of 256 opcodes pass the test bench.
 **Not verified**: placement, maximum frequency, verilator, and real hardware.
 Details are in [docs/VERIFICATION.md](docs/VERIFICATION.md) and [docs/progress/cpu.md](docs/progress/cpu.md).

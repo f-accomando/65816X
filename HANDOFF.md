@@ -38,7 +38,8 @@ Verification done (measured, `make check`):
 - `make mutation`: 10 of 10 faults found.
 - `make unit`: no differences.
 - `make cpu`: 47 of 256 opcodes.
-- yosys synthesis: 125 BRAM blocks and about 4,400 LUT.
+- yosys synthesis: 125 BRAM blocks; about 4,400 LUT with Yosys 0.52 and 12,600 with Yosys 0.33.
+- The CI on GitHub passes.
 
 **Never run with verilator or nextpnr, or on a board.** Details are in `docs/VERIFICATION.md`.
 The WRAM now uses one address. The previous version did not go into BRAM, and the
@@ -138,7 +139,7 @@ about 20-30k triangles for each frame. Cel-shaded look: toon table (~1k LUT), 2-
 
 ### List of improvements, in order
 
-1. Verification with real tools: `make iverilog` and `make synth` done; remaining: nextpnr (real frequency) and the first CI run.
+1. Verification with real tools: `make iverilog`, `make synth`, and the CI done; remaining: nextpnr (real frequency).
 2. Sequential divider instead of the combinational `/` (small and certain).
 3. Interrupts (NMI, IRQ, BRK, COP): almost all games synchronize on the NMI; the flag is in the registers, but the core ignores it.
 4. Full opcode set and verification with test vectors for each instruction (public 65816 suites, if available) and with the reference of section 8.
@@ -223,8 +224,8 @@ Question 1 blocks F4; questions 2 and 3 block F8 and F10; question 4 blocks the 
 
 ## 10. Suggested next step
 
-The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. First step: push `main`
-and make the CI pass.
+The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. First step: C1 in
+`docs/progress/cpu.md`.
 Criteria for each step:
 - `make check` passes.
 - Each new function has a check and at least one fault in `sim/mutation_check.py`.

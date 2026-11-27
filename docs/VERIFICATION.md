@@ -70,10 +70,27 @@ calculated). The full synthesis did not end in 570 s.
 One test inserted three faults by hand in the CPU (one extra byte written, Z flag not updated,
 core stopped). The CPU test bench found all three.
 
+### CI on GitHub
+
+First run on 2026-11-27, commit `b7903f3`, `ubuntu-24.04`, Icarus Verilog 12.0 and Yosys 0.33:
+[run 46048677412](https://github.com/f-accomando/65816X/actions/runs/46048677412). All steps passed.
+The simulation and CPU results are equal to the local results. The synthesis counts differ:
+
+| Cells | Yosys 0.52 (local) | Yosys 0.33 (CI) |
+|---|---|---|
+| equivalent LUT4 | 4393 (5% of the 85F, 10% of the 45F) | 12604 (15% of the 85F, 29% of the 45F) |
+| `LUT4` | 3149 | 9572 |
+| `CCU2C` | 610 | 1504 |
+| `DP16KD` | 125 | 125 |
+| `MULT18X18D` | 2 | 2 |
+| `TRELLIS_FF` | 726 | 726 |
+| `TRELLIS_DPR16X4` | 12 | 12 |
+
+The cause of the LUT difference is not investigated. Quote the LUT count with the yosys version.
+
 ## 6. Not verified
 
 - The CPU test bench compares the core with our own model. It finds differences between the two.
   It does not prove that the core matches the chip. It does not check cycles or decimal mode.
 - Placement and maximum frequency (nextpnr is not installed).
 - Operation on a real board.
-- The CI on GitHub, until the first run: the yosys version of the distribution can differ from 0.52.

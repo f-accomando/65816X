@@ -17,6 +17,7 @@ Read files in small slices (`grep`, or `offset` and `limit`). The current state 
 | Bus, memory map, opcodes, extensions | `docs/ARCHITECTURE.md` |
 | Check commands, synthesis budget, measured results | `docs/VERIFICATION.md` |
 | Variants A and B, resource estimates | `docs/VARIANTS.md` |
+| User manual: text, build, rules | `manuals/README.md` |
 
 ## 2. Rules
 
@@ -34,7 +35,9 @@ Read files in small slices (`grep`, or `offset` and `limit`). The current state 
 
 **Units.** Write sizes as KB, MB, and GB. Each unit is a power of 1024 (1 MB = 1048576 bytes). Do not write KiB, MiB, or GiB.
 
-**Language of the documents.** Write every `.md` file that directs the project in English, with ASD-STE100. These files are `CLAUDE.md`, `README.md`, `HANDOFF.md`, and all files in `docs/`.
+**Language of the documents.** Write every `.md` file that directs the project in English, with ASD-STE100. These files are `CLAUDE.md`, `README.md`, `HANDOFF.md`, and all files in `docs/`. Write the manual in the same style.
+
+**Manual.** Keep the user manual true. Update `manuals/content/en/65816x.md` in the same change that changes what a user sees or does. Then run `make manual`.
 
 **ASD-STE100.** Write short sentences: 20 words maximum for an instruction, 25 words maximum for a description. Write one instruction in each sentence. Use the active voice. Use imperative verbs for instructions. Use one word for one meaning. Write 6 sentences maximum in a paragraph.
 
@@ -46,9 +49,10 @@ Before you declare a task complete, do these steps:
 
 1. Update the status. Remove the completed items and update the partial items in `## Open work` of the area file `docs/progress/<area>.md`.
 2. Update the rules. If you add or change an architectural constraint, record it in `## Rules (do not break)` of the same file.
-3. Run `make check`. All targets must pass.
-4. Check consistency. Find changes to the bus, the memory map, a register, an opcode, an extension, or a `make` target. Update the related documents of section 1.
-5. Check CI. If you change `.github/workflows/` or the `check` target, make the CI run the same targets as `make check`.
+3. Update the manual. Run `make manual-check`. Read each changed source, correct the text, and run `make manual`.
+4. Run `make check`. All targets must pass.
+5. Check consistency. Find changes to the bus, the memory map, a register, an opcode, an extension, or a `make` target. Update the related documents of section 1.
+6. Check CI. If you change `.github/workflows/` or the `check` target, make the CI run the same targets as `make check`.
 
 ## Glossary
 

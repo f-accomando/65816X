@@ -1,0 +1,20 @@
+# The manuals: one entry for each. `sources` are the repository files that the text comes from.
+# When one of them changes, `make manual-check` fails until you review the text and run `make manual`.
+
+[[manual]]
+id = "65816x"
+order = 1
+sources = [
+  "README.md",
+  "docs/ARCHITECTURE.md",
+  "docs/VARIANTS.md",
+  "docs/VERIFICATION.md",
+  "docs/ROADMAP.md",
+  "docs/progress/cpu.md",
+  "docs/progress/system.md",
+  "Makefile",
+  "rtl",
+  "sim/asm.py",
+  "manuals/tools/mkmanual.py",
+  "manuals/themes/paper.toml",
+]

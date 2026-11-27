@@ -10,10 +10,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - name: Installa iverilog e yosys
+      - name: Installa iverilog, yosys e reportlab
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends iverilog yosys
+          sudo apt-get install -y --no-install-recommends iverilog yosys python3-reportlab
       - name: Versioni degli strumenti
         run: |
           python3 --version
@@ -36,6 +36,15 @@ jobs:
           name: pagella-cpu
           path: build/cpu_score.txt
           if-no-files-found: ignore
+      - name: make manual-check
+        run: make manual-check
+      - name: Build the manual (preview)
+        run: python3 manuals/tools/manuals.py build -o build/manuals
+      - name: Keep the manual
+        uses: actions/upload-artifact@v4
+        with:
+          name: manual
+          path: build/manuals/*.pdf
       - name: make synth (budget variante B)
         timeout-minutes: 10
         run: make synth BUDGET=B

@@ -19,3 +19,4 @@ The phases are in [ROADMAP.md](../ROADMAP.md). The open questions are in [HANDOF
 - List the RTL sources only in `rtl/files.f`.
 - Give each large memory one address, with a registered read. Otherwise it does not go into BRAM.
 - Give each new function a check and at least one mutant.
+- Keep the manual true: `make manual-check` must pass (see `manuals/README.md`).

@@ -37,11 +37,13 @@ make unit        # test for each module (WRAM against the reference model)
 make cpu         # test bench of the CPU only: score in build/cpu_score.txt
 make cpu-public SST=<folder>   # the same with the public vectors (not in the repository)
 make synth       # ECP5 synthesis with yosys and budget; BUDGET="A B" checks both variants
+make manual      # build the PDF manual (needs reportlab)
 make check       # everything that the CI runs
 ```
 
 ## Documents
 
+- [The manual (PDF)](manuals/pdf/65816x.pdf): for the people who use the project. Its text and rules are in [manuals/](manuals/README.md).
 - [CLAUDE.md](CLAUDE.md): work rules for Claude Code sessions.
 - [docs/progress/cpu.md](docs/progress/cpu.md) and [docs/progress/system.md](docs/progress/system.md): status, open work, and rules of each area.
 - [HANDOFF.md](HANDOFF.md): for the next session: user decisions, proposals and results, ideas not yet in the code, open questions, next steps.

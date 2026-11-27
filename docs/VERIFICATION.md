@@ -13,7 +13,8 @@
 | `make synth` | ECP5 synthesis and budget check (default `BUDGET=B`) | yosys |
 | `make ref-public SST=<folder>` | reference model against the public vectors | public vectors |
 | `make cpu-public SST=<folder>` | CPU against the public vectors, score in `build/cpu_public_score.txt` | iverilog, public vectors |
-| `make check` | all of the above, except the public vectors | iverilog, yosys |
+| `make manual-check` | the manual matches its sources (see `manuals/README.md`) | Python 3 |
+| `make check` | `test`, `mutation`, `iverilog`, `unit`, `cpu`, `synth`, `manual-check` | iverilog, yosys |
 
 Keep `sim/vsim.py` while the RTL needs no parameters, `generate`, or `function`.
 Do not shape the RTL for the mini simulator: the design would get worse.

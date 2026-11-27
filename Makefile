@@ -8,7 +8,7 @@ BUDGET ?= B
 
 RTL := $(filter %.v,$(shell cat rtl/files.f))
 
-.PHONY: test mutation rom iverilog unit cpu cpu-run cpu-update cpu-public ref-public synth check clean
+.PHONY: test mutation rom iverilog unit cpu cpu-run cpu-update cpu-public ref-public synth manual manual-check check clean
 
 # Collaudo con il mini simulatore Python (nessuna dipendenza esterna)
 test:
@@ -76,8 +76,15 @@ synth: rom.hex
 	$(YOSYS) -q -l build/synth.log -p "read_verilog $(RTL); synth_ecp5 -top snes_plus_top; tee -q -o build/stat.json stat -json"
 	$(PY) syn/budget.py build/stat.json $(BUDGET)
 
+# The manual in manuals/pdf (needs reportlab). manual-check fails if its sources changed.
+manual:
+	$(PY) manuals/tools/manuals.py build
+
+manual-check:
+	$(PY) manuals/tools/manuals.py check
+
 # Tutto quello che esegue la CI
-check: test mutation iverilog unit cpu synth
+check: test mutation iverilog unit cpu synth manual-check
 
 clean:
 	rm -rf build rom.hex

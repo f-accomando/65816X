@@ -144,7 +144,7 @@ The cause of the LUT difference is not investigated. Quote the LUT count with th
 
 With the core `c816` in the system (commit `99858f4`,
 [run 46074388791](https://github.com/f-accomando/65816X/actions/runs/46074388791)), Yosys 0.33 counts
-11245 equivalent LUT4 (13% of the 85F), with 8383 `LUT4`, 1419 `CCU2C`, and 680 `TRELLIS_FF`.
+11245 equivalent LUT4 (13% of the 85F). The cells are 8383 `LUT4`, 1419 `CCU2C`, and 680 `TRELLIS_FF`.
 
 ## 6. Not verified
 

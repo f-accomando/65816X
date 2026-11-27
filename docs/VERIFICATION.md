@@ -142,6 +142,10 @@ The simulation and CPU results are equal to the local results. The synthesis cou
 
 The cause of the LUT difference is not investigated. Quote the LUT count with the yosys version.
 
+With the core `c816` in the system (commit `99858f4`,
+[run 46074388791](https://github.com/f-accomando/65816X/actions/runs/46074388791)), Yosys 0.33 counts
+11245 equivalent LUT4 (13% of the 85F), with 8383 `LUT4`, 1419 `CCU2C`, and 680 `TRELLIS_FF`.
+
 ## 6. Not verified
 
 - The cycle counts of the new core in the CI. Our own vectors carry no cycle counts. Only the public

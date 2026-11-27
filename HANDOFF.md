@@ -226,8 +226,8 @@ Question 1 blocks F4; questions 2 and 3 block F8 and F10; question 4 blocks the 
 
 ## 10. Suggested next step
 
-The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. First step: C2 in
-`docs/progress/cpu.md`.
+The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. First step: the two open
+points of C2 in `docs/progress/cpu.md`, then C3.
 Criteria for each step:
 - `make check` passes.
 - Each new function has a check and at least one fault in `sim/mutation_check.py`.

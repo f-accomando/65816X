@@ -25,7 +25,7 @@ C7 is the CPU part of F8. The SNES bus timing (6, 8, 12 clock cycles) stays in F
 
 ## Next steps
 
-1. C2: reorganize the core.
+1. C2, last work order: delete the old core (ask the owner first).
 2. C3: all addressing modes.
 
 ## To decide: host port

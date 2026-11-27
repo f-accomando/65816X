@@ -1,3 +1,8 @@
 build/
 rom.hex
 __pycache__/
+*.vvp
+*.vcd
+*.json
+*.bit
+*.config

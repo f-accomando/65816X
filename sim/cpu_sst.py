@@ -105,6 +105,11 @@ def check_one(t):
         bad.append('memory')
     if set(cpu.mem) - set(expected):
         bad.append('extra_write')
+    cycles = [((f[0] == 'd') | (f[1] == 'p') << 1 | (f[3] == 'w') << 2, a, v) for a, v, f in t['cycles']]
+    if len(cpu.cycles) != len(cycles):
+        bad.append('cycle_count')
+    elif cpu.cycles != cycles:
+        bad.append('bus')
     return bad
 
 

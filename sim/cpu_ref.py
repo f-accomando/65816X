@@ -3,7 +3,8 @@
 Scritto dal comportamento documentato del processore, non dal Verilog: serve a generare i vettori
 del banco di prova (sim/cpu_vectors.py). Copre solo gli opcode in OPCODES. WDM ($42) si comporta
 come sul chip vero: salta due byte. ADC e SBC sono modellati solo in binario (flag D = 0).
-Non conta i cicli.
+Registra ogni ciclo di bus in self.cycles come (tipo, indirizzo, byte): tipo bit 0 = VDA,
+bit 1 = VPA, bit 2 = scrittura; byte = None nei cicli interni.
 """
 
 N, V, M, X, D, I, Z, C = 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01
@@ -49,24 +50,39 @@ class Cpu:
         self.new_byte = new_byte
         self.mem = {}
         self.initial = {}
+        self.cycles = []
 
     def regs(self):
         return {r: getattr(self, r) for r in REGS}
 
-    # ---- memoria ----
-    def read(self, addr, kind='data'):
-        addr &= 0xFFFFFF
+    # ---- memoria e cicli di bus ----
+    def load(self, addr, kind):
         if addr not in self.mem:
             self.mem[addr] = self.initial[addr] = self.new_byte(kind) & 0xFF
         return self.mem[addr]
 
-    def write(self, addr, value):
-        self.mem[addr & 0xFFFFFF] = value & 0xFF
+    def read(self, addr, cycle=1, kind='data'):
+        addr &= 0xFFFFFF
+        value = self.load(addr, kind)
+        self.cycles.append((cycle, addr, value))
+        return value
 
-    def fetch(self, count=1):
+    def write(self, addr, value):
+        addr &= 0xFFFFFF
+        self.mem[addr] = value & 0xFF
+        self.cycles.append((5, addr, value & 0xFF))
+
+    def io(self, addr):
+        """ciclo interno: l'indirizzo e' sul bus, la memoria non viene usata"""
+        self.cycles.append((0, addr & 0xFFFFFF, None))
+
+    def code_address(self, back=0):
+        return (self.pbr << 16) | ((self.pc - back) & 0xFFFF)
+
+    def fetch(self, count=1, cycle=2):
         value = 0
         for i in range(count):
-            value |= self.read((self.pbr << 16) | self.pc, 'code') << (8 * i)
+            value |= self.read(self.code_address(), cycle, 'code') << (8 * i)
             self.pc = (self.pc + 1) & 0xFFFF
         return value
 
@@ -85,11 +101,17 @@ class Cpu:
         self.setf(N, value & sign)
         self.setf(Z, (value & mask) == 0)
 
-    def effective(self, mode):
+    def effective(self, mode, store=False):
         if mode == 'abs':
             return (self.dbr << 16) | self.fetch(2)
         if mode == 'absx':
-            return (((self.dbr << 16) | self.fetch(2)) + self.x) & 0xFFFFFF
+            base = self.fetch(2)
+            low = (base & 0xFF) + (self.x & 0xFF)
+            # ciclo in piu' per correggere il byte alto: sempre nelle scritture e con X a 16 bit,
+            # altrimenti solo se si cambia pagina
+            if store or not self.x8() or low > 0xFF:
+                self.io((self.dbr << 16) | (base & 0xFF00) | (low & 0xFF))
+            return (((self.dbr << 16) | base) + self.x) & 0xFFFFFF
         if mode == 'long':
             return self.fetch(3)
         raise ValueError(mode)
@@ -104,7 +126,7 @@ class Cpu:
         return value
 
     def store(self, mode, value, w8):
-        ea = self.effective(mode)
+        ea = self.effective(mode, True)
         self.write(ea, value)
         if not w8:
             self.write(ea + 1, value >> 8)
@@ -147,7 +169,7 @@ class Cpu:
     def step(self):
         if self.e:  # in emulazione il byte alto di S vale sempre 01
             self.s = 0x0100 | (self.s & 0xFF)
-        op = self.fetch()
+        op = self.fetch(1, 3)
         name, arg = OPCODES[op]
         getattr(self, 'op_' + name)(arg)
         return op
@@ -207,6 +229,7 @@ class Cpu:
         self.set_a((self.a & mask) ^ self.operand(mode, self.m8()))
 
     def op_step(self, arg):
+        self.io(self.code_address())
         reg, delta = arg
         if reg == 'a':
             self.set_a(self.a + delta)
@@ -214,15 +237,19 @@ class Cpu:
             self.set_index(reg, getattr(self, reg) + delta)
 
     def op_to_index(self, reg):
+        self.io(self.code_address())
         self.set_index(reg, self.a)
 
     def op_to_acc(self, reg):
+        self.io(self.code_address())
         self.set_a(getattr(self, reg))
 
     def op_flag(self, arg):
+        self.io(self.code_address())
         self.setf(*arg)
 
     def op_xce(self, _):
+        self.io(self.code_address())
         carry = self.p & C
         self.setf(C, self.e)
         self.e = 1 if carry else 0
@@ -231,17 +258,25 @@ class Cpu:
         self.width_rules()
 
     def op_rep(self, _):
-        self.p &= ~self.fetch() & 0xFF
+        mask = self.fetch()
+        self.io(self.code_address(1))
+        self.p &= ~mask & 0xFF
         self.width_rules()
 
     def op_sep(self, _):
-        self.p |= self.fetch()
+        mask = self.fetch()
+        self.io(self.code_address(1))
+        self.p |= mask
         self.width_rules()
 
     def op_branch(self, cond):
         offset = self.fetch()
         if cond is None or bool(self.p & cond[0]) == cond[1]:
-            self.pc = (self.pc + (offset - 0x100 if offset & 0x80 else offset)) & 0xFFFF
+            target = (self.pc + (offset - 0x100 if offset & 0x80 else offset)) & 0xFFFF
+            self.io(self.code_address(1))
+            if self.e and (target >> 8) != (self.pc >> 8):  # cambio pagina in emulazione
+                self.io(self.code_address(1))
+            self.pc = target
 
     def op_jmp(self, _):
         self.pc = self.fetch(2)
@@ -253,29 +288,37 @@ class Cpu:
     def op_jsr(self, _):
         target = self.fetch(2)
         back = (self.pc - 1) & 0xFFFF
+        self.io(self.code_address(1))
         self.push(back >> 8)
         self.push(back)
         self.pc = target
 
     def op_rts(self, _):
+        self.io(self.code_address())
+        self.io(self.code_address())
         lo = self.pull()
         hi = self.pull()
+        self.io(self.s)
         self.pc = (((hi << 8) | lo) + 1) & 0xFFFF
 
     def op_pha(self, _):
+        self.io(self.code_address())
         if not self.m8():
             self.push(self.a >> 8)
         self.push(self.a)
 
     def op_pla(self, _):
+        self.io(self.code_address())
+        self.io(self.code_address())
         value = self.pull()
         if not self.m8():
             value |= self.pull() << 8
         self.set_a(value)
 
     def op_nop(self, _):
-        pass
+        self.io(self.code_address())
 
     def op_wdm(self, _):
         # il secondo byte viene saltato: il chip non lo legge come dato valido
+        self.io(self.code_address())
         self.pc = (self.pc + 1) & 0xFFFF

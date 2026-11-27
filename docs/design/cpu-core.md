@@ -3,7 +3,7 @@
 Status: approved by the owner on 2026-11-27, with option A of section 1 and the proposals of section 9.3. Date: 2026-11-27. Step: C2a of `docs/progress/cpu.md`.
 An Opus agent wrote it. The main session reviewed it (section 10).
 Work orders 1-8 are done (2026-11-27). Deviations: `c816_decode` has the extra output `seq_wdmx`.
-Work order 7 has no cycle fault, because our own vectors carry no cycle counts.
+The own vectors got cycle counts after work order 9 (approved by the owner), so the cycle faults exist now.
 Work order 8 kept two pass lists. Work order 9 (approved by the owner) deleted the old core, the
 `CORE` variable, and the names with `_c816`. The text below keeps the plan as it was approved.
 Scope: the new 65C816 core that replaces `rtl/cpu65816x.v`. Nothing in this document is implemented.

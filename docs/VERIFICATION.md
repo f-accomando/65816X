@@ -79,7 +79,7 @@ The system uses the new core `c816`.
 | `make iverilog` | 56/56 |
 | `make unit` | 0 differences, 28,123 accesses to the WRAM port |
 | `make cpu` | 53 of 256 opcodes; 21,200 of 21,200 vectors |
-| `make cpu-mutation` | 7 of 7 faults found |
+| `make cpu-mutation` | 9 of 9 faults found |
 | equivalent LUT4 | 4224 (5% of the 85F, 10% of the 45F) |
 | `DP16KD` | 125 (60% of the 85F, 116% of the 45F) |
 | `MULT18X18D` | 2 |
@@ -108,6 +108,9 @@ The cycle counts differ in all vectors. The core uses 2 clocks for each read.
 
 The first `make ref-public` run found two errors in the reference model. Both are fixed:
 the high byte of S in emulation mode, and a read of the second byte of `WDM`.
+
+Since 2026-11-27 the reference model also records each bus cycle, and `make ref-public` compares
+them: 0 differences in 1,030,026 vectors. Thus the own vectors check the cycles, also in the CI.
 
 ### Public vectors on the new core
 
@@ -146,10 +149,8 @@ With the core `c816` in the system (commit `99858f4`,
 
 ## 6. Not verified
 
-- The cycle counts of the new core in the CI. Our own vectors carry no cycle counts. Only the public
-  vectors check the cycles, and they run only on a local computer.
-- `make cpu` compares the core with our own model. The public vectors confirm this model only for the
-  53 opcodes of today, without decimal mode and without cycles.
+- `make cpu` compares the core with our own model, cycle by cycle. The public vectors confirm this
+  model only for the opcodes that it covers, without decimal mode.
 - Decimal mode.
 - Placement and maximum frequency (nextpnr is not installed).
 - Operation on a real board.

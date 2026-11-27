@@ -10,6 +10,8 @@ The list of what must continue to pass is in `tests/cpu_pass.txt`.
 - Own vectors (`make cpu`): 53 opcodes pass, 21,200 of 21,200 vectors.
 - Public vectors, unchanged: **50 opcodes pass**; 1,032,847 of 1,060,000 vectors; 0 cycle differences.
 - Public vectors with D = 0: 53 opcodes pass; 529,750 of 529,750 vectors.
+- The reference model agrees with all 1,030,026 public vectors that are not decimal `ADC` or `SBC`,
+  cycle by cycle. Our own vectors thus check the cycles in the CI.
 - `WDM` extensions: the system test checks them (MUL, DIV, MAC, MACRD, and the two modes without effect).
 - Differences from the real chip:
 
@@ -26,8 +28,7 @@ The list of what must continue to pass is in `tests/cpu_pass.txt`.
 To close a step, make its opcodes pass the test bench and make `make check` pass.
 
 
-- **C2** open point: our own vectors carry no cycle counts, so the CI does not check the cycles.
-  Only the public vectors check them, on a local computer. Choose how to close this gap.
+
 - **C3** all addressing modes, with loads, stores, and arithmetic.
 - **C4** remaining instructions: shifts, stack, transfers, jumps, block moves.
 - **C5** interrupts (NMI, IRQ, BRK, COP, RTI, WAI, STP) and decimal mode: **256 of 256**.

@@ -37,7 +37,8 @@ Verification done (measured, `make check`):
 - `make test` and `make iverilog`: 56 checks.
 - `make mutation`: 11 of 11 faults found.
 - `make unit`: no differences.
-- `make cpu`: 53 of 256 opcodes. The public vectors run locally with `make cpu-public`.
+- `make cpu`: 53 of 256 opcodes, cycle by cycle. The public vectors run locally with `make cpu-public`.
+- `make cpu-mutation`: 9 of 9 faults found.
 - yosys synthesis: 125 BRAM blocks; about 4,200 LUT with Yosys 0.52.
 - The CI on GitHub passes.
 

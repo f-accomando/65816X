@@ -24,7 +24,7 @@ MUTANTS = [
 
 # Faults in the new core (rtl/cpu/): (module, original text, faulty text, description).
 # They run with Icarus Verilog on the CPU test bench and our own vectors: option --cpu.
-# These vectors carry no cycle counts, so each fault must change a register or the memory.
+# The vectors check the registers, the memory, the cycle count, and each bus cycle.
 CPU_MUTANTS = [
     ('c816_core', "5'd14: begin p_we = 1'b1; p_val = r_p | dl_by; end",
      "5'd14: begin p_we = 1'b1; p_val = r_p | (dl_by & 8'hF7); end", "SEP does not set the D flag"),
@@ -35,6 +35,9 @@ CPU_MUTANTS = [
     ('c816_addr', "al[7] ? 8'hFF : 8'h00", "8'h00", "branch offset without sign"),
     ('c816_addr', "eff = {dbr, ah, al} + {8'h00, x};", "eff = {dbr, ah, al} + {16'h0000, x[7:0]};",
      "absolute,X ignores the high byte of X"),
+    ('c816_core', ".xcarry(xcarry || !r_p[4])", ".xcarry(1'b1)", "absolute,X dummy cycle never skipped"),
+    ('c816_core', "wire load_br = (pcop == 3'd4) || ((pcop == 3'd3) && commit);",
+     "wire load_br = (pcop == 3'd4) || (pcop == 3'd3);", "taken branch loads PC one cycle early"),
 ]
 CPU_CASES = 20   # vectors for each opcode and mode
 

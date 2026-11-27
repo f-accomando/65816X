@@ -7,8 +7,9 @@ Il seme e' fisso: a parita' di sorgenti il file e' identico.
 Formato di una riga (tutti i numeri in esadecimale):
   opcode, stato iniziale (pc s p a x y dbr d pbr e), stato finale (stessi campi), cicli,
   n, n coppie "indirizzo byte" iniziali, m, m coppie "indirizzo byte" finali,
-  c, c terne "tipo indirizzo byte" dei cicli di bus (qui c = 0; vedi sim/cpu_sst.py).
-cicli = 0 vuol dire "non noto" (il modello di riferimento non li conta).
+  c, c terne "tipo indirizzo byte" dei cicli di bus (tipo: bit 0 VDA, bit 1 VPA, bit 2 scrittura;
+  byte 100 = nessuno).
+cicli = 0 vuol dire "non noto".
 
 Limite voluto: il flag D parte sempre a 0.
 """
@@ -63,12 +64,14 @@ def line(opcode, start, cpu):
     out = [opcode]
     out += [start[r] for r in cpu_ref.REGS]
     out += [final[r] for r in cpu_ref.REGS]
-    out.append(0)
+    out.append(len(cpu.cycles))
     for mem in (cpu.initial, cpu.mem):
         out.append(len(mem))
         for addr in sorted(mem):
             out += [addr, mem[addr]]
-    out.append(0)  # no list of bus cycles: the reference model does not count cycles
+    out.append(len(cpu.cycles))
+    for kind, addr, value in cpu.cycles:
+        out += [kind, addr, 0x100 if value is None else value]
     return ' '.join('%x' % v for v in out)
 
 

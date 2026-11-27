@@ -35,6 +35,7 @@ make synth       # sintesi ECP5 con yosys (se installato): conteggio reale di LU
 
 ## Documentazione
 
+- [HANDOFF.md](HANDOFF.md): per chi riprende il lavoro: decisioni dell'utente, proposte e loro esito, idee non ancora nel codice, domande aperte, prossimi passi.
 - [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md): bus, mappa di memoria, opcode supportati, estensioni WDM, limiti.
 - [docs/VARIANTI.md](docs/VARIANTI.md): varianti A (ECP5-45F) e B (ECP5-85F), budget LUT/BRAM, colli di bottiglia, FPU e cache.
 - [docs/ROADMAP.md](docs/ROADMAP.md): prossimi passi in ordine.

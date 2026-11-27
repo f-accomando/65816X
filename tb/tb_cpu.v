@@ -2,7 +2,7 @@
 // For each vector: load registers and memory, run one instruction, compare the final state.
 // Usage: vvp tb_cpu.vvp +vec=<vectors> +out=<results>   (format: see sim/cpu_vectors.py)
 // Result line: opcode, initial e, mask of the differences, count, expected cycles.
-// The adapter file chosen by -DC816 holds the core instance. Only the adapter reads internal
+// The adapter file cpu_adapt_c816.vh holds the core instance. Only the adapter reads internal
 // registers: it defines load_state, state_diff, and run_instruction.
 `timescale 1ns/1ns
 module tb_cpu;
@@ -51,11 +51,7 @@ module tb_cpu;
   integer count;
   reg timeout, bus_bad, illegal;
 
-`ifdef C816
 `include "cpu_adapt_c816.vh"
-`else
-`include "cpu_adapt_old.vh"
-`endif
 
   integer vec, out, code, i, j, tests;
   reg [15:0] diff;

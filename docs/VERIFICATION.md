@@ -8,9 +8,9 @@
 | `make mutation` | inserts faults in the RTL; fails if the tests miss even one | Python 3 |
 | `make iverilog` | full system with Icarus Verilog, same values as `make test` | iverilog |
 | `make unit` | test for each module against a reference model (today: WRAM, 100,000 random cycles) | iverilog |
-| `make cpu` | CPU only: one instruction for each vector, score in `build/cpu_score.txt` | iverilog |
+| `make cpu` | CPU only: one instruction for each vector, score in `build/cpu_score.txt`, pass list `tests/cpu_pass.txt`. It checks the cycle count and each bus cycle when the vectors give them. It then checks that an unimplemented opcode sets `dbg_illegal` | iverilog |
 | `make cpu-update` | same as above, and writes `tests/cpu_pass.txt` again | iverilog |
-| `make cpu-c816` | `make cpu CORE=c816`: the new core of `rtl/cpu/`, score in `build/cpu_score_c816.txt`, pass list `tests/cpu_pass_c816.txt`. It also checks the cycle count and each bus cycle when the vectors give them. It then checks that an unimplemented opcode sets `dbg_illegal` | iverilog |
+
 | `make synth` | ECP5 synthesis and budget check (default `BUDGET=B`) | yosys |
 | `make ref-public SST=<folder>` | reference model against the public vectors | public vectors |
 | `make cpu-public SST=<folder>` | CPU against the public vectors, score in `build/cpu_public_score.txt` | iverilog, public vectors |
@@ -18,7 +18,7 @@
 | `make manual-check` | the manual matches its sources (see `manuals/README.md`) | Python 3 |
 | `make tables` | writes the generated tables of the new CPU core | Python 3 |
 | `make tables-check` | the generated tables match `rtl/cpu/c816_tables.txt` | Python 3 |
-| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `cpu-c816`, `cpu-mutation`, `synth`, `manual-check` | iverilog, yosys |
+| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `cpu-mutation`, `synth`, `manual-check` | iverilog, yosys |
 
 Keep `sim/vsim.py` while the RTL needs no parameters, `generate`, or `function`.
 Do not shape the RTL for the mini simulator: the design would get worse.
@@ -41,9 +41,7 @@ Each opcode has 10,000 vectors for native mode and 10,000 for emulation mode. Ke
 the repository, in `<folder>/v1/`. The 106 files of the 53 opcodes of today take 457 MB.
 `sim/cpu_sst.py` converts them. `SST_FLAGS` accepts `--limit N`, `--d0`, `--page1`, and `--bus`.
 `--bus` adds the bus cycles of each vector, for a check cycle by cycle.
-`CORE=c816` runs the `cpu` targets on the core of the system (see [design/cpu-core.md](design/cpu-core.md)).
-Without it, they run on the old core.
-Only the adapter file `tb/cpu_adapt_<core>.vh` reads the internal registers of a core.
+Only the adapter file `tb/cpu_adapt_c816.vh` reads the internal registers of the core.
 The CI does not run these commands, because it does not have the files.
 
 In emulation mode, the vectors start with any value in the high byte of S. The real chip holds it at 01,
@@ -80,10 +78,9 @@ The system uses the new core `c816`.
 | `make mutation` | 11 of 11 faults found |
 | `make iverilog` | 56/56 |
 | `make unit` | 0 differences, 28,123 accesses to the WRAM port |
-| `make cpu` | old core: 47 of 256 opcodes; 20,845 of 21,200 vectors |
-| `make cpu-c816` | 53 of 256 opcodes; 21,200 of 21,200 vectors |
+| `make cpu` | 53 of 256 opcodes; 21,200 of 21,200 vectors |
 | `make cpu-mutation` | 7 of 7 faults found |
-| equivalent LUT4 | 4219 (5% of the 85F, 10% of the 45F) |
+| equivalent LUT4 | 4224 (5% of the 85F, 10% of the 45F) |
 | `DP16KD` | 125 (60% of the 85F, 116% of the 45F) |
 | `MULT18X18D` | 2 |
 | `TRELLIS_FF` | 680 |
@@ -114,7 +111,8 @@ the high byte of S in emulation mode, and a read of the second byte of `WDM`.
 
 ### Public vectors on the new core
 
-Run on 2026-11-27 with `CORE=c816`, all vectors, with the cycle and bus checks.
+Run on 2026-11-27, all vectors, with the cycle and bus checks. At that time the repository had two
+cores, and `CORE=c816` selected the one that is the only core today.
 
 | Run | Result |
 |---|---|
@@ -152,6 +150,6 @@ With the core `c816` in the system (commit `99858f4`,
   vectors check the cycles, and they run only on a local computer.
 - `make cpu` compares the core with our own model. The public vectors confirm this model only for the
   53 opcodes of today, without decimal mode and without cycles.
-- Decimal mode of the two cores, and the cycle counts of the old core.
+- Decimal mode.
 - Placement and maximum frequency (nextpnr is not installed).
 - Operation on a real board.

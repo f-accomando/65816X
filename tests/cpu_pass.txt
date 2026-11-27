@@ -8,6 +8,7 @@
 18 n
 1A e
 1A n
+20 e
 20 n
 29 e
 29 n
@@ -19,6 +20,7 @@
 3A n
 42 e
 42 n
+48 e
 48 n
 49 e
 49 n
@@ -28,7 +30,9 @@
 58 n
 5C e
 5C n
+60 e
 60 n
+68 e
 68 n
 69 e
 69 n
@@ -90,6 +94,8 @@ CD e
 CD n
 D0 e
 D0 n
+E2 e
+E2 n
 E8 e
 E8 n
 E9 e
@@ -99,3 +105,4 @@ EA n
 F0 e
 F0 n
 FB e
+FB n

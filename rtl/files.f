@@ -1,6 +1,5 @@
 # Sorgenti RTL del sistema, in ordine. Unico elenco: lo leggono Makefile, sim/run_tests.py,
 # sim/mutation_check.py e la CI. Percorsi relativi alla radice del repository.
-rtl/cpu65816x.v
 rtl/cpu/c816_decode.v
 rtl/cpu/c816_ucode.v
 rtl/cpu/c816_seq.v

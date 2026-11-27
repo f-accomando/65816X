@@ -35,8 +35,7 @@ make mutation    # insert 10 faults in the RTL and verify that the tests find ea
 make iverilog    # the same checks with Icarus Verilog
 make unit        # test for each module (WRAM against the reference model)
 make cpu         # test bench of the CPU only: score in build/cpu_score.txt
-make cpu-c816    # the same for the core of the system (rtl/cpu/)
-make cpu-public CORE=c816 SST=<folder>   # public vectors (not in the repository)
+make cpu-public SST=<folder>   # the same with the public vectors (not in the repository)
 make synth       # ECP5 synthesis with yosys and budget; BUDGET="A B" checks both variants
 make manual      # build the PDF manual (needs reportlab)
 make check       # everything that the CI runs

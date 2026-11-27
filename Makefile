@@ -8,7 +8,7 @@ BUDGET ?= B
 
 RTL := $(filter %.v,$(shell cat rtl/files.f))
 
-.PHONY: test mutation cpu-mutation rom iverilog unit cpu cpu-c816 cpu-illegal cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
+.PHONY: test mutation cpu-mutation rom iverilog unit cpu cpu-illegal cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
 
 # Collaudo con il mini simulatore Python (nessuna dipendenza esterna)
 test:
@@ -45,34 +45,20 @@ unit:
 build/cpu_vectors.txt: sim/cpu_vectors.py sim/cpu_ref.py
 	$(PY) sim/cpu_vectors.py $@
 
-# CORE = old (cpu65816x) or c816 (rtl/cpu/, see docs/design/cpu-core.md)
-CORE ?= old
-ifeq ($(CORE),c816)
-CPU_DEF := -DC816
-CPU_TAG := _c816
-else
-CPU_DEF :=
-CPU_TAG :=
-endif
-CPU_VVP := build/tb_cpu$(CPU_TAG).vvp
-CPU_PASS := tests/cpu_pass$(CPU_TAG).txt
-CPU_RES := build/cpu_results$(CPU_TAG).txt
-CPU_SCORE := build/cpu_score$(CPU_TAG).txt
+CPU_VVP := build/tb_cpu.vvp
+CPU_PASS := tests/cpu_pass.txt
+CPU_RES := build/cpu_results.txt
+CPU_SCORE := build/cpu_score.txt
 
-$(CPU_VVP): $(RTL) rtl/files.f tb/tb_cpu.v $(wildcard tb/cpu_adapt_*.vh)
+$(CPU_VVP): $(RTL) rtl/files.f tb/tb_cpu.v tb/cpu_adapt_c816.vh
 	mkdir -p build
-	$(IVERILOG) -g2012 -s tb_cpu $(CPU_DEF) -I tb -o $@ $(RTL) tb/tb_cpu.v
+	$(IVERILOG) -g2012 -s tb_cpu -I tb -o $@ $(RTL) tb/tb_cpu.v
 
 cpu-run: build/cpu_vectors.txt $(CPU_VVP)
 	$(VVP) -n $(CPU_VVP) +vec=build/cpu_vectors.txt +out=$(CPU_RES)
 
-cpu: cpu-run
+cpu: cpu-run cpu-illegal
 	$(PY) sim/cpu_score.py $(CPU_RES) $(CPU_SCORE) --passlist $(CPU_PASS)
-
-# The new core with its own pass list (tests/cpu_pass_c816.txt)
-cpu-c816:
-	$(MAKE) cpu CORE=c816
-	$(MAKE) cpu-illegal CORE=c816
 
 # An opcode without a table row must set dbg_illegal (opcode $02, COP, until its step)
 cpu-illegal: $(CPU_VVP)
@@ -92,8 +78,8 @@ SST_FLAGS ?=
 cpu-public: $(CPU_VVP)
 	@test -n "$(SST)" || { echo "manca SST=<cartella dei vettori>"; exit 1; }
 	$(PY) -I sim/cpu_sst.py convert "$(SST)" build/sst_vectors.txt $(SST_FLAGS)
-	$(VVP) -n $(CPU_VVP) +vec=build/sst_vectors.txt +out=build/sst_results$(CPU_TAG).txt
-	$(PY) sim/cpu_score.py build/sst_results$(CPU_TAG).txt build/cpu_public_score$(CPU_TAG).txt --report-only
+	$(VVP) -n $(CPU_VVP) +vec=build/sst_vectors.txt +out=build/sst_results.txt
+	$(PY) sim/cpu_score.py build/sst_results.txt build/cpu_public_score.txt --report-only
 
 ref-public:
 	@test -n "$(SST)" || { echo "manca SST=<cartella dei vettori>"; exit 1; }
@@ -120,7 +106,7 @@ manual-check:
 	$(PY) manuals/tools/manuals.py check
 
 # Tutto quello che esegue la CI
-check: tables-check test mutation iverilog unit cpu cpu-c816 cpu-mutation synth manual-check
+check: tables-check test mutation iverilog unit cpu cpu-mutation synth manual-check
 
 clean:
 	rm -rf build rom.hex

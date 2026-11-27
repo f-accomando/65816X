@@ -43,7 +43,7 @@ def cpu_bench(sources, work, vectors):
     """Compile the CPU test bench with these sources; return the number of failing vectors."""
     root = run_tests.ROOT
     vvp, result = os.path.join(work, 'tb.vvp'), os.path.join(work, 'results.txt')
-    subprocess.run([os.environ.get('IVERILOG', 'iverilog'), '-g2012', '-s', 'tb_cpu', '-DC816', '-I',
+    subprocess.run([os.environ.get('IVERILOG', 'iverilog'), '-g2012', '-s', 'tb_cpu', '-I',
                     os.path.join(root, 'tb'), '-o', vvp] + sources + [os.path.join(root, 'tb', 'tb_cpu.v')],
                    check=True)
     subprocess.run([os.environ.get('VVP', 'vvp'), '-n', vvp, '+vec=' + vectors, '+out=' + result],

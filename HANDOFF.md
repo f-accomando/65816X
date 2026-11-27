@@ -24,7 +24,7 @@ The Verilog skeleton follows the **multi-chip structure of the original SNES** (
 
 | Module | File | Status |
 |---|---|---|
-| Core 65816X | `rtl/cpu/` | 53 opcodes, cycle by cycle; no interrupts (old core `rtl/cpu65816x.v`: not used) |
+| Core 65816X | `rtl/cpu/` | 53 opcodes, cycle by cycle; no interrupts |
 | Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registers `$42xx`, instant mul/div, general DMA 8 channels (modes 0-7), no HDMA |
 | PPU1/PPU2 | `rtl/ppu_stub.v` | only timing and VRAM (`$2115-$2119`, `$2139-$213A`) |
 | SPC700 + DSP | `rtl/apu_stub.v` | 4 ports with echo, signature `$AA/$BB` |
@@ -37,7 +37,7 @@ Verification done (measured, `make check`):
 - `make test` and `make iverilog`: 56 checks.
 - `make mutation`: 11 of 11 faults found.
 - `make unit`: no differences.
-- `make cpu-c816`: 53 of 256 opcodes. The public vectors run locally with `make cpu-public CORE=c816`.
+- `make cpu`: 53 of 256 opcodes. The public vectors run locally with `make cpu-public`.
 - yosys synthesis: 125 BRAM blocks; about 4,200 LUT with Yosys 0.52.
 - The CI on GitHub passes.
 
@@ -70,7 +70,7 @@ project did not fit in either FPGA.
 6. **Resolution**: no 480/720; keep SNES resolutions (the user was interested in double resolution and sprites with the same architecture).
 7. **Look**: "Wind Waker" sharpness (clean polygons and textures, without the blur of the N64) without GameCube emulation.
 8. **CPU core** (2026-11-27): 2 FPGA clocks for each CPU cycle. The design in `docs/design/cpu-core.md`
-   is approved, with the proposals of its section 9.3. Ask before you delete the old core.
+   is approved, with the proposals of its section 9.3. The user also approved the deletion of the old core.
 
 ## 4. Proposals of the user (from ChatGPT chats) and results
 

@@ -1,16 +1,37 @@
 # Roadmap
 
-1. **Verifica con strumenti reali**: `make iverilog` (correggere eventuali differenze dal mini simulatore)
-   e `make synth` (conteggio reale di LUT/BRAM e timing con nextpnr-ecp5).
-2. **Core completo**: interrupt (NMI/IRQ/BRK/COP), direct page, stack-relative, indiretti, shift, BIT,
-   MVN/MVP, modo decimale; confronto con suite di test indipendenti e con hardware di riferimento.
-3. **Timing SNES**: cicli bus da 6/8/12 master clock, refresh, modo "timing accelerato controllato".
-4. **Memoria reale**: controller SDRAM, caricamento ROM da SD, boot ROM da 4-8 KB sovrapposta ai
-   vettori e disattivabile con una scrittura.
-5. **PPU**: rendering dei modi 0-7, OAM, CGRAM, poi la pipeline PPU+ (rasterizer, Z per tile, toon).
-6. **APU**: SPC700 e S-DSP, poi le 16 voci a 44,1 kHz.
-7. **Uscita video**: HDMI su ULX3S (GPDI), 320x240 scalato.
-8. **Estensioni**: DOT3, CROSS3, ROT, BLIT, FILL, registri R0-R7, DMA avanzato (memcpy, memset, stride, liste).
-9. **Secondo core** (stile SA-1) con mailbox e semaforo; I-cache da 4 KB per core.
-10. **Strumenti**: assembler esteso alle istruzioni enhanced; C tramite PVSnesLib o Calypsi
-    per il codice compatibile (nessun compilatore C supporta ancora le estensioni).
+Each phase depends on the previous one, unless the table says otherwise. To close a phase, verify its
+criterion and make `make check` pass.
+
+| Phase | Content | Verifiable completion | Risks |
+|---|---|---|---|
+| F0 | Structure and verification | `make check` passes (done locally) and the CI passes (to do) | the yosys of the CI differs from the local one |
+| F1 | Sequential dividers: 5A22 with the latency of the original, `WDM DIV` | no `$div`/`$mod` cell before mapping; mutants on the divider | tests that depend on the instant division |
+| F1b | Minimal board top, ULX3S pin file, nextpnr in the CI for 45k and 85k | placement report with maximum frequency | license of the imported pin file |
+| F2 | NMI/IRQ/BRK/COP interrupts, all opcodes, signal for an unimplemented opcode (`dbg_illegal`), subfolders in `rtl/` | CPU-only harness in iverilog: vectors for all 256 opcodes in native and emulation mode | license and download of the vectors (SingleStepTests) |
+| F3 | SNES timing: one clock with enable, 6/8/12 cycles, `bus_wait`, accelerated mode | cycle counts equal to the vectors; `bus_wait = 0` in SNES mode | reachable frequency |
+| F4 | Real memory: `mp_*` port, SDRAM controller and arbiter, variants A/B, ROM from SD or UART, boot ROM | `make check` for A and B with an SDRAM model; memory test on the board | SDRAM timing, license of the model |
+| F5 | PPU modes 0-7, OAM, CGRAM, HDMI output | simulation images equal to the expected images | LUT budget, VRAM bandwidth |
+| F6 | SPC700 and S-DSP | SPC700 vectors; audio compared with the expected audio | boot handshake of the games |
+| F7 | Compatibility: HDMA, cycle-correct DMA, LoROM/HiROM/ExHiROM mappers | public test ROMs with the expected result | edge cases (DMA WRAM -> `$2180`) |
+| F8 | Extensions: remaining `WDM`, R0-R7, advanced DMA, optional 32-bit mode, monitor, keyboard, on-machine assembler | one test and one mutant for each | depends on questions 2 and 3 of HANDOFF |
+| F9 | PPU+ toon 3D (rasterizer, Z for each tile, combiner) | images of test scenes; budget of A and B | SDRAM bandwidth |
+| F10 | B only: second core, I-cache, 16-voice audio at 44.1 kHz | mailbox and semaphore tests; audio; budget of B | LUT at 85-90% (estimate) |
+
+## Current order: CPU first
+
+For now, develop only the CPU, in the steps C1-C7 of [progress/cpu.md](progress/cpu.md).
+C1-C5 cover phase F2 and the part of F3 about internal cycles. C6 includes the `WDM DIV` divider of F1.
+C7 is the CPU part of F8. The SNES bus timing (6, 8, 12 clock cycles) stays in F3.
+
+## Next steps
+
+1. Push `main` and make the CI pass (this closes F0).
+2. C1: public vectors and cycle check.
+3. C2: reorganize the core.
+
+## To decide: host port
+
+This proposal is not approved. An SPI link in the FPGA loads ROMs, starts and stops the processor,
+and reads the memory. A computer or a Raspberry Pi Zero W (later possibly a CM3) controls it.
+If approved, it goes with F4. It depends on question 7 of HANDOFF (standalone machine or ARM in control).

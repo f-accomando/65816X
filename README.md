@@ -1,50 +1,58 @@
 # 65816X
 
-Punto di partenza in Verilog per una **SNES avanzata su FPGA** (target: Lattice ECP5, scheda ULX3S):
-un 65816 migliorato e compatibile con le ROM SNES, con DMA/moltiplicatore come il Ricoh 5A22,
-estensioni "enhanced" opzionali e una PPU che in futuro ospitera' una pipeline 3D.
+A Verilog starting point for an **enhanced SNES on an FPGA** (target: Lattice ECP5, ULX3S board).
+It has an improved 65816 that is compatible with SNES ROMs, with the DMA and multiplier of the Ricoh 5A22.
+It also has optional "enhanced" extensions and a PPU that will later contain a 3D pipeline.
 
-Il progetto parte dalla **struttura a piu' chip della SNES originale** (non la versione 1-chip):
-5A22, PPU, APU, WRAM e cartuccia sono moduli separati collegati da un unico bus a 8 bit.
+The project starts from the **multi-chip structure of the original SNES** (not the 1-chip version).
+5A22, PPU, APU, WRAM, and cartridge are separate modules. One 8-bit bus connects them.
 
-## Stato
+## Status
 
-Scheletro funzionante, verificato in simulazione con un mini simulatore Python (vedi sotto).
-**Non e' ancora** stato eseguito con iverilog/verilator ne' sintetizzato con yosys: nell'ambiente
-in cui e' stato scritto non erano disponibili. Primo passo consigliato: `make iverilog` e `make synth`.
+The skeleton works. The Python mini simulator, Icarus Verilog, and yosys synthesis for ECP5 verify it.
+Measured: 125 BRAM blocks and about 4,400 LUT. It fits in the 85F. It does not fit in the 45F yet (BRAM).
+CPU: 47 of 256 opcodes pass the test bench.
+**Not verified**: placement, maximum frequency, verilator, and real hardware.
+Details are in [docs/VERIFICATION.md](docs/VERIFICATION.md) and [docs/progress/cpu.md](docs/progress/cpu.md).
 
-| Modulo | File | Stato |
+| Module | File | Status |
 |---|---|---|
-| Core 65816X | `rtl/cpu65816x.v` | sottoinsieme di opcode, niente interrupt, tempi non cycle-accurate |
-| Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registri `$42xx`, mul/div, DMA generale (8 canali, modi 0-7), niente HDMA |
-| PPU1/PPU2 | `rtl/ppu_stub.v` | timing video e VRAM, nessun rendering |
-| SPC700 + DSP | `rtl/apu_stub.v` | 4 porte `$2140-$2143` con eco e firma `$AA/$BB` |
-| WRAM | `rtl/wram.v` | 128 KB, mirror, porta `$2180-$2183` |
-| Cartuccia | `rtl/cart_rom.v` | LoROM 64 KB (segnaposto della SDRAM) |
-| Estensioni | `rtl/ext_regs.v` | registri enhanced in `$5F00-$5FFF` |
-| Top | `rtl/snes_plus_top.v` | collega tutto e fa il mux di lettura |
+| Core 65816X | `rtl/cpu65816x.v` | subset of the opcodes, no interrupts, timing not cycle-accurate |
+| Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registers `$42xx`, mul/div, general DMA (8 channels, modes 0-7), no HDMA |
+| PPU1/PPU2 | `rtl/ppu_stub.v` | video timing and VRAM, no rendering |
+| SPC700 + DSP | `rtl/apu_stub.v` | 4 ports `$2140-$2143` with echo and signature `$AA/$BB` |
+| WRAM | `rtl/wram.v` | 128 KB, mirrors, port `$2180-$2183` |
+| Cartridge | `rtl/cart_rom.v` | LoROM 64 KB (placeholder for the SDRAM) |
+| Extensions | `rtl/ext_regs.v` | enhanced registers in `$5F00-$5FFF` |
+| Top | `rtl/snes_plus_top.v` | connects all modules and selects the read data |
 
-## Uso rapido
+## Quick use
 
 ```
-make test        # assembla tests/test_program.asm ed esegue 45 controlli (solo Python 3)
-make mutation    # introduce 7 guasti nell'RTL e verifica che il collaudo li scopra
-make iverilog    # stesso programma con Icarus Verilog (se installato)
-make synth       # sintesi ECP5 con yosys (se installato): conteggio reale di LUT e BRAM
+make test        # assemble tests/test_program.asm and run 56 checks (Python 3 only)
+make mutation    # insert 10 faults in the RTL and verify that the tests find each one
+make iverilog    # the same checks with Icarus Verilog
+make unit        # test for each module (WRAM against the reference model)
+make cpu         # test bench of the CPU only: score in build/cpu_score.txt
+make synth       # ECP5 synthesis with yosys and budget; BUDGET="A B" checks both variants
+make check       # everything that the CI runs
 ```
 
-## Documentazione
+## Documents
 
-- [HANDOFF.md](HANDOFF.md): per chi riprende il lavoro: decisioni dell'utente, proposte e loro esito, idee non ancora nel codice, domande aperte, prossimi passi.
-- [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md): bus, mappa di memoria, opcode supportati, estensioni WDM, limiti.
-- [docs/VARIANTI.md](docs/VARIANTI.md): varianti A (ECP5-45F) e B (ECP5-85F), budget LUT/BRAM, colli di bottiglia, FPU e cache.
-- [docs/ROADMAP.md](docs/ROADMAP.md): prossimi passi in ordine.
+- [CLAUDE.md](CLAUDE.md): work rules for Claude Code sessions.
+- [docs/progress/cpu.md](docs/progress/cpu.md) and [docs/progress/system.md](docs/progress/system.md): status, open work, and rules of each area.
+- [HANDOFF.md](HANDOFF.md): for the next session: user decisions, proposals and results, ideas not yet in the code, open questions, next steps.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): bus, memory map, supported opcodes, WDM extensions, limits.
+- [docs/VARIANTS.md](docs/VARIANTS.md): variants A (ECP5-45F) and B (ECP5-85F), LUT and BRAM budget, bottlenecks, FPU and cache.
+- [docs/ROADMAP.md](docs/ROADMAP.md): project phases and next steps.
+- [docs/VERIFICATION.md](docs/VERIFICATION.md): check commands, synthesis budget, measured results.
 
-## Strumenti inclusi
+## Included tools
 
-- `sim/asm.py`: assembler per il sottoinsieme supportato (`python3 sim/asm.py in.asm rom.hex`).
-- `sim/vsim.py`: mini simulatore per un sottoinsieme sincrono di Verilog, a un solo clock.
-  Serve come test di regressione senza dipendenze; non sostituisce iverilog o verilator.
+- `sim/asm.py`: assembler for the supported subset (`python3 sim/asm.py in.asm rom.hex`).
+- `sim/vsim.py`: mini simulator for a synchronous subset of Verilog, with one clock.
+  It is a regression test without dependencies. It does not replace iverilog or verilator.
 
-Le cifre di LUT e BRAM nei documenti sono stime (±30%), non risultati di sintesi.
-Nessuna licenza e' stata scelta: va aggiunta dal proprietario del repository.
+The LUT and BRAM numbers for functions not yet written are estimates (±30%), not synthesis results.
+The repository has no license. The owner of the repository must add one.

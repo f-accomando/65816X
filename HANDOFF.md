@@ -1,196 +1,231 @@
-# HANDOFF - 65816X (SNES+ su FPGA)
+# HANDOFF - 65816X (SNES+ on FPGA)
 
-Documento per passare il lavoro a un'altra sessione di Claude Code. Raccoglie le decisioni
-dell'utente, le proposte dell'utente e quelle di Claude (con l'esito di ognuna), le idee
-discusse ma non ancora nel codice, i dubbi aperti e i prossimi passi.
+This document passes the work to another Claude Code session. It records the user decisions.
+It records the proposals of the user and of Claude, with the result of each.
+It also records the ideas not yet in the code, the open points, and the next steps.
 
-Data: 2026-11-27. Repository: `f-accomando/65816X`. Branch di lavoro: `feat/snes-plus-skeleton` (PR #1).
+Date: 2026-11-27. Repository: `f-accomando/65816X`. Main branch: `main`.
 
-> Tutte le cifre di LUT, BRAM, MHz e fps in questo file sono **stime** (±30%), salvo dove e'
-> scritto "misurato". Nessuna e' un risultato di sintesi.
+> All numbers of LUT, BRAM, MHz, and fps in this file are **estimates** (±30%), except where the text
+> says "measured".
 
-## 1. Come lavorare con questo utente
+## 1. How to work with this user
 
-- Scrive in **italiano**: rispondere e documentare in italiano.
-- Usa Claude da **iPhone, senza tastiera fisica**: preferisce file scaricabili e verifica con test,
-  **niente demo live o interattive** (canvas, giochi con tastiera).
-- Vuole risposte brevi e dirette, con le cifre dichiarate come stime quando lo sono.
-- Dire apertamente cosa NON e' stato verificato. Non presentare stime come misure.
+- The user usually writes in **Italian**: reply in the language of the message.
+  Write the project documents in English with ASD-STE100.
+- The user uses Claude from an **iPhone, without a physical keyboard**. Send downloadable files and verify with tests.
+  **Do not offer live or interactive demos** (canvas, games with a keyboard): the user cannot use them.
+- Give short and direct answers. Mark estimates as estimates.
+- State clearly what is NOT verified. Do not present estimates as measurements.
 
-## 2. Stato del codice
+## 2. Code status
 
-Scheletro Verilog costruito sulla **struttura a piu' chip della SNES originale** (non la 1-chip):
+The Verilog skeleton follows the **multi-chip structure of the original SNES** (not the 1-chip):
 
-| Modulo | File | Stato |
+| Module | File | Status |
 |---|---|---|
-| Core 65816X | `rtl/cpu65816x.v` | sottoinsieme di opcode, niente interrupt, tempi non cycle-accurate |
-| Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registri `$42xx`, mul/div istantanei, DMA generale 8 canali (modi 0-7), niente HDMA |
-| PPU1/PPU2 | `rtl/ppu_stub.v` | solo timing e VRAM (`$2115-$2119`, `$2139-$213A`) |
-| SPC700 + DSP | `rtl/apu_stub.v` | 4 porte con eco, firma `$AA/$BB` |
-| WRAM | `rtl/wram.v` | 128 KB, mirror, porta `$2180-$2183` |
-| Cartuccia | `rtl/cart_rom.v` | LoROM 64 KB (segnaposto della SDRAM) |
-| Estensioni | `rtl/ext_regs.v` | `$5F00` ID (`$58`), `$5F01` modo timing, `$5F02` velocita' |
-| Top | `rtl/snes_plus_top.v` | collega tutto |
+| Core 65816X | `rtl/cpu65816x.v` | subset of the opcodes, no interrupts, timing not cycle-accurate |
+| Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registers `$42xx`, instant mul/div, general DMA 8 channels (modes 0-7), no HDMA |
+| PPU1/PPU2 | `rtl/ppu_stub.v` | only timing and VRAM (`$2115-$2119`, `$2139-$213A`) |
+| SPC700 + DSP | `rtl/apu_stub.v` | 4 ports with echo, signature `$AA/$BB` |
+| WRAM | `rtl/wram.v` | 128 KB, mirrors, port `$2180-$2183` |
+| Cartridge | `rtl/cart_rom.v` | LoROM 64 KB (placeholder for the SDRAM) |
+| Extensions | `rtl/ext_regs.v` | `$5F00` ID (`$58`), `$5F01` mode (2 = extended, enables `WDM`), `$5F02` speed |
+| Top | `rtl/snes_plus_top.v` | connects all modules |
 
-Verifica fatta: `make test` (45 controlli) e `make mutation` (7 guasti su 7 rilevati), con il
-mini simulatore Python `sim/vsim.py`. **Mai eseguito con iverilog, verilator, yosys o nextpnr**
-(non c'erano nell'ambiente di sviluppo). `tb/tb_snes_plus.v` e' scritto ma non eseguito.
+Verification done (measured, `make check`):
+- `make test` and `make iverilog`: 56 checks.
+- `make mutation`: 10 of 10 faults found.
+- `make unit`: no differences.
+- `make cpu`: 47 of 256 opcodes.
+- yosys synthesis: 125 BRAM blocks and about 4,400 LUT.
 
-### Trabocchetti del codice attuale
+**Never run with verilator or nextpnr, or on a board.** Details are in `docs/VERIFICATION.md`.
+The WRAM now uses one address. The previous version did not go into BRAM, and the
+project did not fit in either FPGA.
 
-- Lettura sul bus = 2 cicli (`ph` 0 invia l'indirizzo, `ph` 1 cattura); scrittura = 1 ciclo. Gli effetti
-  collaterali di lettura avvengono solo sul ciclo con `rd`.
-- Il DMA ferma la CPU solo sul confine di istruzione (`halt` agisce in `ST_FETCH` con `ph=0`).
-- Opcode sconosciuti = NOP silenzioso: nasconde i bug, da sostituire con un segnale di errore in simulazione.
-- `WDM DIV` usa `/` e `%` combinatori: in sintesi sono grossi e lenti, da rifare sequenziali.
-- Le estensioni WDM assumono A e X a 16 bit.
-- `sim/vsim.py` supporta solo un sottoinsieme di Verilog (un clock, niente parametri di istanza,
-  generate, function): se l'RTL cresce oltre, usare iverilog/verilator.
-- La lettura VRAM non modella il prefetch dell'originale (semplificazione dichiarata).
+### Traps of the current code
 
-## 3. Decisioni prese dall'utente (da non rimettere in discussione senza chiedere)
+- Bus read = 2 cycles (`ph` 0 sends the address, `ph` 1 captures); write = 1 cycle. Read side
+  effects occur only in the cycle with `rd`.
+- The DMA stops the CPU only at an instruction boundary (`halt` acts in `ST_FETCH` with `ph=0`).
+- An unknown opcode is a silent NOP: this hides bugs. Replace it with an error signal in simulation.
+- `WDM DIV` uses combinational `/` and `%`: they are large and slow in synthesis. Make them sequential.
+- The WDM extensions assume 16-bit A and X.
+- `sim/vsim.py` supports only a subset of Verilog (one clock, no instance parameters,
+  generate, or function). If the RTL needs more, use iverilog or verilator.
+- Give each large memory one read address. Otherwise it goes into logic
+  (`make synth` reports it).
+- With `iverilog -g2012`, the word `ref` is reserved.
+- The VRAM read does not model the prefetch of the original (a declared simplification).
 
-1. **Target**: FPGA ECP5 su ULX3S, due varianti: A (45F, ~44k LUT) e B (85F, ~84k LUT).
-2. **Compatibilita'** con ROM e cartucce SNES; le estensioni sono opzionali ("opzione C": compatibile ed estensibile). Senza "nuove tecnologie".
-3. **Partire dalla struttura SNES originale a piu' chip**, non dalla versione 1-chip.
-4. **Programmabile sulla macchina**: tastiera, assembly e C.
-5. **Audio della B: 16 voci a 44,1 kHz** (aveva proposto 24 voci come la PS1, poi ha scelto 16).
-6. **Risoluzione**: niente 480/720; resta a risoluzioni da SNES (era interessato a risoluzione e sprite raddoppiati mantenendo l'architettura).
-7. **Look**: nitidezza "alla Wind Waker" (poligoni e texture nette, senza la sfocatura dell'N64) senza emulare la GameCube.
+## 3. User decisions (ask before you reopen them)
 
-## 4. Proposte dell'utente (dalle sue chat con ChatGPT) e esito
+1. **Target**: ECP5 FPGA on the ULX3S, two variants: A (45F, ~44k LUT) and B (85F, ~84k LUT).
+2. **Compatibility** with SNES ROMs and cartridges; the extensions are optional ("option C": compatible and extensible). No "new technologies".
+3. **Start from the original multi-chip SNES structure**, not from the 1-chip version.
+4. **Programmable on the machine**: keyboard, assembly, and C.
+5. **Audio of B: 16 voices at 44.1 kHz** (the user proposed 24 voices as on the PS1, then chose 16).
+6. **Resolution**: no 480/720; keep SNES resolutions (the user was interested in double resolution and sprites with the same architecture).
+7. **Look**: "Wind Waker" sharpness (clean polygons and textures, without the blur of the N64) without GameCube emulation.
 
-Fonte: due chat condivise di ChatGPT. Del primo link e' stata letta solo la lista delle domande; di entrambe
-sono state incollate solo le prime risposte (sezione CPU). Il resto delle risposte non e' disponibile.
+## 4. Proposals of the user (from ChatGPT chats) and results
 
-| Idea | Esito | Perche' |
+Source: two shared ChatGPT chats. From the first link, only the list of questions was read. From both,
+only the first answers were pasted (CPU section). The other answers are not available.
+
+| Idea | Result | Reason |
 |---|---|---|
-| Due modalita': SNES ed Enhanced | **Adottata** | stessa ISA, nessuna perdita di compatibilita' |
-| "Timing accelerato controllato" (veloce ma rispetta le finestre di PPU/periferiche) | **Adottata** | diventa il modo intermedio: SNES / accelerato / enhanced (`$5F01`) |
-| Estensioni via `WDM`: MUL32, DIV32, MAC, MOV32, FILL, BLIT, SIN/COS, ROT, DOT3, CROSS3 | **Parziale** | in RTL ci sono MUL, DIV, MAC, MACRD, MACCLR; il resto va fatto |
-| Registri R0-R7 a 32 bit e ACC32, invisibili in modalita' legacy | Da fare | non toccano il codice SNES |
-| ALU interna a 32 bit | **Da decidere** | proposta di Claude: modalita' estesa a 32 bit con prefisso (il W65C832 non fu mai prodotto) |
-| Pipeline in-order a 3-5 stadi | Modificata: prefetch a 3 stadi | un 65816 con bus a byte guadagna poco da 5 stadi |
-| Branch prediction | Rimandata | pipeline corta, poco guadagno |
-| Cache L1 4-8 KB (I e D) + L2 32-128 KB | **Modificata**: scratchpad 16 KB per core + I-cache 4 KB per core opzionale; L2 no | BRAM gia' all'88-94%, e la coerenza con I/O e DMA e' il punto delicato |
-| Bus separati: istruzioni, dati, DMA, periferiche | **Adottata** in B (3 bus in A) | il DMA non blocca il fetch |
-| DMA a 8-16 canali, burst, liste di comandi, priorita' | Modificata: 8 canali legacy + motori avanzati (1 in A, 2 in B) | il DMA legacy deve restare identico |
-| Bus interno 64 bit | **Scartata** | la SDRAM della ULX3S e' a 16 bit |
-| 8 registri vettoriali da 128 bit | **Scartata** | troppi LUT per un 65816 |
-| Clock 50-100 MHz | Ridotta a 50-80 MHz | realismo su ECP5 |
-| Unita' parallele MUL/DIV/MAC/DSP, operazioni atomiche, bit manipulation | MUL/DIV/MAC adottate; il resto non valutato | |
-| Sviluppo a fasi: core, 65816X, strato 5A22, sistema enhanced | **Adottata** | e' la roadmap |
-| SID "enhanced" a 8 canali / 44,1 kHz su FPGA | Superata dalla scelta a 16 voci | un SID analogico fedele non si riproduce su FPGA; vedi sez. 7 |
-| Schermi OLED della Switch per progetti propri | **Senza risposta** | domanda finita nel testo incollato, mai affrontata |
+| Two modes: SNES and Enhanced | **Adopted** | same ISA, no loss of compatibility |
+| "Controlled accelerated timing" (fast but keeps the PPU and peripheral windows) | **Adopted** | it becomes the middle mode: SNES / accelerated / enhanced (`$5F01`) |
+| Extensions through `WDM`: MUL32, DIV32, MAC, MOV32, FILL, BLIT, SIN/COS, ROT, DOT3, CROSS3 | **Partial** | the RTL has MUL, DIV, MAC, MACRD, MACCLR; the rest is to do |
+| 32-bit registers R0-R7 and ACC32, invisible in legacy mode | To do | they do not touch SNES code |
+| 32-bit internal ALU | **To decide** | proposal of Claude: 32-bit extended mode with a prefix (the W65C832 was never produced) |
+| In-order pipeline with 3-5 stages | Changed: 3-stage prefetch | a 65816 with a byte bus gains little from 5 stages |
+| Branch prediction | Postponed | short pipeline, little gain |
+| L1 cache 4-8 KB (I and D) + L2 32-128 KB | **Changed**: 16 KB scratchpad for each core + optional 4 KB I-cache for each core; no L2 | BRAM is already at 88-94%, and coherence with I/O and DMA is the difficult point |
+| Separate buses: instructions, data, DMA, peripherals | **Adopted** in B (3 buses in A) | the DMA does not block the fetch |
+| DMA with 8-16 channels, bursts, command lists, priorities | Changed: 8 legacy channels + advanced engines (1 in A, 2 in B) | the legacy DMA must stay identical |
+| 64-bit internal bus | **Rejected** | the SDRAM of the ULX3S is 16-bit |
+| 8 vector registers of 128 bits | **Rejected** | too many LUT for a 65816 |
+| 50-100 MHz clock | Reduced to 50-80 MHz | realistic on ECP5 |
+| Parallel MUL/DIV/MAC/DSP units, atomic operations, bit manipulation | MUL/DIV/MAC adopted; the rest not evaluated | |
+| Development in phases: core, 65816X, 5A22 layer, enhanced system | **Adopted** | it is the roadmap |
+| "Enhanced" SID with 8 channels / 44.1 kHz on FPGA | Replaced by the 16-voice choice | a faithful analog SID is not possible on FPGA; see section 7 |
+| Switch OLED screens for own projects | **No answer** | the question ended inside the pasted text and was never discussed |
 
-## 5. Proposta di Claude
+## 5. Proposal of Claude
 
-### Varianti (dettaglio in `docs/VARIANTI.md`)
+### Variants (details in `docs/VARIANTS.md`)
 
 | | A (ECP5-45F) | B (ECP5-85F) |
 |---|---|---|
-| Core | 1 core 65816X | 2 core 65816X (stile SA-1) |
-| Bus | 3 | 4 separati |
-| Calcolo | MUL, DIV, MAC | MUL, DIV, MAC, T&L, DOT3, CROSS3, ROT |
-| DMA | 1 motore avanzato | 2 motori avanzati |
-| PPU+ | 1 px/clk, toon | 2 px/clk, bilinear, prospettiva, alpha, nebbia, toon, combiner 2-3 stadi, bloom, DXT1 |
-| Audio | DSP originale 8 voci 32 kHz | 16 voci 44,1 kHz con riverbero + DSP originale 32 kHz |
-| Stima | ~37k LUT (84%), BRAM ~78% | ~73k LUT (87%), BRAM ~88% |
+| Core | 1 core 65816X | 2 cores 65816X (SA-1 style) |
+| Bus | 3 | 4 separate |
+| Math | MUL, DIV, MAC | MUL, DIV, MAC, T&L, DOT3, CROSS3, ROT |
+| DMA | 1 advanced engine | 2 advanced engines |
+| PPU+ | 1 px/clk, toon | 2 px/clk, bilinear, perspective, alpha, fog, toon, 2-3 stage combiner, bloom, DXT1 |
+| Audio | original DSP 8 voices 32 kHz | 16 voices 44.1 kHz with reverb + original DSP 32 kHz |
+| Estimate | ~37k LUT (84%), BRAM ~87% (WRAM in SDRAM) | ~73k LUT (87%), BRAM ~87% |
 
-La B esclude SuperFX/DSP-1/Cx4 (caricabili come bitstream alternativo), FPU e RISC-V: non ci stanno.
+B excludes SuperFX/DSP-1/Cx4 (load them as an alternative bitstream), FPU, and RISC-V: they do not fit.
 
-### Pipeline PPU+ (da implementare)
+### PPU+ pipeline (to implement)
 
-Command FIFO -> Vertex (MAC) -> Triangle setup -> Rasterizer (1 px/clk in A, 2 px/clk in B) ->
-Texture + Z (Z per tile in BRAM) -> Shading -> Framebuffer (SDRAM, doppio buffer) -> Compositor con i layer legacy.
-Il blitter e' il rasterizer su un quad (cosi' si raddoppiano gli sprite). Risoluzione 3D prevista: 320x240 a 30 fps,
-circa 20-30k triangoli per frame. Look cel-shaded: tabella toon (~1k LUT), combiner 2-3 stadi (~2-4k), seconda texture
-(~2k), bloom (~1-2k), DXT1 (~1k): in totale +5-10k LUT. Il limite reale e' la CPU (animazione, IA, collisioni), non il rasterizer.
+1. Command FIFO
+2. Vertex (MAC)
+3. Triangle setup
+4. Rasterizer (1 px/clk in A, 2 px/clk in B)
+5. Texture + Z (Z for each tile in BRAM)
+6. Shading
+7. Framebuffer (SDRAM, double buffer)
+8. Compositor with the legacy layers
 
-### Altre scelte di Claude
+The blitter is the rasterizer on a quad (this doubles the sprites). Planned 3D resolution: 320x240 at 30 fps,
+about 20-30k triangles for each frame. Cel-shaded look: toon table (~1k LUT), 2-3 stage combiner (~2-4k), second texture
+(~2k), bloom (~1-2k), DXT1 (~1k): +5-10k LUT in total. The real limit is the CPU (animation, AI, collisions), not the rasterizer.
 
-- **Modi di timing**: SNES (identico all'originale), accelerato, enhanced (`$5F01`).
-- **Estensione a 32 bit** con prefisso (opzionale, ~+3k LUT, da decidere).
-- **FPU single-precision**: ~3-5k LUT, utile solo con RISC-V o istruzioni WDM float; il fixed-point 16.16 con MAC basta per il 3D previsto.
-- **Cache**: solo I-cache da 4 KB per core, in sola lettura; aree non cacheable `$2100-$21FF`, `$4000-$43FF`, WRAM condivisa; disattivata in modalita' SNES.
-- **Audio**: 16 voci con riverbero ~5k LUT; serve un oscillatore da 22,5792 MHz oppure un ricampionatore (~0,5k LUT); il DSP originale resta a 32 kHz con convertitore di frequenza.
-- **Boot e OS**: boot ROM da 4-8 KB nella BRAM, sovrapposta ai vettori e disattivata con una scrittura a un registro (da assegnare in `$5F00-$5FFF`); OS da SD o flash caricato in RAM (monitor, editor, assembler on-device, BASIC), ~8-16 KB.
-- **Cluster quad-core** (discusso, non nelle varianti): core 0 + 3 worker, 16 KB di BRAM locale ciascuno, DMA per core, mailbox/semafori/IRQ, stessa mappa con ID del core, in modalita' compatibile attivo solo il core 0.
-- **Alternativa con chip reali**: WDC W65C816S (~14 MHz), MCU Cortex-M33/M7 al posto di FPU + RISC-V (~66k LUT totali + ~1k LUT di bridge), PPU/APU originali recuperate, CPLD di colla, o cartuccia "enhancer" tipo FXPak.
+### Other choices of Claude
 
-### Elenco migliorie da fare, in ordine
+- **Timing modes**: SNES (identical to the original), accelerated, enhanced (`$5F01`).
+- **32-bit extension** with a prefix (optional, ~+3k LUT, to decide).
+- **Single-precision FPU**: ~3-5k LUT, useful only with RISC-V or WDM float instructions; 16.16 fixed point with MAC is sufficient for the planned 3D.
+- **Cache**: only a 4 KB read-only I-cache for each core; non-cacheable areas `$2100-$21FF`, `$4000-$43FF`, shared WRAM; disabled in SNES mode.
+- **Audio**: 16 voices with reverb ~5k LUT; it needs a 22.5792 MHz oscillator or a resampler (~0.5k LUT); the original DSP stays at 32 kHz with a rate converter.
+- **Boot and OS**: 4-8 KB boot ROM in BRAM, over the vectors, disabled with a register write (to assign in `$5F00-$5FFF`); OS from SD or flash loaded in RAM (monitor, editor, on-device assembler, BASIC), ~8-16 KB.
+- **Quad-core cluster** (discussed, not in the variants): core 0 + 3 workers. Each has 16 KB of local BRAM and a DMA. They use mailboxes, semaphores, and IRQ. All see the same map with a core ID. In compatible mode, only core 0 is active.
+- **Alternative with real chips**: WDC W65C816S (~14 MHz) and a Cortex-M33/M7 MCU instead of FPU + RISC-V. That needs ~66k LUT in total + ~1k LUT of bridge. Other options: salvaged original PPU/APU, a glue CPLD, or an "enhancer" cartridge such as the FXPak.
 
-1. Verifica con strumenti reali: `make iverilog`, `make synth` (LUT/BRAM/Fmax reali), CI su GitHub che esegue `make test`.
-2. Divisore sequenziale al posto del `/` combinatorio (piccolo e certo).
-3. Interrupt (NMI, IRQ, BRK, COP): quasi tutti i giochi girano agganciati all'NMI; il flag e' gia' nei registri ma il core non lo vede.
-4. Set di opcode completo e verifica con vettori di test per istruzione (suite pubbliche per il 65816, se disponibili) e con il riferimento descritto in sez. 8.
-5. Prefetch e clock unico con enable per i cicli da 6/8/12 master clock.
-6. Memoria reale: controller SDRAM, ROM da SD, boot ROM sovrapposta.
-7. Vedere qualcosa a schermo: HDMI e rendering dei modi 0-7, poi PPU+.
-8. APU: almeno un finto handshake di avvio (l'eco attuale probabilmente blocca i giochi), poi SPC700 e S-DSP.
-9. HDMA e DMA a cicli corretti.
-10. Estensioni enhanced (DOT3, CROSS3, ROT, R0-R7, DMA avanzato), poi secondo core e I-cache.
+### List of improvements, in order
 
-## 6. Dove le proposte divergono (da chiudere con l'utente)
+1. Verification with real tools: `make iverilog` and `make synth` done; remaining: nextpnr (real frequency) and the first CI run.
+2. Sequential divider instead of the combinational `/` (small and certain).
+3. Interrupts (NMI, IRQ, BRK, COP): almost all games synchronize on the NMI; the flag is in the registers, but the core ignores it.
+4. Full opcode set and verification with test vectors for each instruction (public 65816 suites, if available) and with the reference of section 8.
+5. Prefetch and one clock with enable for the 6/8/12 master clock cycles.
+6. Real memory: SDRAM controller, ROM from SD, boot ROM overlay.
+7. Show an image: HDMI and rendering of modes 0-7, then PPU+.
+8. APU: at least a fake boot handshake (the current echo probably blocks games), then SPC700 and S-DSP.
+9. HDMA and cycle-correct DMA.
+10. Enhanced extensions (DOT3, CROSS3, ROT, R0-R7, advanced DMA), then the second core and the I-cache.
 
-| Tema | ChatGPT | Claude |
+## 6. Where the proposals differ (close them with the user)
+
+| Topic | ChatGPT | Claude |
 |---|---|---|
-| Cache | L1 + L2 | scratchpad + I-cache, niente L2 |
-| Bus interno | 32/64 bit | 8 bit (come l'originale); SDRAM a 16 bit |
-| Pipeline | 5 stadi, branch prediction | prefetch a 3 stadi, senza predizione |
-| DMA | 8-16 canali | 8 canali legacy + motori avanzati |
+| Cache | L1 + L2 | scratchpad + I-cache, no L2 |
+| Internal bus | 32/64 bit | 8 bit (as the original); 16-bit SDRAM |
+| Pipeline | 5 stages, branch prediction | 3-stage prefetch, no prediction |
+| DMA | 8-16 channels | 8 legacy channels + advanced engines |
 | Clock | 50-100 MHz | 50-80 MHz |
-| Registri | R0-R7 + 8 vettoriali 128 bit | R0-R7 + ACC32, niente vettoriali |
+| Registers | R0-R7 + 8 vector 128 bit | R0-R7 + ACC32, no vector registers |
 
-## 7. Idee discusse ma non nel codice
+## 7. Ideas discussed but not in the code
 
-- **C64 + SNES**: programmabilita' e BASIC, tastiera e audio SID del C64, mantenendo i giochi SNES. Spunti (da
-  verificare sulla piedinatura ufficiale): sul connettore cartuccia pin 31 SOUND-L e pin 62 SOUND-R entrano nel mixer
-  della console; pin 1 MCK a 21,47727 MHz diviso 21 e' ~1,0227 MHz, il clock del C64 NTSC; pin 18 /IRQ. Sostituti SID:
-  SIDKick pico, ARMSID, FPGASID, USBSID-Pico. Un SID fedele all'analogico non si ottiene su FPGA (il filtro e' un modello
-  a due integratori, e la variazione analogica del 6581 limita la fedelta'): su cartuccia, chip reale.
-- **Parita' con altre console** (stime di Claude): PS1 60-90k LUT (esistono core su Cyclone V da 110k LE), N64 90-150k+
-  (serve FPGA piu' grande e veloce, problemi di banda/tempi RDRAM), GameCube 250-500k+ (non esiste un core FPGA).
-  Fuori portata per l'ECP5-85F; al massimo una PS1 molto stretta.
-- **Strumenti**: assembler ca65 o WLA-DX, Wiz; C con PVSnesLib (816-tcc) o Calypsi (`--target=SNES`). **cc65 non
-  supporta il 65816 come compilatore C.** Nessun compilatore conosce le estensioni WDM: per C esteso servirebbe un
-  backend nuovo, oppure un core RISC-V. Il BASIC Microsoft 6502 e' stato rilasciato con licenza MIT (da verificare).
+- **C64 + SNES**: programming and BASIC, keyboard and SID audio of the C64, with SNES games kept. Hints (verify
+  them on the official pinout): on the cartridge connector, pin 31 SOUND-L and pin 62 SOUND-R go into the mixer
+  of the console; pin 1 MCK at 21.47727 MHz divided by 21 is ~1.0227 MHz, the clock of the NTSC C64; pin 18 /IRQ. SID substitutes:
+  SIDKick pico, ARMSID, FPGASID, USBSID-Pico. An FPGA cannot give a SID that is faithful to the analog chip.
+  The filter is a model with two integrators. The analog variation of the 6581 also limits the fidelity.
+  On a cartridge, use a real chip.
+- **Parity with other consoles** (estimates of Claude):
+  - PS1: 60-90k LUT (cores exist on a Cyclone V with 110k LE).
+  - N64: 90-150k+ (needs a larger and faster FPGA; bandwidth and RDRAM timing problems).
+  - GameCube: 250-500k+ (no FPGA core exists).
 
-## 8. Emulatore nel progetto `f-accomando/bm`
+  They are out of reach for the ECP5-85F. At most, a very tight PS1 can fit.
+- **Tools**: ca65 or WLA-DX assembler, Wiz; C with PVSnesLib (816-tcc) or Calypsi (`--target=SNES`). **cc65 does not
+  support the 65816 as a C compiler.** No compiler knows the WDM extensions: extended C needs a
+  new backend, or a RISC-V core. Microsoft released the 6502 BASIC with the MIT license (to verify).
 
-Il repo `bm` (console bare-metal per Pi Zero W e RGB30, giochi Lua) ha gia' una macchina SNES in C e assembly ARM
-(`core/src/bm/snes_*.c`, `snes_cpu_arm.S`, `snes_ppu_arm.S`, `api_snes.c`; SA-1, Super FX e DSP-1 compresi; cartuccia
-utente `bm/snes`). Dai suoi report su Pi Zero W (Super Mario World, misurato): frame ~14,5 ms su 16,6, di cui CPU ~2,2-2,5,
-audio ~2,3, PPU ~9, disegno ~0,9; a 60 fps e' gia' al limite.
+## 8. Emulator in the project `f-accomando/bm`
 
-Valutazione di Claude su un "modo enhanced" nell'emulatore (stime sui numeri sopra):
+The `bm` repository is a bare-metal console for Pi Zero W and RGB30, with Lua games.
+It has an SNES machine in C and ARM assembly. It includes SA-1, Super FX, and DSP-1.
+The files are `core/src/bm/snes_*.c`, `snes_cpu_arm.S`, `snes_ppu_arm.S`, and `api_snes.c`.
+The user cartridge is `bm/snes`. Its reports on the Pi Zero W (Super Mario World, measured): frame ~14.5 ms of 16.6, with CPU ~2.2-2.5,
+audio ~2.3, PPU ~9, drawing ~0.9; at 60 fps it is already at the limit.
 
-| Parte enhanced | Sul Pi Zero W |
+Evaluation by Claude of an "enhanced mode" in the emulator (estimates on the numbers above):
+
+| Enhanced part | On the Pi Zero W |
 |---|---|
-| Estensioni WDM (MUL, DIV, MAC, DOT3, CROSS3) | si', sono operazioni native ARM |
-| DMA avanzato | si' |
-| PPU+ 3D toon (20-30k triangoli) | si', sul motore V3D (misurati 49.956 triangoli a 13,7 ms) |
-| Audio 16 voci 44,1 kHz | stretto (~4-5 ms): ok a 30 fps |
-| 1 core fino a ~10 MHz equivalenti | si' (l'SA-1 a 10,74 MHz e' gia' emulato) |
-| 2 core a 50-80 MHz | no sul Pi Zero W (~8-12 MHz equivalenti con la meta' del frame); RGB30 non misurato |
+| WDM extensions (MUL, DIV, MAC, DOT3, CROSS3) | yes, they are native ARM operations |
+| Advanced DMA | yes |
+| PPU+ toon 3D (20-30k triangles) | yes, on the V3D engine (measured 49,956 triangles in 13.7 ms) |
+| 16-voice audio 44.1 kHz | tight (~4-5 ms): OK at 30 fps |
+| 1 core up to ~10 MHz equivalent | yes (the emulator already runs the SA-1 at 10.74 MHz) |
+| 2 cores at 50-80 MHz | no on the Pi Zero W (~8-12 MHz equivalent with half of the frame); RGB30 not measured |
 
-Principi: il gioco enhanced deve spostare il calcolo nelle estensioni native; velocita' emulata scalabile come fa `adapt`;
-3D a 30 fps; PPU+ sul V3D. L'emulatore e' anche un **riferimento per l'RTL**: i suoi test `tests/snes/cpu_golden.c`
-(`make test-snes-cpu`) e `ppu_equiv.c` si possono usare per confrontare registri e memorie con il Verilog su programmi casuali.
-Per modificare `bm` serve l'accesso in scrittura a quel repository (a questa sessione era in sola lettura); i test golden
-del modo SNES non vanno toccati.
+Principles: the enhanced game must move the math into the native extensions; emulated speed must scale as `adapt` does;
+3D at 30 fps; PPU+ on the V3D. The emulator is also a **reference for the RTL**.
+Use its tests `tests/snes/cpu_golden.c` (`make test-snes-cpu`) and `ppu_equiv.c`.
+They compare registers and memory with the Verilog on random programs.
+A change to `bm` needs write access to that repository (that session had read access only). Do not change the golden tests
+of the SNES mode.
 
-## 9. Domande aperte per l'utente
+## 9. Open questions for the user
 
-1. Quale variante implementare per prima, A o B?
-2. Modalita' a 32 bit con prefisso: si' o no?
-3. FPU e RISC-V, MCU Cortex, o niente dei tre?
-4. Licenza del repository (non scelta).
-5. Vuole il "modo enhanced" nell'emulatore di `bm` e darne l'accesso?
-6. La domanda sugli schermi OLED della Switch va ripresa?
+1. Which variant do we implement first, A or B?
+2. 32-bit mode with a prefix: yes or no?
+3. FPU and RISC-V, Cortex MCU, or none of the three?
+4. License of the repository (not chosen).
+5. Do you want the "enhanced mode" in the `bm` emulator, with access to it?
+6. Do we discuss the question about the Switch OLED screens again?
+7. Standalone machine or ARM in control (Pi Zero W, later possibly CM3)? In a standalone machine, the
+   system lives in the FPGA, and a Raspberry is only a development tool. Proposal of Claude: a small boot ROM in the FPGA and an
+   SPI host port; Pi Zero W first, CM3 only if it is not sufficient. It blocks phase F4 and the place of the host port.
+8. Which ULX3S do you have (45F or 85F, how much SDRAM)? It blocks the board tests of F4.
+9. Permission to download the 65816 test vectors (SingleStepTests) in the CI, without a copy in the repository?
+   It blocks the second part of F2.
 
-## 10. Prossimo passo suggerito
+Question 1 blocks F4; questions 2 and 3 block F8 and F10; question 4 blocks the import of third-party files.
 
-Iniziare da 1 e 2 della lista in sez. 5 (strumenti reali, CI, divisore sequenziale), poi interrupt e opcode completi.
-Criterio per ogni passo: `make test` e `make mutation` restano verdi, ogni nuova funzione ha un controllo nel test e
-almeno un guasto in `sim/mutation_check.py`, e i documenti in `docs/` sono aggiornati.
+## 10. Suggested next step
+
+The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. First step: push `main`
+and make the CI pass.
+Criteria for each step:
+- `make check` passes.
+- Each new function has a check and at least one fault in `sim/mutation_check.py`.
+- The documents in `docs/` are up to date.

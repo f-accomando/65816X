@@ -7,6 +7,7 @@ module cpu65816x (
   input clk,
   input rst,
   input halt,
+  input ext_en,           // 1 = modalita' estesa: WDM esegue le estensioni
   output reg [23:0] addr,
   output reg rd,
   output reg wr,
@@ -368,7 +369,8 @@ module cpu65816x (
             8'h48: begin wval <= a; n <= fm ? 2'd0 : 2'd1; st <= ST_PUSH; end
             8'h68: begin n <= 2'd0; nops <= fm ? 2'd1 : 2'd2; st <= ST_PULL; end
             // ---- estensioni enhanced: WDM #sub (assumono A e X a 16 bit) ----
-            8'h42: begin
+            // in modalita' SNES (ext_en=0) WDM salta due byte e non fa altro
+            8'h42: if (ext_en) begin
               case (o0)
                 8'h01: begin
                   prod = {16'h0000, a} * {16'h0000, x};

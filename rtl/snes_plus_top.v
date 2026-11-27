@@ -15,11 +15,12 @@ module snes_plus_top (
   wire hit_rom, hit_wram, hit_ppu, hit_apu, hit_cpu, hit_ext;
   wire [7:0] rd_rom, rd_wram, rd_ppu, rd_apu, rd_cpu, rd_ext;
   wire [7:0] ext_mode, ext_speed;
+  wire ext_enhanced;
   wire vblank;
   wire [8:0] hpos, vpos;
 
   s_cpu_5a22 u_cpu (
-    .clk(clk), .rst(rst),
+    .clk(clk), .rst(rst), .ext_en(ext_enhanced),
     .bus_addr(bus_addr), .bus_rd(bus_rd), .bus_wr(bus_wr), .bus_wdata(bus_wdata),
     .bus_rdata(bus_rdata), .vblank(vblank),
     .regs_rdata(rd_cpu), .regs_hit(hit_cpu),
@@ -29,7 +30,7 @@ module snes_plus_top (
   wram u_wram (.clk(clk), .rst(rst), .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_wram), .hit(hit_wram));
   ppu_stub u_ppu (.clk(clk), .rst(rst), .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_ppu), .hit(hit_ppu), .vblank(vblank), .hpos(hpos), .vpos(vpos));
   apu_stub u_apu (.clk(clk), .rst(rst), .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_apu), .hit(hit_apu));
-  ext_regs u_ext (.clk(clk), .rst(rst), .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_ext), .hit(hit_ext), .mode(ext_mode), .speed(ext_speed));
+  ext_regs u_ext (.clk(clk), .rst(rst), .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_ext), .hit(hit_ext), .mode(ext_mode), .speed(ext_speed), .enhanced(ext_enhanced));
 
   reg q_rom, q_wram, q_ppu, q_apu, q_cpu, q_ext;
   always @(posedge clk) begin

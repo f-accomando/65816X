@@ -4,6 +4,7 @@
 module s_cpu_5a22 (
   input clk,
   input rst,
+  input ext_en,
   output [23:0] bus_addr,
   output bus_rd,
   output bus_wr,
@@ -24,7 +25,7 @@ module s_cpu_5a22 (
   wire halt = dma_pending | dma_active;
 
   cpu65816x u_core (
-    .clk(clk), .rst(rst), .halt(halt),
+    .clk(clk), .rst(rst), .halt(halt), .ext_en(ext_en),
     .addr(c_addr), .rd(c_rd), .wr(c_wr), .wdata(c_wdata), .din(bus_rdata),
     .dbg_pc(dbg_pc), .dbg_a(dbg_a), .dbg_x(dbg_x), .dbg_y(dbg_y)
   );

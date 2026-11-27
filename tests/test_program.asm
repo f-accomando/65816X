@@ -95,6 +95,32 @@ loop:   CLC
         LDA $213A
         STA $7E001D         ; 44
 
+; T14: in modalita' SNES ($5F01 = 0) WDM non fa nulla
+        REP #$30
+        LDA #$1234
+        LDX #$0010
+        LDY #$5555
+        WDM $01
+        STA $7E0034         ; 34 12
+        TYA
+        STA $7E0036         ; 55 55
+
+; T15: anche in modalita' accelerata ($5F01 = 1) WDM non fa nulla
+        SEP #$20
+        LDA #$01
+        STA $5F01
+        REP #$30
+        LDA #$4321
+        WDM $01
+        STA $7E0038         ; 21 43
+
+; modalita' estesa: $5F01 = 2
+        SEP #$20
+        LDA #$02
+        STA $5F01
+        LDA $5F01
+        STA $7E003A         ; 02
+
 ; T8: estensioni enhanced WDM (MUL, DIV, MAC)
         REP #$30
         LDA #$1234
@@ -167,6 +193,14 @@ eqend:  STA $7E0024         ; 77
         STA $2180
         LDA #$BB
         STA $2180           ; WRAM[30]=AA, WRAM[31]=BB
+
+; T13: lettura dalla porta WRAM $2180 con auto-incremento
+        LDA #$30
+        STA $2181           ; WMADD = $00030 ($2182 e $2183 sono gia' 0)
+        LDA $2180           ; AA (WRAM[30]), WMADD -> $00031
+        STA $7E0032
+        LDA $2180           ; BB (WRAM[31])
+        STA $7E0033
 
 done:   BRA done
 

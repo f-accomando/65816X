@@ -1,0 +1,50 @@
+# Verifica automatica: simulazioni, mutazioni, test per modulo e sintesi ECP5 con budget.
+name: verifica
+on:
+  push:
+    branches: [main, 'claude/**']
+  pull_request:
+jobs:
+  verifica:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installa iverilog e yosys
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends iverilog yosys
+      - name: Versioni degli strumenti
+        run: |
+          python3 --version
+          iverilog -V 2>&1 | head -n 1
+          yosys -V
+      - name: make test (simulatore Python)
+        run: make test
+      - name: make mutation
+        run: make mutation
+      - name: make iverilog
+        run: make iverilog
+      - name: make unit
+        run: make unit
+      - name: make cpu (banco di prova della CPU)
+        run: make cpu
+      - name: Conserva la pagella della CPU
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pagella-cpu
+          path: build/cpu_score.txt
+          if-no-files-found: ignore
+      - name: make synth (budget variante B)
+        timeout-minutes: 10
+        run: make synth BUDGET=B
+      - name: Conserva il rapporto di sintesi
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sintesi
+          path: |
+            build/synth.log
+            build/stat.json
+          if-no-files-found: ignore

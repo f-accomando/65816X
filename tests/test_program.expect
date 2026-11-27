@@ -1,0 +1,60 @@
+# Valori attesi a fine programma (tests/test_program.asm).
+# Formato: memoria indirizzo(hex) valore(hex)  [# commento]
+# Memorie: wram (u_wram.mem), vram_l (u_ppu.vram_l), vram_h (u_ppu.vram_h).
+# Unica fonte: la leggono sim/run_tests.py e sim/gen_tb.py (testbench iverilog).
+wram 0000 35   # T1
+wram 0001 12
+wram 0002 00   # T2
+wram 0003 01
+wram 0004 0F   # T3
+wram 0005 00
+wram 0006 EF   # T4
+wram 0007 BE
+wram 0008 3F   # T5 moltiplicatore
+wram 0009 00
+wram 0020 8E   # T5 divisore
+wram 0021 06
+wram 001A 11   # T7 VRAM via DMA e rilettura
+wram 001B 22
+wram 001C 33
+wram 001D 44
+wram 000A 40   # T8 WDM MUL
+wram 000B 23
+wram 000C 01
+wram 000D 00
+wram 000E 49   # T8 WDM DIV
+wram 000F 02
+wram 0010 01
+wram 0011 00
+wram 0012 00   # T8 WDM MAC
+wram 0013 00
+wram 0014 02
+wram 0015 00
+wram 0016 58   # T9 ID estensioni e APU
+wram 0017 AA
+wram 0018 BB
+wram 0019 CC
+wram 001E 5A   # T9 pila
+wram 001F A5
+wram 0022 CD   # T10
+wram 0023 AB
+wram 0024 77   # T11
+wram 0102 CD   # mirror WRAM
+wram 0103 AB
+wram 0026 00   # X intatto dopo RTS
+wram 0027 00
+wram 0030 AA   # T12 scrittura dalla porta WRAM
+wram 0031 BB
+wram 0032 AA   # T13 lettura dalla porta WRAM
+wram 0033 BB
+wram 0034 34   # T14 WDM inerte in modalita' SNES
+wram 0035 12
+wram 0036 55
+wram 0037 55
+wram 0038 21   # T15 WDM inerte in modalita' accelerata
+wram 0039 43
+wram 003A 02   # modalita' estesa attiva
+vram_l 0000 11 # T7 DMA verso VRAM
+vram_h 0000 22
+vram_l 0001 33
+vram_h 0001 44

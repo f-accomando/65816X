@@ -89,8 +89,15 @@ module c816_core (
   wire [15:0] alu_r;
   wire alu_n, alu_v, alu_z, alu_c;
   wire is_xce = (op == 5'd15);
-  wire pc_we = cyc_end && pcinc;
-  wire [15:0] pc_next = r_pc + 16'd1;
+  // PC changes: pcop has priority over the increment. pcop codes: 1 ABS, 2 LONG (also PBR).
+  // al_by, ah_by, ba_by include the byte that the current cycle captures.
+  wire [7:0] al_by = (reads && (cap == 3'd1)) ? din : al;
+  wire [7:0] ah_by = (reads && (cap == 3'd2)) ? din : ah;
+  wire [7:0] ba_by = (reads && (cap == 3'd3)) ? din : ba;
+  wire pc_load = (pcop == 3'd1) || (pcop == 3'd2);
+  wire pc_we = cyc_end && (pcinc || pc_load);
+  wire [15:0] pc_next = pc_load ? {ah_by, al_by} : r_pc + 16'd1;
+  wire pbr_we = cyc_end && (pcop == 3'd2);
   c816_regs u_regs (
     .clk(clk), .rst(rst),
     .wr_en(commit && wr_en), .wr_sel(dst), .wr_val(alu_r), .wr_w16(!w8),
@@ -98,7 +105,7 @@ module c816_core (
     .f_we(commit ? f_we : 4'd0), .f_n(alu_n), .f_v(alu_v), .f_z(alu_z),
     .f_c(is_xce ? r_e : alu_c),
     .p_we(commit && p_we), .p_val(p_val), .e_we(commit && e_we), .e_val(r_p[0]),
-    .pc_we(pc_we), .pc_val(pc_next), .pbr_we(1'b0), .pbr_val(8'd0),
+    .pc_we(pc_we), .pc_val(pc_next), .pbr_we(pbr_we), .pbr_val(ba_by),
     .s_inc(1'b0), .s_dec(1'b0),
     .a(r_a), .x(r_x), .y(r_y), .s(r_s), .d(r_d), .pc(r_pc),
     .pbr(r_pbr), .dbr(r_dbr), .p(r_p), .e(r_e)
@@ -198,8 +205,8 @@ module c816_core (
     endcase
   end
 
-  // store data comes with the store sequences
-  assign wdata = 8'h00;
+  // written byte. wsel codes: 0 low byte of src, 1 high byte of src; the stack codes come later
+  assign wdata = (wsel == 3'd1) ? src_v[15:8] : src_v[7:0];
   assign dbg_illegal = illegal;
   assign dbg_pc = r_pc;
   assign dbg_a = r_a;

@@ -7,12 +7,12 @@
    "docs/ARCHITECTURE.md": "bffa4e9c9540",
    "docs/ROADMAP.md": "aeaea3ac9361",
    "docs/VARIANTS.md": "087e79ec6138",
-   "docs/VERIFICATION.md": "89d4adf06465",
-   "docs/progress/cpu.md": "d7ef02c3890e",
+   "docs/VERIFICATION.md": "4265feb0f7c2",
+   "docs/progress/cpu.md": "af18f9314eec",
    "docs/progress/system.md": "82b4bb89f322",
    "manuals/themes/paper.toml": "a338e8ca8a85",
    "manuals/tools/mkmanual.py": "b289955656e4",
-   "rtl": "be87ce96dda8",
+   "rtl": "196337008cea",
    "sim/asm.py": "1b39ded4c683"
   }
  }

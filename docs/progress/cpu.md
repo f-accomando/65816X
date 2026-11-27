@@ -32,9 +32,9 @@ To close a step, make its opcodes pass the test bench and make `make check` pass
   signal for an unimplemented opcode (`dbg_illegal`). This fixes the differences in the table above.
   Then compare the cycle counts with the public vectors. Today they all differ: the core uses 2 clocks
   for each read.
-  Done: work orders 1-3. The new core `rtl/cpu/c816_core.v` runs the sequences IMP, IMM, and IMM8P.
-  `make cpu-c816` passes 28 of 256 opcodes in both modes, with the cycle and bus checks.
-  Next: work order 4 (absolute addressing: EA, EA1, DUMX, `xcarry`, `pcop` ABS and LONG, store data).
+  Done: work orders 1-4. The new core `rtl/cpu/c816_core.v` runs the implied, immediate, absolute,
+  absolute,X, long, and jump sequences. `make cpu-c816` passes 42 of 256 opcodes in both modes.
+  Next: work order 5 (stack, branches, `WDM` extensions).
 - **C3** all addressing modes, with loads, stores, and arithmetic.
 - **C4** remaining instructions: shifts, stack, transfers, jumps, block moves.
 - **C5** interrupts (NMI, IRQ, BRK, COP, RTI, WAI, STP) and decimal mode: **256 of 256**.

@@ -78,7 +78,7 @@ In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, with `make check
 | `make iverilog` | 56/56 |
 | `make unit` | 0 differences, 28,123 accesses to the WRAM port |
 | `make cpu` | 47 of 256 opcodes; 20,845 of 21,200 vectors |
-| `make cpu-c816` | 28 of 256 opcodes; 12,475 of 21,200 vectors (new core, work order 3) |
+| `make cpu-c816` | 42 of 256 opcodes; 18,075 of 21,200 vectors (new core, work order 4) |
 | equivalent LUT4 | 4393 (5% of the 85F, 10% of the 45F) |
 | `DP16KD` | 125 (60% of the 85F, 116% of the 45F) |
 | `MULT18X18D` | 2 |

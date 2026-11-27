@@ -7,6 +7,7 @@ rtl/cpu/c816_seq.v
 rtl/cpu/c816_regs.v
 rtl/cpu/c816_alu.v
 rtl/cpu/c816_addr.v
+rtl/cpu/c816_ext.v
 rtl/cpu/c816_core.v
 rtl/s_cpu_5a22.v
 rtl/ppu_stub.v

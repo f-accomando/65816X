@@ -8,7 +8,7 @@ BUDGET ?= B
 
 RTL := $(filter %.v,$(shell cat rtl/files.f))
 
-.PHONY: test mutation rom iverilog unit cpu cpu-c816 cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
+.PHONY: test mutation rom iverilog unit cpu cpu-c816 cpu-illegal cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
 
 # Collaudo con il mini simulatore Python (nessuna dipendenza esterna)
 test:
@@ -68,6 +68,13 @@ cpu: cpu-run
 # The new core with its own pass list (tests/cpu_pass_c816.txt)
 cpu-c816:
 	$(MAKE) cpu CORE=c816
+	$(MAKE) cpu-illegal CORE=c816
+
+# An opcode without a table row must set dbg_illegal (opcode $02, COP, until its step)
+cpu-illegal: $(CPU_VVP)
+	$(PY) sim/cpu_vectors.py --illegal build/illegal_vectors.txt
+	$(VVP) -n $(CPU_VVP) +vec=build/illegal_vectors.txt +out=build/illegal_results.txt
+	$(PY) sim/cpu_score.py build/illegal_results.txt build/illegal_score.txt --expect-illegal
 
 # riscrive l'elenco di cio' che passa: guardare la differenza prima di tenerla
 cpu-update: cpu-run

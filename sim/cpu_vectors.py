@@ -72,7 +72,22 @@ def line(opcode, start, cpu):
     return ' '.join('%x' % v for v in out)
 
 
+def illegal_line():
+    """One vector with opcode $02, which the core does not implement yet."""
+    start = {'pc': 0x1000, 's': 0x01FF, 'p': 0x34, 'a': 0, 'x': 0, 'y': 0,
+             'dbr': 0, 'd': 0, 'pbr': 0, 'e': 1}
+    final = dict(start, pc=0x1001)
+    out = [0x02] + [start[r] for r in cpu_ref.REGS] + [final[r] for r in cpu_ref.REGS]
+    out += [0, 1, 0x1000, 0x02, 1, 0x1000, 0x02, 0]
+    return ' '.join('%x' % v for v in out)
+
+
 def main(argv):
+    if len(argv) == 3 and argv[1] == '--illegal':
+        os.makedirs(os.path.dirname(os.path.abspath(argv[2])), exist_ok=True)
+        with open(argv[2], 'w', newline='\n') as out:
+            out.write(illegal_line() + '\n')
+        return 0
     if len(argv) < 2:
         raise SystemExit(__doc__)
     cases = int(argv[2]) if len(argv) > 2 else CASES

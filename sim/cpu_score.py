@@ -86,7 +86,7 @@ def report(res):
 
 
 def main(argv):
-    args = [a for a in argv[1:] if a not in ('--update', '--report-only')]
+    args = [a for a in argv[1:] if a not in ('--update', '--report-only', '--expect-illegal')]
     passlist = PASSLIST
     if '--passlist' in args:
         i = args.index('--passlist')
@@ -97,6 +97,10 @@ def main(argv):
     res = read_results(args[0])
     if not res:
         raise SystemExit("nessun risultato in " + args[0])
+    if '--expect-illegal' in argv:  # ogni vettore deve avere il bit "illegale"
+        good = all(r['fields']['illegale'] == r['tot'] for r in res.values())
+        print("illegal opcode flag: %s" % ("seen" if good else "ERROR: not set"))
+        return 0 if good else 1
     passing, text = report(res)
     open(args[1], 'w', newline='\n').write(text)
     sys.stdout.write(text)

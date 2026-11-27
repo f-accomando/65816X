@@ -21,6 +21,7 @@
       dut.u_regs.dbr = ini[6]; dut.u_regs.d = ini[7]; dut.u_regs.pbr = ini[8];
       dut.u_regs.e = ini[9][0];
       dut.u_seq.t = 4'd0; dut.u_seq.ph = 1'b0; dut.u_seq.illegal = 1'b0;
+      dut.u_ext.acc = 32'd0;
     end
   endtask
 

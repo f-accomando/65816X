@@ -10,7 +10,7 @@
 | `make unit` | test for each module against a reference model (today: WRAM, 100,000 random cycles) | iverilog |
 | `make cpu` | CPU only: one instruction for each vector, score in `build/cpu_score.txt` | iverilog |
 | `make cpu-update` | same as above, and writes `tests/cpu_pass.txt` again | iverilog |
-| `make cpu-c816` | `make cpu CORE=c816`: the new core of `rtl/cpu/`, score in `build/cpu_score_c816.txt`, pass list `tests/cpu_pass_c816.txt`. It also checks the cycle count and each bus cycle when the vectors give them | iverilog |
+| `make cpu-c816` | `make cpu CORE=c816`: the new core of `rtl/cpu/`, score in `build/cpu_score_c816.txt`, pass list `tests/cpu_pass_c816.txt`. It also checks the cycle count and each bus cycle when the vectors give them. It then checks that an unimplemented opcode sets `dbg_illegal` | iverilog |
 | `make synth` | ECP5 synthesis and budget check (default `BUDGET=B`) | yosys |
 | `make ref-public SST=<folder>` | reference model against the public vectors | public vectors |
 | `make cpu-public SST=<folder>` | CPU against the public vectors, score in `build/cpu_public_score.txt` | iverilog, public vectors |
@@ -78,7 +78,7 @@ In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, with `make check
 | `make iverilog` | 56/56 |
 | `make unit` | 0 differences, 28,123 accesses to the WRAM port |
 | `make cpu` | 47 of 256 opcodes; 20,845 of 21,200 vectors |
-| `make cpu-c816` | 42 of 256 opcodes; 18,075 of 21,200 vectors (new core, work order 4) |
+| `make cpu-c816` | 53 of 256 opcodes; 21,200 of 21,200 vectors (new core, work order 5) |
 | equivalent LUT4 | 4393 (5% of the 85F, 10% of the 45F) |
 | `DP16KD` | 125 (60% of the 85F, 116% of the 45F) |
 | `MULT18X18D` | 2 |

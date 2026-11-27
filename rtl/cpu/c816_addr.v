@@ -1,7 +1,7 @@
 // c816_addr.v - address unit of the c816 core (docs/design/cpu-core.md, section 3.3). Combinational.
-// Implemented asel codes: 0 PC, 1 PCD, 2 EA, 3 EA1, 4 DUMX. The other codes give {PBR, PC} until
-// their step adds them. br_cross is 0, and br_target is PC, until their step adds them.
-// ea codes: 1 absolute, 2 absolute,X, 3 long.
+// asel codes: 0 PC, 1 PCD, 2 EA, 3 EA1, 4 DUMX, 5 S, 6 S1, 7 VEC, 8 VEC1. The other codes are
+// reserved and give {PBR, PC}. ea codes: 1 absolute, 2 absolute,X, 3 long.
+// In emulation mode, the stack addresses stay in page 1.
 module c816_addr (
   input [3:0] asel,
   input [3:0] ea,
@@ -25,8 +25,13 @@ module c816_addr (
   // xcarry: the low byte of AL + X carries into the high byte (abs,X dummy cycle)
   wire [8:0] xsum = {1'b0, al} + {1'b0, x[7:0]};
   assign xcarry = xsum[8];
-  assign br_cross = 1'b0;
-  assign br_target = pc;
+  // relative branch: PC already points to the next instruction, AL holds the signed offset
+  wire [15:0] offset = {al[7] ? 8'hFF : 8'h00, al};
+  assign br_target = pc + offset;
+  assign br_cross = (br_target[15:8] != pc[15:8]);
+
+  wire [7:0] s_low1 = s[7:0] + 8'd1;
+  wire [15:0] s1 = s + 16'd1;
 
   reg [23:0] eff;
   always @* begin
@@ -46,6 +51,10 @@ module c816_addr (
       4'd2: addr = eff;
       4'd3: addr = eff + 24'd1;
       4'd4: addr = {dbr, ah, xsum[7:0]};        // abs,X: address before the high byte is fixed
+      4'd5: addr = e ? {16'h0001, s[7:0]} : {8'h00, s};
+      4'd6: addr = e ? {16'h0001, s_low1} : {8'h00, s1};
+      4'd7: addr = {16'h00FF, vec};
+      4'd8: addr = {16'h00FF, vec} + 24'd1;
       default: addr = {pbr, pc};
     endcase
   end

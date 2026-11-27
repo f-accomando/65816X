@@ -2,17 +2,17 @@
  "65816x": {
   "content": "d42a5897db5b",
   "sources": {
-   "Makefile": "37d77d8631be",
+   "Makefile": "4b9303a0476f",
    "README.md": "896dfe050621",
    "docs/ARCHITECTURE.md": "bffa4e9c9540",
    "docs/ROADMAP.md": "aeaea3ac9361",
    "docs/VARIANTS.md": "087e79ec6138",
-   "docs/VERIFICATION.md": "4265feb0f7c2",
-   "docs/progress/cpu.md": "af18f9314eec",
+   "docs/VERIFICATION.md": "07de654eab24",
+   "docs/progress/cpu.md": "2821ba31cb3e",
    "docs/progress/system.md": "82b4bb89f322",
    "manuals/themes/paper.toml": "a338e8ca8a85",
    "manuals/tools/mkmanual.py": "b289955656e4",
-   "rtl": "196337008cea",
+   "rtl": "a13cfeea81e0",
    "sim/asm.py": "1b39ded4c683"
   }
  }

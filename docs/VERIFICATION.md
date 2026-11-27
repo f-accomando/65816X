@@ -14,7 +14,9 @@
 | `make ref-public SST=<folder>` | reference model against the public vectors | public vectors |
 | `make cpu-public SST=<folder>` | CPU against the public vectors, score in `build/cpu_public_score.txt` | iverilog, public vectors |
 | `make manual-check` | the manual matches its sources (see `manuals/README.md`) | Python 3 |
-| `make check` | `test`, `mutation`, `iverilog`, `unit`, `cpu`, `synth`, `manual-check` | iverilog, yosys |
+| `make tables` | writes the generated tables of the new CPU core | Python 3 |
+| `make tables-check` | the generated tables match `rtl/cpu/c816_tables.txt` | Python 3 |
+| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `synth`, `manual-check` | iverilog, yosys |
 
 Keep `sim/vsim.py` while the RTL needs no parameters, `generate`, or `function`.
 Do not shape the RTL for the mini simulator: the design would get worse.

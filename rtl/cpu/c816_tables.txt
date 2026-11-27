@@ -1,0 +1,125 @@
+# c816_tables.txt - the only source of c816_decode and c816_ucode.
+# Format and codes: docs/design/cpu-core.md, sections 4 and 5. After a change run: make tables
+
+#   t bus asel cap pc  sop wsel last skip pcop hold
+[seq IMP]                       # implied: 2 cycles
+    1 IO  PC   -   -   -   -    ALW  -    -    -
+[seq WDM]                       # WDM, ext_en = 0: 2 cycles, the second byte is skipped
+    1 IO  PC   -   INC -   -    ALW  -    -    -
+[seq WDMX]                      # WDM, ext_en = 1: the sub-opcode is a program byte
+    1 PRG PC   DL  INC -   -    ALW  -    -    -
+[seq IMM]                       # immediate: 2 (8-bit) or 3 (16-bit)
+    1 PRG PC   DL  INC -   -    W8   -    -    -
+    2 PRG PC   DH  INC -   -    ALW  -    -    -
+[seq IMM8P]                     # REP, SEP: 3
+    1 PRG PC   DL  INC -   -    -    -    -    -
+    2 IO  PCD  -   -   -   -    ALW  -    -    -
+[seq ABS]                       # 4 or 5
+    1 PRG PC   AL  INC -   -    -    -    -    -
+    2 PRG PC   AH  INC -   -    -    -    -    -
+    3 DAT EA   DL  -   -   RLO  W8   -    -    -
+    4 DAT EA1  DH  -   -   RHI  ALW  -    -    -
+[seq ABSX]                      # load 4-6, store 5-6
+    1 PRG PC   AL  INC -   -    -    -    -    -
+    2 PRG PC   AH  INC -   -    -    XNC  -    -
+    3 IO  DUMX -   -   -   -    -    -    -    -
+    4 DAT EA   DL  -   -   RLO  W8   -    -    -
+    5 DAT EA1  DH  -   -   RHI  ALW  -    -    -
+[seq LONG]                      # 5 or 6
+    1 PRG PC   AL  INC -   -    -    -    -    -
+    2 PRG PC   AH  INC -   -    -    -    -    -
+    3 PRG PC   BA  INC -   -    -    -    -    -
+    4 DAT EA   DL  -   -   RLO  W8   -    -    -
+    5 DAT EA1  DH  -   -   RHI  ALW  -    -    -
+[seq JMP]                       # 3
+    1 PRG PC   AL  INC -   -    -    -    -    -
+    2 PRG PC   AH  INC -   -    ALW  -    ABS  -
+[seq JML]                       # 4
+    1 PRG PC   AL  INC -   -    -    -    -    -
+    2 PRG PC   AH  INC -   -    -    -    -    -
+    3 PRG PC   BA  INC -   -    ALW  -    LONG -
+[seq BR]                        # 2 not taken, 3 taken, 4 taken with E = 1 and page cross
+    1 PRG PC   AL  INC -   -    NTK  -    -    -
+    2 IO  PCD  -   -   -   -    NEC  -    BRL  -
+    3 IO  PCD  -   -   -   -    ALW  -    BR   -
+[seq JSR]                       # 6
+    1 PRG PC   AL  INC -   -    -    -    -    -
+    2 PRG PC   AH  INC -   -    -    -    -    -
+    3 IO  PCD  -   -   -   -    -    -    -    -
+    4 DWR S    -   -   DEC PCDH -    -    -    -
+    5 DWR S    -   -   DEC PCDL ALW  -    ABS  -
+[seq RTS]                       # 6
+    1 IO  PC   -   -   -   -    -    -    -    -
+    2 IO  PC   -   -   -   -    -    -    -    -
+    3 DRD S1   AL  -   INC -    -    -    -    -
+    4 DRD S1   AH  -   INC -    -    -    -    -
+    5 IO  S    -   -   -   -    ALW  -    RTS  -
+[seq PUSH]                      # PHA: 3 or 4, high byte first
+    1 IO  PC   -   -   -   -    -    W8   -    -
+    2 DWR S    -   -   DEC RHI  -    -    -    -
+    3 DWR S    -   -   DEC RLO  ALW  -    -    -
+[seq PULL]                      # PLA: 4 or 5, low byte first
+    1 IO  PC   -   -   -   -    -    -    -    -
+    2 IO  PC   -   -   -   -    -    -    -    -
+    3 DRD S1   DL  -   INC -    W8   -    -    -
+    4 DRD S1   DH  -   INC -    ALW  -    -    -
+[seq RST]                       # pseudo-op 100: simplified reset (C5 makes it exact)
+    1 DRD VEC  AL  -   -   -    -    -    -    -
+    2 DRD VEC1 AH  -   -   -    ALW  -    ABS  -
+
+[ops]
+# opc mnem seq   op  ea   w   src dst arg
+018 CLC  IMP   FLG  -    -   -   -   0
+038 SEC  IMP   FLG  -    -   -   -   8
+058 CLI  IMP   FLG  -    -   -   -   2
+078 SEI  IMP   FLG  -    -   -   -   A
+01A INC  IMP   INC  -    M   A   A   0
+03A DEC  IMP   DEC  -    M   A   A   0
+0E8 INX  IMP   INC  -    X   X   X   0
+0CA DEX  IMP   DEC  -    X   X   X   0
+0C8 INY  IMP   INC  -    X   Y   Y   0
+088 DEY  IMP   DEC  -    X   Y   Y   0
+0AA TAX  IMP   TR   -    X   A   X   0
+0A8 TAY  IMP   TR   -    X   A   Y   0
+08A TXA  IMP   TR   -    M   X   A   0
+098 TYA  IMP   TR   -    M   Y   A   0
+0EA NOP  IMP   NOP  -    -   -   -   0
+0FB XCE  IMP   XCE  -    -   -   -   0
+042 WDM  WDM   WDM  -    W16 A   A   0
+0C2 REP  IMM8P REP  -    -   -   -   0
+0E2 SEP  IMM8P SEP  -    -   -   -   0
+0A9 LDA  IMM   LD   -    M   -   A   0
+0A2 LDX  IMM   LD   -    X   -   X   0
+0A0 LDY  IMM   LD   -    X   -   Y   0
+069 ADC  IMM   ADC  -    M   A   A   0
+0E9 SBC  IMM   SBC  -    M   A   A   0
+0C9 CMP  IMM   CMP  -    M   A   -   0
+029 AND  IMM   AND  -    M   A   A   0
+009 ORA  IMM   ORA  -    M   A   A   0
+049 EOR  IMM   EOR  -    M   A   A   0
+0AD LDA  ABS   LD   ABS  M   -   A   0
+0AE LDX  ABS   LD   ABS  X   -   X   0
+0AC LDY  ABS   LD   ABS  X   -   Y   0
+06D ADC  ABS   ADC  ABS  M   A   A   0
+0CD CMP  ABS   CMP  ABS  M   A   -   0
+08D STA  ABS   ST   ABS  M   A   -   0
+08E STX  ABS   ST   ABS  X   X   -   0
+08C STY  ABS   ST   ABS  X   Y   -   0
+0BD LDA  ABSX  LD   ABSX M   -   A   0
+09D STA  ABSX  ST   ABSX M   A   -   0
+0AF LDA  LONG  LD   LONG M   -   A   0
+08F STA  LONG  ST   LONG M   A   -   0
+04C JMP  JMP   NOP  -    -   -   -   0
+05C JML  JML   NOP  -    -   -   -   0
+020 JSR  JSR   NOP  -    -   -   -   0
+060 RTS  RTS   NOP  -    -   -   -   0
+048 PHA  PUSH  NOP  -    M   A   -   0
+068 PLA  PULL  LD   -    M   -   A   0
+080 BRA  BR    BRA  -    -   -   -   0
+0D0 BNE  BR    BR   -    -   -   -   1
+0F0 BEQ  BR    BR   -    -   -   -   9
+090 BCC  BR    BR   -    -   -   -   0
+0B0 BCS  BR    BR   -    -   -   -   8
+010 BPL  BR    BR   -    -   -   -   7
+030 BMI  BR    BR   -    -   -   -   F
+100 RST  RST   NOP  -    -   -   -   0

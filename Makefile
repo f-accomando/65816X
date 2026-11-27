@@ -8,7 +8,7 @@ BUDGET ?= B
 
 RTL := $(filter %.v,$(shell cat rtl/files.f))
 
-.PHONY: test mutation rom iverilog unit cpu cpu-run cpu-update cpu-public ref-public synth manual manual-check check clean
+.PHONY: test mutation rom iverilog unit cpu cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
 
 # Collaudo con il mini simulatore Python (nessuna dipendenza esterna)
 test:
@@ -84,6 +84,13 @@ ref-public:
 	@test -n "$(SST)" || { echo "manca SST=<cartella dei vettori>"; exit 1; }
 	$(PY) -I sim/cpu_sst.py check-ref "$(SST)" $(SST_FLAGS)
 
+# Decode and sequence tables of the new CPU core: rtl/cpu/c816_tables.txt is the only source
+tables:
+	$(PY) sim/gen_c816_tables.py
+
+tables-check:
+	$(PY) sim/gen_c816_tables.py --check
+
 # Sintesi ECP5 con yosys: conteggio reale delle celle e controllo del budget
 synth: rom.hex
 	mkdir -p build
@@ -98,7 +105,7 @@ manual-check:
 	$(PY) manuals/tools/manuals.py check
 
 # Tutto quello che esegue la CI
-check: test mutation iverilog unit cpu synth manual-check
+check: tables-check test mutation iverilog unit cpu synth manual-check
 
 clean:
 	rm -rf build rom.hex

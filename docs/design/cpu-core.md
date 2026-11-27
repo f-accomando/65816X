@@ -96,7 +96,7 @@ c816_seq   (input clk, rst, halt, bus_wait, input [2:0] bus, input [2:0] last, i
             output cyc_end, output commit, output skip1, output rd, output wr, output sync);
 c816_decode(input [8:0] ir, output reg [4:0] seq, output reg [4:0] op, output reg [3:0] ea,
             output reg [2:0] w, output reg [2:0] src, output reg [2:0] dst, output reg [3:0] arg,
-            output reg imp);
+            output reg imp, output [4:0] seq_wdmx);
 c816_ucode (input [4:0] seq, input [3:0] t, output reg [2:0] bus, output reg [3:0] asel,
             output reg [2:0] cap, output reg pcinc, output reg [1:0] sop, output reg [2:0] wsel,
             output reg [2:0] last, output reg [2:0] skip, output reg [2:0] pcop, output reg [1:0] hold);

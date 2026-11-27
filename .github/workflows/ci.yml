@@ -19,6 +19,8 @@ jobs:
           python3 --version
           iverilog -V 2>&1 | head -n 1
           yosys -V
+      - name: make tables-check
+        run: make tables-check
       - name: make test (simulatore Python)
         run: make test
       - name: make mutation

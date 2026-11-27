@@ -6,3 +6,5 @@ __pycache__/
 *.json
 *.bit
 *.config
+# the record of the last manual build is part of the repository
+!manuals/sync.json

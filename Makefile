@@ -8,7 +8,7 @@ BUDGET ?= B
 
 RTL := $(filter %.v,$(shell cat rtl/files.f))
 
-.PHONY: test mutation rom iverilog unit cpu cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
+.PHONY: test mutation rom iverilog unit cpu cpu-c816 cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
 
 # Collaudo con il mini simulatore Python (nessuna dipendenza esterna)
 test:
@@ -65,6 +65,10 @@ cpu-run: build/cpu_vectors.txt $(CPU_VVP)
 cpu: cpu-run
 	$(PY) sim/cpu_score.py $(CPU_RES) $(CPU_SCORE) --passlist $(CPU_PASS)
 
+# The new core with its own pass list (tests/cpu_pass_c816.txt)
+cpu-c816:
+	$(MAKE) cpu CORE=c816
+
 # riscrive l'elenco di cio' che passa: guardare la differenza prima di tenerla
 cpu-update: cpu-run
 	$(PY) sim/cpu_score.py $(CPU_RES) $(CPU_SCORE) --passlist $(CPU_PASS) --update
@@ -105,7 +109,7 @@ manual-check:
 	$(PY) manuals/tools/manuals.py check
 
 # Tutto quello che esegue la CI
-check: tables-check test mutation iverilog unit cpu synth manual-check
+check: tables-check test mutation iverilog unit cpu cpu-c816 synth manual-check
 
 clean:
 	rm -rf build rom.hex

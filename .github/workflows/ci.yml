@@ -38,6 +38,15 @@ jobs:
           name: pagella-cpu
           path: build/cpu_score.txt
           if-no-files-found: ignore
+      - name: make cpu-c816 (new CPU core)
+        run: make cpu-c816
+      - name: Keep the score of the new CPU core
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: score-cpu-c816
+          path: build/cpu_score_c816.txt
+          if-no-files-found: ignore
       - name: make manual-check
         run: make manual-check
       - name: Build the manual (preview)

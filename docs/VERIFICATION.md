@@ -10,13 +10,14 @@
 | `make unit` | test for each module against a reference model (today: WRAM, 100,000 random cycles) | iverilog |
 | `make cpu` | CPU only: one instruction for each vector, score in `build/cpu_score.txt` | iverilog |
 | `make cpu-update` | same as above, and writes `tests/cpu_pass.txt` again | iverilog |
+| `make cpu-c816` | `make cpu CORE=c816`: the new core of `rtl/cpu/`, score in `build/cpu_score_c816.txt`, pass list `tests/cpu_pass_c816.txt`. It also checks the cycle count and each bus cycle when the vectors give them | iverilog |
 | `make synth` | ECP5 synthesis and budget check (default `BUDGET=B`) | yosys |
 | `make ref-public SST=<folder>` | reference model against the public vectors | public vectors |
 | `make cpu-public SST=<folder>` | CPU against the public vectors, score in `build/cpu_public_score.txt` | iverilog, public vectors |
 | `make manual-check` | the manual matches its sources (see `manuals/README.md`) | Python 3 |
 | `make tables` | writes the generated tables of the new CPU core | Python 3 |
 | `make tables-check` | the generated tables match `rtl/cpu/c816_tables.txt` | Python 3 |
-| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `synth`, `manual-check` | iverilog, yosys |
+| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `cpu-c816`, `synth`, `manual-check` | iverilog, yosys |
 
 Keep `sim/vsim.py` while the RTL needs no parameters, `generate`, or `function`.
 Do not shape the RTL for the mini simulator: the design would get worse.
@@ -77,6 +78,7 @@ In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, with `make check
 | `make iverilog` | 56/56 |
 | `make unit` | 0 differences, 28,123 accesses to the WRAM port |
 | `make cpu` | 47 of 256 opcodes; 20,845 of 21,200 vectors |
+| `make cpu-c816` | 28 of 256 opcodes; 12,475 of 21,200 vectors (new core, work order 3) |
 | equivalent LUT4 | 4393 (5% of the 85F, 10% of the 45F) |
 | `DP16KD` | 125 (60% of the 85F, 116% of the 45F) |
 | `MULT18X18D` | 2 |
@@ -96,6 +98,8 @@ core stopped). The CPU test bench found all three.
 | `make ref-public` | 0 of 1,030,026 vectors differ; 29,974 decimal vectors skipped |
 | `make cpu-public` | 0 of 256 opcodes; 266,966 of 1,060,000 vectors; 3 min 22 s |
 | `make cpu-public SST_FLAGS="--d0 --page1"` | 47 of 256 opcodes; 523,405 of 529,750 vectors |
+| `make cpu-public CORE=c816 SST_FLAGS="--limit 1000 --bus"` | 26 of 256 opcodes; 60,201 of 106,000 vectors. Of the 28 opcodes of work order 3, only `$69` and `$E9` fail, because decimal mode is missing. None of the 28 has a cycle or bus difference |
+| `make cpu-public CORE=c816 SST_FLAGS="--limit 1000 --bus --d0"` | 28 of 256 opcodes; 31,033 of 53,118 vectors |
 
 The cycle counts differ in all vectors. The core uses 2 clocks for each read.
 

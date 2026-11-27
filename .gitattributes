@@ -1,0 +1,2 @@
+# A PDF without NUL bytes looks like text to Git: keep its bytes as they are.
+*.pdf binary

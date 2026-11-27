@@ -7,7 +7,8 @@ module snes_plus_top (
   output [15:0] dbg_a,
   output [15:0] dbg_x,
   output [15:0] dbg_y,
-  output dbg_vblank
+  output dbg_vblank,
+  output dbg_illegal
 );
   wire [23:0] bus_addr;
   wire bus_rd, bus_wr;
@@ -24,7 +25,7 @@ module snes_plus_top (
     .bus_addr(bus_addr), .bus_rd(bus_rd), .bus_wr(bus_wr), .bus_wdata(bus_wdata),
     .bus_rdata(bus_rdata), .vblank(vblank),
     .regs_rdata(rd_cpu), .regs_hit(hit_cpu),
-    .dbg_pc(dbg_pc), .dbg_a(dbg_a), .dbg_x(dbg_x), .dbg_y(dbg_y)
+    .dbg_pc(dbg_pc), .dbg_a(dbg_a), .dbg_x(dbg_x), .dbg_y(dbg_y), .dbg_illegal(dbg_illegal)
   );
   cart_rom u_rom (.clk(clk), .rst(rst), .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_rom), .hit(hit_rom));
   wram u_wram (.clk(clk), .rst(rst), .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_wram), .hit(hit_wram));

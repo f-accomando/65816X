@@ -16,7 +16,8 @@ module s_cpu_5a22 (
   output [15:0] dbg_pc,
   output [15:0] dbg_a,
   output [15:0] dbg_x,
-  output [15:0] dbg_y
+  output [15:0] dbg_y,
+  output dbg_illegal
 );
   wire [23:0] c_addr;
   wire c_rd, c_wr;
@@ -24,9 +25,12 @@ module s_cpu_5a22 (
   reg dma_pending, dma_active;
   wire halt = dma_pending | dma_active;
 
-  cpu65816x u_core (
-    .clk(clk), .rst(rst), .halt(halt), .ext_en(ext_en),
-    .addr(c_addr), .rd(c_rd), .wr(c_wr), .wdata(c_wdata), .din(bus_rdata),
+  // the core stops at the next CPU cycle while halt = 1, also inside an instruction
+  wire c_vda, c_vpa, c_sync, c_cyc_end;
+  c816_core u_core (
+    .clk(clk), .rst(rst), .halt(halt), .bus_wait(1'b0), .ext_en(ext_en), .nmi(1'b0), .irq(1'b0),
+    .din(bus_rdata), .addr(c_addr), .rd(c_rd), .wr(c_wr), .wdata(c_wdata),
+    .vda(c_vda), .vpa(c_vpa), .sync(c_sync), .cyc_end(c_cyc_end), .dbg_illegal(dbg_illegal),
     .dbg_pc(dbg_pc), .dbg_a(dbg_a), .dbg_x(dbg_x), .dbg_y(dbg_y)
   );
 

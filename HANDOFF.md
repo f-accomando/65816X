@@ -24,7 +24,7 @@ The Verilog skeleton follows the **multi-chip structure of the original SNES** (
 
 | Module | File | Status |
 |---|---|---|
-| Core 65816X | `rtl/cpu65816x.v` | subset of the opcodes, no interrupts, timing not cycle-accurate |
+| Core 65816X | `rtl/cpu/` | 53 opcodes, cycle by cycle; no interrupts (old core `rtl/cpu65816x.v`: not used) |
 | Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registers `$42xx`, instant mul/div, general DMA 8 channels (modes 0-7), no HDMA |
 | PPU1/PPU2 | `rtl/ppu_stub.v` | only timing and VRAM (`$2115-$2119`, `$2139-$213A`) |
 | SPC700 + DSP | `rtl/apu_stub.v` | 4 ports with echo, signature `$AA/$BB` |
@@ -35,10 +35,10 @@ The Verilog skeleton follows the **multi-chip structure of the original SNES** (
 
 Verification done (measured, `make check`):
 - `make test` and `make iverilog`: 56 checks.
-- `make mutation`: 10 of 10 faults found.
+- `make mutation`: 11 of 11 faults found.
 - `make unit`: no differences.
-- `make cpu`: 47 of 256 opcodes. The public vectors run locally with `make cpu-public`.
-- yosys synthesis: 125 BRAM blocks; about 4,400 LUT with Yosys 0.52 and 12,600 with Yosys 0.33.
+- `make cpu-c816`: 53 of 256 opcodes. The public vectors run locally with `make cpu-public CORE=c816`.
+- yosys synthesis: 125 BRAM blocks; about 4,200 LUT with Yosys 0.52.
 - The CI on GitHub passes.
 
 **Never run with verilator or nextpnr, or on a board.** Details are in `docs/VERIFICATION.md`.
@@ -47,10 +47,10 @@ project did not fit in either FPGA.
 
 ### Traps of the current code
 
-- Bus read = 2 cycles (`ph` 0 sends the address, `ph` 1 captures); write = 1 cycle. Read side
-  effects occur only in the cycle with `rd`.
-- The DMA stops the CPU only at an instruction boundary (`halt` acts in `ST_FETCH` with `ph=0`).
-- An unknown opcode is a silent NOP: this hides bugs. Replace it with an error signal in simulation.
+- One CPU cycle = 2 clocks. `rd` and `wr` pulse only in phase 0. Read side effects occur only in
+  the clock with `rd`.
+- The DMA stops the CPU at the next CPU cycle, also inside an instruction (`halt` acts in phase 0).
+- An opcode without a table row runs as a NOP and sets `dbg_illegal`. The system tests fail then.
 - `WDM DIV` uses combinational `/` and `%`: they are large and slow in synthesis. Make them sequential.
 - The WDM extensions assume 16-bit A and X.
 - `sim/vsim.py` supports only a subset of Verilog (one clock, no instance parameters,

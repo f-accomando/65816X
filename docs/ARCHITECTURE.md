@@ -6,7 +6,7 @@
                  +-------------------------------+
                  |  s_cpu_5a22                   |
                  |  +-------------+  +---------+ |
-                 |  | cpu65816x   |  | DMA 8ch | |   one 8-bit bus
+                 |  | c816_core   |  | DMA 8ch | |   one 8-bit bus
                  |  +-------------+  +---------+ |   addr[23:0], rd, wr, wdata[7:0]
                  |  regs $42xx/$43xx, mul/div    |--------+--------+--------+--------+
                  +-------------------------------+        |        |        |        |
@@ -19,11 +19,14 @@ Thus the data of a read is available in the cycle after the address, as in a syn
 
 ## Bus protocol
 
-- Read: 2 cycles. Cycle 0: `addr` and `rd` are valid. Cycle 1: `din` is valid, and the core captures it.
-- Write: 1 cycle with valid `wr`, `addr`, and `wdata`.
-- Read side effects (for example `$4210`, the VMADD increment) occur only in the cycle with `rd`.
-- The DMA takes the bus from the CPU. The CPU stops at an instruction boundary (`halt`). It continues after the DMA.
-- `rd` and `wr` last one cycle for each access.
+- One CPU cycle is 2 FPGA clocks. In phase 0, `addr` is valid and `rd` or `wr` pulses for one clock.
+- Read: `din` is valid in phase 1, and the core captures it at the end of phase 1.
+- Write: `wdata` is valid with `wr`. Phase 1 follows, without a strobe.
+- Internal cycles drive `addr` without a strobe.
+- Read side effects (for example `$4210`, the VMADD increment) occur only in the clock with `rd`.
+- The DMA takes the bus from the CPU. The CPU stops at the next CPU cycle (`halt`), also inside
+  an instruction. It continues after the DMA.
+- `bus_wait` (tied to 0 today) can stretch phase 1.
 
 ## WRAM and BRAM
 
@@ -49,8 +52,12 @@ Banks `$7E-$7F`: the full WRAM. Banks `$40-$7D` and `$C0-$FF`: ROM (only `$8000-
 
 ## Core 65816X: what is implemented
 
-Registers: A, X, Y, S, PC, PBR, DBR, flags N V M X I Z C and E. Reset enters emulation mode.
+The core is `c816_core` in `rtl/cpu/`. It runs one step for each cycle of the real chip
+(design: [design/cpu-core.md](design/cpu-core.md)).
+
+Registers: A, X, Y, S, D, PC, PBR, DBR, flags N V M X D I Z C and E. Reset enters emulation mode.
 The core reads the reset vector from `$00FFFC`. The M and X flags set the width of A, X, and Y after `REP`/`SEP`.
+In emulation mode, the high byte of S stays at 01.
 
 | Group | Opcodes |
 |---|---|
@@ -60,7 +67,7 @@ The core reads the reset vector from `$00FFFC`. The M and X flags set the width 
 | Flags and mode | `CLC SEC SEI CLI XCE REP SEP` |
 | Jumps | `BRA BNE BEQ BCC BCS BPL BMI`, `JMP abs`, `JML long`, `JSR abs`, `RTS` |
 | Stack | `PHA PLA` |
-| Other | `NOP`; the core executes each opcode that is not in this table as NOP |
+| Other | `NOP`; each opcode that is not in this table runs as a NOP and sets `dbg_illegal` |
 
 ### Enhanced extensions through `WDM #sub`
 
@@ -81,9 +88,10 @@ Planned and not yet done: DOT3, CROSS3, ROT, BLIT, FILL, 32-bit registers R0-R7.
 
 ## Known limits
 
-- No interrupts (NMI, IRQ, BRK, COP) and no decimal mode.
+- No interrupts (NMI, IRQ, BRK, COP) and no decimal arithmetic (the D flag exists).
 - Many addressing modes are missing (direct page, stack-relative, indirect). Many instructions are missing (shift, BIT, MVN/MVP, PHX/PLX...).
-- The timing is not cycle-accurate: 2 cycles for each read. The 6/8/12 cycles of the original bus are not emulated.
+- The cycle counts match the real chip for the 53 opcodes. The 6/8/12 master clocks of the original bus are not emulated.
+- The reset sequence reads only the vector. The real chip takes more cycles.
 - The 5A22 multiplies and divides instantly. WDM DIV uses a combinational divider. Replace it with a sequential divider.
 - DMA: no HDMA. The DMA moves 1 byte every 2 cycles.
 - The VRAM read does not model the prefetch of the original.

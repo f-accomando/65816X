@@ -41,7 +41,8 @@ Each opcode has 10,000 vectors for native mode and 10,000 for emulation mode. Ke
 the repository, in `<folder>/v1/`. The 106 files of the 53 opcodes of today take 457 MB.
 `sim/cpu_sst.py` converts them. `SST_FLAGS` accepts `--limit N`, `--d0`, `--page1`, and `--bus`.
 `--bus` adds the bus cycles of each vector, for a check cycle by cycle.
-`CORE=c816` runs the `cpu` targets on the new core (see [design/cpu-core.md](design/cpu-core.md)).
+`CORE=c816` runs the `cpu` targets on the core of the system (see [design/cpu-core.md](design/cpu-core.md)).
+Without it, they run on the old core.
 Only the adapter file `tb/cpu_adapt_<core>.vh` reads the internal registers of a core.
 The CI does not run these commands, because it does not have the files.
 
@@ -70,21 +71,25 @@ only B. Add A to the CI when the memory is on SDRAM (roadmap phase F4).
 
 ## 5. Results measured on 2026-11-27
 
-In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, with `make check`:
+In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, with `make check`.
+The system uses the new core `c816`.
 
 | Check | Result |
 |---|---|
-| `make test` | 56/56 (the program ended in 1321 cycles) |
-| `make mutation` | 10 of 10 faults found |
+| `make test` | 56/56 (the program ended in 1295 cycles) |
+| `make mutation` | 11 of 11 faults found |
 | `make iverilog` | 56/56 |
 | `make unit` | 0 differences, 28,123 accesses to the WRAM port |
-| `make cpu` | 47 of 256 opcodes; 20,845 of 21,200 vectors |
-| `make cpu-c816` | 53 of 256 opcodes; 21,200 of 21,200 vectors (new core, work order 5) |
-| equivalent LUT4 | 4393 (5% of the 85F, 10% of the 45F) |
+| `make cpu` | old core: 47 of 256 opcodes; 20,845 of 21,200 vectors |
+| `make cpu-c816` | 53 of 256 opcodes; 21,200 of 21,200 vectors |
+| `make cpu-mutation` | 7 of 7 faults found |
+| equivalent LUT4 | 4219 (5% of the 85F, 10% of the 45F) |
 | `DP16KD` | 125 (60% of the 85F, 116% of the 45F) |
 | `MULT18X18D` | 2 |
-| `TRELLIS_FF` | 726 |
+| `TRELLIS_FF` | 680 |
 | `TRELLIS_DPR16X4` | 12 |
+
+With the old core, the system took 1321 cycles for the test program, 4393 equivalent LUT4, and 726 FF.
 
 Before the change to `rtl/wram.v`, the WRAM used 16,384 `TRELLIS_DPR16X4` (about 98,000 LUT,
 calculated). The full synthesis did not end in 570 s.
@@ -121,7 +126,7 @@ No vector of any opcode has a cycle or bus difference.
 
 ### CI on GitHub
 
-First run on 2026-11-27, commit `b7903f3`, `ubuntu-24.04`, Icarus Verilog 12.0 and Yosys 0.33:
+These numbers are from the system with the old core. First run on 2026-11-27, commit `b7903f3`, `ubuntu-24.04`, Icarus Verilog 12.0 and Yosys 0.33:
 [run 46048677412](https://github.com/f-accomando/65816X/actions/runs/46048677412). All steps passed.
 The simulation and CPU results are equal to the local results. The synthesis counts differ:
 

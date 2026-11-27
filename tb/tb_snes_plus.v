@@ -6,12 +6,12 @@ module tb_snes_plus;
   reg clk = 1'b0;
   reg rst = 1'b1;
   wire [15:0] pc, a, x, y;
-  wire vb;
+  wire vb, illegal;
   integer fails = 0;
   integer cycles = 0;
   integer hits = 0;
 
-  snes_plus_top dut (.clk(clk), .rst(rst), .dbg_pc(pc), .dbg_a(a), .dbg_x(x), .dbg_y(y), .dbg_vblank(vb));
+  snes_plus_top dut (.clk(clk), .rst(rst), .dbg_pc(pc), .dbg_a(a), .dbg_x(x), .dbg_y(y), .dbg_vblank(vb), .dbg_illegal(illegal));
   always #5 clk = ~clk;
 
 `include "checks.vh"
@@ -29,6 +29,10 @@ module tb_snes_plus;
       $fatal(1, "FAIL");
     end
     $display("programma terminato in %0d cicli", cycles);
+    if (illegal !== 1'b0) begin
+      $display("FAIL: the program used an opcode that the core does not implement");
+      fails = fails + 1;
+    end
     run_checks;
     $display("%0d/%0d controlli superati", TOTAL - fails, TOTAL);
     if (fails != 0) $fatal(1, "FAIL");

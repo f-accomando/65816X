@@ -10,8 +10,8 @@ Read files in small slices (`grep`, or `offset` and `limit`). The current state 
 |---|---|
 | Open work of an area | `grep -n -A 20 '^## Open work' docs/progress/<area>.md` |
 | Binding rules of an area | `grep -n -A 20 '^## Rules' docs/progress/<area>.md` |
-| CPU compatibility score | `make cpu`, then `build/cpu_score.txt` |
-| CPU score on the public vectors | `make cpu-public SST=../65816-test-vectors`, then `build/cpu_public_score.txt` |
+| CPU compatibility score | `make cpu-c816`, then `build/cpu_score_c816.txt` |
+| CPU score on the public vectors | `make cpu-public CORE=c816 SST=../65816-test-vectors SST_FLAGS=--bus`, then `build/cpu_public_score_c816.txt` |
 | Owner decisions and open questions | `HANDOFF.md`, sections 3 and 9 |
 | Phases of the project | `docs/ROADMAP.md` |
 | Bus, memory map, opcodes, extensions | `docs/ARCHITECTURE.md` |
@@ -28,7 +28,7 @@ Read files in small slices (`grep`, or `offset` and `limit`). The current state 
 - Base: Start from an up-to-date `main`.
 - Integrate: Wait until `make check` passes and the CI of the branch is green. Then merge the branch into `main` with a fast-forward. Push `main`. Do not open a pull request. Then delete the branch (remote and local) and its worktree, each by name.
 
-**Tests.** During the work, run only the targets that the change affects: `make cpu` (CPU), `make test` (system), `make unit` (one module), `make synth` (resources). On Windows, run the targets in WSL.
+**Tests.** During the work, run only the targets that the change affects: `make cpu-c816` (CPU), `make test` (system), `make unit` (one module), `make synth` (resources). On Windows, run the targets in WSL.
 
 **Estimates and facts.** Write "estimate" next to a number that no tool measured. State what is not verified.
 

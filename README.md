@@ -12,13 +12,13 @@ The project starts from the **multi-chip structure of the original SNES** (not t
 The skeleton works. The Python mini simulator, Icarus Verilog, and yosys synthesis for ECP5 verify it.
 The CI on GitHub passes. Measured: 125 BRAM blocks, and about 4,400 LUT with Yosys 0.52 (12,600 with
 Yosys 0.33). It fits in the 85F. It does not fit in the 45F yet (BRAM).
-CPU: 47 of 256 opcodes pass the test bench.
+CPU: 50 of 256 opcodes pass all public test vectors, cycle by cycle.
 **Not verified**: placement, maximum frequency, verilator, and real hardware.
 Details are in [docs/VERIFICATION.md](docs/VERIFICATION.md) and [docs/progress/cpu.md](docs/progress/cpu.md).
 
 | Module | File | Status |
 |---|---|---|
-| Core 65816X | `rtl/cpu65816x.v` | subset of the opcodes, no interrupts, timing not cycle-accurate |
+| Core 65816X | `rtl/cpu/` | 53 opcodes, cycle by cycle (2 clocks for each CPU cycle); no interrupts |
 | Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registers `$42xx`, mul/div, general DMA (8 channels, modes 0-7), no HDMA |
 | PPU1/PPU2 | `rtl/ppu_stub.v` | video timing and VRAM, no rendering |
 | SPC700 + DSP | `rtl/apu_stub.v` | 4 ports `$2140-$2143` with echo and signature `$AA/$BB` |
@@ -35,7 +35,8 @@ make mutation    # insert 10 faults in the RTL and verify that the tests find ea
 make iverilog    # the same checks with Icarus Verilog
 make unit        # test for each module (WRAM against the reference model)
 make cpu         # test bench of the CPU only: score in build/cpu_score.txt
-make cpu-public SST=<folder>   # the same with the public vectors (not in the repository)
+make cpu-c816    # the same for the core of the system (rtl/cpu/)
+make cpu-public CORE=c816 SST=<folder>   # public vectors (not in the repository)
 make synth       # ECP5 synthesis with yosys and budget; BUDGET="A B" checks both variants
 make manual      # build the PDF manual (needs reportlab)
 make check       # everything that the CI runs

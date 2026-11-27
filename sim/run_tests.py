@@ -78,6 +78,9 @@ def main():
             print("FAIL %s[%04X] = %02X, atteso %02X" % (mem, addr, got, exp))
             fails += 1
     print("%d/%d controlli superati" % (len(expect) - fails, len(expect)))
+    if sim.peek('dbg_illegal'):
+        print("FAIL: the program used an opcode that the core does not implement")
+        return 1
     return 1 if fails else 0
 
 if __name__ == '__main__':

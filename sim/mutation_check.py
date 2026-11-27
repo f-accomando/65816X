@@ -9,15 +9,16 @@ import run_tests, vsim
 
 # (modulo, testo originale, testo guasto, descrizione)
 MUTANTS = [
-    ('cpu65816x', "a[7:0] <= sum9[7:0]; fc <= sum9[8];", "a[7:0] <= sum9[7:0]; fc <= 1'b0;", "carry ADC 8 bit sempre 0"),
-    ('cpu65816x', "8'hD0: if (!fz)", "8'hD0: if (fz)", "BNE con condizione invertita"),
-    ('cpu65816x', "prod = {16'h0000, a} * {16'h0000, x};\n                  a <= prod[15:0]; y <= prod[31:16];", "prod = {16'h0000, a} + {16'h0000, x};\n                  a <= prod[15:0]; y <= prod[31:16];", "WDM MUL somma invece di moltiplicare"),
+    ('c816_alu', "c = w16 ? s16[16] : s8[8];", "c = 1'b0;", "carry ADC sempre 0"),
+    ('c816_core', "(r_p[arg[2:0]] == arg[3])", "(r_p[arg[2:0]] != arg[3])", "salti condizionati invertiti"),
+    ('c816_ext', "wire [31:0] prod = {16'h0000, a} * {16'h0000, x};", "wire [31:0] prod = {16'h0000, a} + {16'h0000, x};", "WDM MUL somma invece di moltiplicare"),
     ('s_cpu_5a22', "3'd1: boff = {7'd0, dpat[0]};", "3'd1: boff = 8'd0;", "DMA modo 1 senza alternanza dei registri B"),
     ('s_cpu_5a22', "5'h03: rdmpy <= wrmpya * bus_wdata;", "5'h03: rdmpy <= wrmpya + bus_wdata;", "moltiplicatore 5A22 errato"),
     ('wram', "2'd0: port_addr <= port_addr + 17'd1;", "2'd0: ;", "porta WRAM: scrittura senza auto-incremento"),
     ('wram', "if (is_data && rd) port_addr <= port_addr + 17'd1;", "", "porta WRAM: lettura senza auto-incremento"),
-    ('cpu65816x', "if (op == 8'h60) pc <= {din, tmp[7:0]} + 16'd1;", "if (op == 8'h60) pc <= {din, tmp[7:0]};", "RTS senza +1"),
-    ('cpu65816x', "8'h42: if (ext_en) begin", "8'h42: begin", "WDM attivo anche in modalita' SNES"),
+    ('c816_core', "load_rts ? ({ah, al} + 16'd1)", "load_rts ? ({ah, al})", "RTS senza +1"),
+    ('s_cpu_5a22', ".ext_en(ext_en), .nmi", ".ext_en(1'b1), .nmi", "WDM attivo anche in modalita' SNES"),
+    ('c816_seq', "if ((t == 4'd1) && !imp) illegal <= 1'b1;", "if (t == 4'd1) illegal <= 1'b1;", "segnale di opcode non implementato sempre acceso"),
     ('ext_regs', "assign enhanced = (mode == 8'd2);", "assign enhanced = (mode != 8'd0);", "estensioni attive anche in modalita' accelerata"),
 ]
 

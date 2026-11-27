@@ -3,10 +3,11 @@
 
 The vectors stay outside the repository. <folder> contains the files v1/XX.n.json and v1/XX.e.json.
 
-  cpu_sst.py convert <folder> <out_file> [--limit N] [--d0] [--page1]
+  cpu_sst.py convert <folder> <out_file> [--limit N] [--d0] [--page1] [--bus]
       write the vectors in the format of the test bench (see sim/cpu_vectors.py)
       --page1 (diagnosis only): in emulation mode, start with the high byte of S at 01, the only
       value that the real chip can hold. The public vectors start with any value there.
+      --bus: also write the bus cycles of each vector, for the cycle by cycle check.
   cpu_sst.py check-ref <folder> [--limit N]
       run the reference model sim/cpu_ref.py on the vectors and report the differences
 
@@ -43,7 +44,16 @@ def load(path, limit):
     return tests[:limit] if limit else tests
 
 
-def convert(folder, out_path, limit, d0, page1):
+def bus_list(cycles):
+    """[count, kind, address, value, ...]; kind bit 0 VDA, bit 1 VPA, bit 2 write; value 100 = none"""
+    row = [len(cycles)]
+    for addr, value, flags in cycles:
+        kind = (flags[0] == 'd') | (flags[1] == 'p') << 1 | (flags[3] == 'w') << 2
+        row += [kind, addr, 0x100 if value is None else value]
+    return row
+
+
+def convert(folder, out_path, limit, d0, page1, bus):
     total = 0
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     found = files(folder)
@@ -63,6 +73,7 @@ def convert(folder, out_path, limit, d0, page1):
                     row.append(len(ram))
                     for addr, value in ram:
                         row += [addr, value]
+                row += bus_list(t['cycles']) if bus else [0]
                 out.write(' '.join('%x' % v for v in row) + '\n')
                 total += 1
     print("%d vectors from %d files in %s" % (total, len(found), out_path))
@@ -129,14 +140,15 @@ def main(argv):
     args = argv[1:]
     d0 = '--d0' in args
     page1 = '--page1' in args
-    args = [a for a in args if a not in ('--d0', '--page1')]
+    bus = '--bus' in args
+    args = [a for a in args if a not in ('--d0', '--page1', '--bus')]
     limit = 0
     if '--limit' in args:
         i = args.index('--limit')
         limit = int(args[i + 1])
         del args[i:i + 2]
     if len(args) == 3 and args[0] == 'convert':
-        return convert(args[1], args[2], limit, d0, page1)
+        return convert(args[1], args[2], limit, d0, page1, bus)
     if len(args) == 2 and args[0] == 'check-ref':
         return check_ref(args[1], limit)
     raise SystemExit(__doc__)

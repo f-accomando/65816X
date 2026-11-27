@@ -48,4 +48,4 @@ To close a step, make its opcodes pass the test bench and make `make check` pass
   Use `--d0` and `--page1` only for diagnosis.
 - Write `sim/cpu_ref.py` from the documented behavior of the processor, without looking at the Verilog.
   To solve a difference, find which of the two is wrong.
-- In the test bench, only `load_state` and `state_diff` in `tb/tb_cpu.v` read the internal registers of the core.
+- In the test bench, only the adapter file `tb/cpu_adapt_<core>.vh` reads the internal registers of a core.

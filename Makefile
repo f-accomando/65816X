@@ -28,7 +28,7 @@ build/checks.vh: tests/test_program.expect tests/test_program.asm sim/gen_tb.py 
 
 # Simulazione con Icarus Verilog: stessi controlli di "make test"
 iverilog: rom.hex build/checks.vh
-	$(IVERILOG) -g2012 -I build -o build/sim.vvp $(RTL) tb/tb_snes_plus.v
+	$(IVERILOG) -g2012 -I build -s tb_snes_plus -o build/sim.vvp $(RTL) tb/tb_snes_plus.v
 	$(VVP) -n build/sim.vvp
 
 # Test per modulo con Icarus Verilog (confronto con i modelli di riferimento in tb/)
@@ -41,30 +41,44 @@ unit:
 build/cpu_vectors.txt: sim/cpu_vectors.py sim/cpu_ref.py
 	$(PY) sim/cpu_vectors.py $@
 
-build/tb_cpu.vvp: $(RTL) rtl/files.f tb/tb_cpu.v
-	mkdir -p build
-	$(IVERILOG) -g2012 -s tb_cpu -o $@ $(RTL) tb/tb_cpu.v
+# CORE = old (cpu65816x) or c816 (rtl/cpu/, see docs/design/cpu-core.md)
+CORE ?= old
+ifeq ($(CORE),c816)
+CPU_DEF := -DC816
+CPU_TAG := _c816
+else
+CPU_DEF :=
+CPU_TAG :=
+endif
+CPU_VVP := build/tb_cpu$(CPU_TAG).vvp
+CPU_PASS := tests/cpu_pass$(CPU_TAG).txt
+CPU_RES := build/cpu_results$(CPU_TAG).txt
+CPU_SCORE := build/cpu_score$(CPU_TAG).txt
 
-cpu-run: build/cpu_vectors.txt build/tb_cpu.vvp
-	$(VVP) -n build/tb_cpu.vvp +vec=build/cpu_vectors.txt +out=build/cpu_results.txt
+$(CPU_VVP): $(RTL) rtl/files.f tb/tb_cpu.v $(wildcard tb/cpu_adapt_*.vh)
+	mkdir -p build
+	$(IVERILOG) -g2012 -s tb_cpu $(CPU_DEF) -I tb -o $@ $(RTL) tb/tb_cpu.v
+
+cpu-run: build/cpu_vectors.txt $(CPU_VVP)
+	$(VVP) -n $(CPU_VVP) +vec=build/cpu_vectors.txt +out=$(CPU_RES)
 
 cpu: cpu-run
-	$(PY) sim/cpu_score.py build/cpu_results.txt build/cpu_score.txt
+	$(PY) sim/cpu_score.py $(CPU_RES) $(CPU_SCORE) --passlist $(CPU_PASS)
 
-# riscrive tests/cpu_pass.txt con cio' che passa oggi: guardare la differenza prima di tenerla
+# riscrive l'elenco di cio' che passa: guardare la differenza prima di tenerla
 cpu-update: cpu-run
-	$(PY) sim/cpu_score.py build/cpu_results.txt build/cpu_score.txt --update
+	$(PY) sim/cpu_score.py $(CPU_RES) $(CPU_SCORE) --passlist $(CPU_PASS) --update
 
 # Vettori pubblici SingleStepTests/65816, tenuti fuori dal repository (vedi docs/VERIFICATION.md)
-# SST = cartella che contiene v1/; SST_FLAGS: --limit N, --d0, --page1
+# SST = cartella che contiene v1/; SST_FLAGS: --limit N, --d0, --page1, --bus
 SST ?=
 SST_FLAGS ?=
 
-cpu-public: build/tb_cpu.vvp
+cpu-public: $(CPU_VVP)
 	@test -n "$(SST)" || { echo "manca SST=<cartella dei vettori>"; exit 1; }
 	$(PY) -I sim/cpu_sst.py convert "$(SST)" build/sst_vectors.txt $(SST_FLAGS)
-	$(VVP) -n build/tb_cpu.vvp +vec=build/sst_vectors.txt +out=build/sst_results.txt
-	$(PY) sim/cpu_score.py build/sst_results.txt build/cpu_public_score.txt --report-only
+	$(VVP) -n $(CPU_VVP) +vec=build/sst_vectors.txt +out=build/sst_results$(CPU_TAG).txt
+	$(PY) sim/cpu_score.py build/sst_results$(CPU_TAG).txt build/cpu_public_score$(CPU_TAG).txt --report-only
 
 ref-public:
 	@test -n "$(SST)" || { echo "manca SST=<cartella dei vettori>"; exit 1; }

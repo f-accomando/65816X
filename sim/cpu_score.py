@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """cpu_score.py - pagella della CPU dai risultati di tb/tb_cpu.v.
 
-Uso: cpu_score.py <risultati> <pagella_uscita> [--update | --report-only]
+Uso: cpu_score.py <risultati> <pagella_uscita> [--update | --report-only] [--passlist <file>]
 Un opcode "passa" in un modo (n = nativo, e = emulazione) se tutti i suoi vettori passano.
 tests/cpu_pass.txt elenca cio' che passa: se qualcosa dell'elenco smette di passare si esce con
 errore. --update riscrive l'elenco. --report-only scrive solo la pagella (vettori pubblici).
@@ -13,7 +13,8 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PASSLIST = os.path.join(ROOT, 'tests', 'cpu_pass.txt')
 # ordine dei bit nella maschera di tb/tb_cpu.v
-FIELDS = ('PC', 'S', 'P', 'A', 'X', 'Y', 'DBR', 'D', 'PBR', 'E', 'memoria', 'scrittura_in_piu', 'blocco')
+FIELDS = ('PC', 'S', 'P', 'A', 'X', 'Y', 'DBR', 'D', 'PBR', 'E', 'memoria', 'scrittura_in_piu', 'blocco',
+          'cicli', 'bus', 'illegale')
 MODES = {'0': 'n', '1': 'e'}
 
 
@@ -40,10 +41,10 @@ def read_results(path):
     return res
 
 
-def read_passlist():
+def read_passlist(path):
     out = set()
-    if os.path.exists(PASSLIST):
-        for line in open(PASSLIST):
+    if os.path.exists(path):
+        for line in open(path):
             f = line.split('#')[0].split()
             if f:
                 out.add((int(f[0], 16), f[1]))
@@ -86,6 +87,11 @@ def report(res):
 
 def main(argv):
     args = [a for a in argv[1:] if a not in ('--update', '--report-only')]
+    passlist = PASSLIST
+    if '--passlist' in args:
+        i = args.index('--passlist')
+        passlist = os.path.join(ROOT, args[i + 1])
+        del args[i:i + 2]
     if len(args) != 2:
         raise SystemExit(__doc__)
     res = read_results(args[0])
@@ -97,17 +103,17 @@ def main(argv):
     if '--report-only' in argv:  # vettori diversi da quelli dell'elenco: solo pagella
         return 0
     if '--update' in argv:
-        with open(PASSLIST, 'w', newline='\n') as f:
+        with open(passlist, 'w', newline='\n') as f:
             f.write("# Opcode (e modo) che il banco di prova deve continuare a superare.\n"
                     "# Rigenerare con: make cpu-update\n")
             for op, mode in sorted(passing):
                 f.write("%02X %s\n" % (op, mode))
         print("elenco aggiornato: %d voci" % len(passing))
         return 0
-    wanted = read_passlist()
+    wanted = read_passlist(passlist)
     lost = sorted(wanted - passing)
     if not wanted:
-        print("ERRORE: tests/cpu_pass.txt vuoto o assente")
+        print("ERRORE: %s vuoto o assente" % passlist)
         return 1
     for op, mode in lost:
         print("ERRORE: $%02X %s non passa piu'" % (op, mode))

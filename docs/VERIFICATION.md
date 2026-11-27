@@ -35,7 +35,10 @@ The CI (`.github/workflows/ci.yml`) runs the same commands on each pull request 
 Source: [SingleStepTests/65816](https://github.com/SingleStepTests/65816), MIT license, commit `307c63f`.
 Each opcode has 10,000 vectors for native mode and 10,000 for emulation mode. Keep the files outside
 the repository, in `<folder>/v1/`. The 106 files of the 53 opcodes of today take 457 MB.
-`sim/cpu_sst.py` converts them. `SST_FLAGS` accepts `--limit N`, `--d0`, and `--page1`.
+`sim/cpu_sst.py` converts them. `SST_FLAGS` accepts `--limit N`, `--d0`, `--page1`, and `--bus`.
+`--bus` adds the bus cycles of each vector, for a check cycle by cycle.
+`CORE=c816` runs the `cpu` targets on the new core (see [design/cpu-core.md](design/cpu-core.md)).
+Only the adapter file `tb/cpu_adapt_<core>.vh` reads the internal registers of a core.
 The CI does not run these commands, because it does not have the files.
 
 In emulation mode, the vectors start with any value in the high byte of S. The real chip holds it at 01,

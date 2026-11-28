@@ -6,8 +6,10 @@
     1 IO  PC   -   -   -   -    ALW  -    -    -
 [seq WDM]                       # WDM, ext_en = 0: 2 cycles, the second byte is skipped
     1 IO  PC   -   INC -   -    ALW  -    -    -
-[seq WDMX]                      # WDM, ext_en = 1: the sub-opcode is a program byte
-    1 PRG PC   DL  INC -   -    ALW  -    -    -
+[seq WDMX]                      # WDM, ext_en = 1: the sub-opcode is a program byte; DIV takes more
+    1 PRG PC   DL  INC -   -    NDIV -    -    -
+    2 IO  PC   -   -   -   -    ALW  -    -    -
+
 [seq IMM]                       # immediate: 2 (8-bit) or 3 (16-bit)
     1 PRG PC   DL  INC -   -    W8   -    -    -
     2 PRG PC   DH  INC -   -    ALW  -    -    -

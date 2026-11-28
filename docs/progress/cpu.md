@@ -12,8 +12,10 @@ The list of what must continue to pass is in `tests/cpu_pass.txt`.
 - The reference model agrees with all 5,080,400 public vectors, cycle by cycle. Our own vectors thus
   check the cycles in the CI.
 - Interrupts (`make cpu-int`): reset, NMI, IRQ, BRK, COP, RTI, WAI, STP, and the NMI of the system.
+  The same test counts the cycles of `WDM MUL` (2) and `WDM DIV` (11).
 - `make cpu-mutation`: 32 of 32 faults found.
 - `WDM` extensions: the system test checks them (MUL, DIV, MAC, MACRD, and the two modes without effect).
+  `WDM DIV` uses a sequential divider.
 - Differences from the real chip (the public vectors do not cover them):
 
 | Part | Difference |
@@ -28,7 +30,7 @@ The list of what must continue to pass is in `tests/cpu_pass.txt`.
 
 To close a step, make `make check` pass.
 
-- **C6** speed: multi-cycle divider (`WDM DIV`), measurement of the maximum frequency (needs nextpnr).
+- **Maximum frequency**: not measured. It needs nextpnr, which is not installed (F1b).
 - **C7** extensions: more `WDM`, prefetch, optional 32-bit mode (an owner decision).
 
 ## Rules (do not break)

@@ -38,12 +38,30 @@ loop:   CLC
         TXA
         STA $7E0026         ; 00 00
 
-; T5: moltiplicatore e divisore hardware del 5A22
+; T16: il moltiplicatore impiega 8 cicli: letto subito il prodotto e' ancora parziale
+        SEP #$20
+        LDA #$FF
+        STA $4202
+        LDA #$09
+        STA $4203           ; 255 * 9 = $08F7
+        LDA $4216           ; dopo 3 passi: 7 * 9 = $3F
+        STA $7E0040         ; 3F
+        NOP
+        NOP
+        LDA $4216
+        STA $7E0041         ; F7
+        LDA $4217
+        STA $7E0042         ; 08
+
+; T5: moltiplicatore e divisore hardware del 5A22 (si attendono i risultati)
         SEP #$20
         LDA #$07
         STA $4202
         LDA #$09
         STA $4203
+        NOP
+        NOP
+        NOP
         LDA $4216
         STA $7E0008         ; 3F
         LDA $4217
@@ -53,7 +71,14 @@ loop:   CLC
         LDA #$03
         STA $4205
         LDA #$07
-        STA $4206           ; 1000 / 7
+        STA $4206           ; 1000 / 7, 16 cicli
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
+        NOP
         LDA $4214
         STA $7E0020         ; 8E (142)
         LDA $4216
@@ -71,7 +96,7 @@ loop:   CLC
         STA $4301
         LDA #$00
         STA $4302
-        LDA #$82
+        LDA #$E9
         STA $4303
         LDA #$00
         STA $4304
@@ -145,6 +170,15 @@ loop:   CLC
         TYA
         STA $7E0014         ; 02 00
 
+; T17: WDM DIV per zero: A = $FFFF, Y = vecchio A
+        REP #$30
+        LDA #$1111
+        LDX #$0000
+        WDM $02
+        STA $7E003C         ; FF FF
+        TYA
+        STA $7E003E         ; 11 11
+
 ; T9: registri enhanced, porte APU, pila
         SEP #$20
         LDA $5F00
@@ -209,7 +243,7 @@ sub:    REP #$30
         LDA #$BEEF
         RTS
 
-        .org $8200
+        .org $E900          ; dati del DMA
         .byte $11,$22,$33,$44
 
         .org $FFFC

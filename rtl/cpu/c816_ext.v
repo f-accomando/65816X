@@ -1,11 +1,13 @@
 // c816_ext.v - the WDM extensions of the c816 core (docs/design/cpu-core.md, section 5.2).
 // go = 1 runs the operation sub in this clock. The core sets go only with ext_en = 1.
 // Sub-opcodes: 1 MUL, 2 DIV, 3 MAC, 4 MACRD, 5 MACCLR. The operations assume 16-bit A and X.
-// The divider is combinational until a later step replaces it; busy stays 0.
+// The divider is sequential: start loads A and X, one quotient bit follows at each clock, and
+// busy is 1 for 16 clocks. The core repeats the second cycle of WDM DIV until busy is 0.
 module c816_ext (
   input clk,
   input rst,
   input go,
+  input start,
   input [7:0] sub,
   input [15:0] a,
   input [15:0] x,
@@ -23,7 +25,29 @@ module c816_ext (
   reg [31:0] acc;
   wire [31:0] prod = {16'h0000, a} * {16'h0000, x};
 
-  assign busy = 1'b0;
+  // restoring division, one bit for each clock
+  reg [15:0] quo, rem;
+  reg [4:0] left;
+  wire [16:0] trial = {rem, quo[15]};
+  wire [16:0] diff = trial - {1'b0, x};
+  wire fits = !diff[16];
+  assign busy = (left != 5'd0);
+
+  always @(posedge clk) begin
+    if (rst) begin
+      quo <= 16'h0000;
+      rem <= 16'h0000;
+      left <= 5'd0;
+    end else if (start) begin
+      quo <= a;
+      rem <= 16'h0000;
+      left <= 5'd16;
+    end else if (left != 5'd0) begin
+      rem <= fits ? diff[15:0] : trial[15:0];
+      quo <= {quo[14:0], fits};
+      left <= left - 5'd1;
+    end
+  end
 
   always @* begin
     we_a = 1'b0;
@@ -49,7 +73,7 @@ module c816_ext (
           if (x == 16'h0000) begin
             a_out = 16'hFFFF; y_out = a; f_v = 1'b1;
           end else begin
-            a_out = a / x; y_out = a % x;
+            a_out = quo; y_out = rem;
           end
         end
         8'h04: begin   // MACRD: A = low half, Y = high half of the total

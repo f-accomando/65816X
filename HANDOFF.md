@@ -25,7 +25,7 @@ The Verilog skeleton follows the **multi-chip structure of the original SNES** (
 | Module | File | Status |
 |---|---|---|
 | Core 65816X | `rtl/cpu/` | all 256 opcodes, cycle by cycle; NMI, IRQ, reset |
-| Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registers `$42xx`, instant mul/div, general DMA 8 channels (modes 0-7), no HDMA |
+| Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registers `$42xx`, mul/div with the timing of the original, general DMA 8 channels (modes 0-7), no HDMA |
 | PPU1/PPU2 | `rtl/ppu_stub.v` | only timing and VRAM (`$2115-$2119`, `$2139-$213A`) |
 | SPC700 + DSP | `rtl/apu_stub.v` | 4 ports with echo, signature `$AA/$BB` |
 | WRAM | `rtl/wram.v` | 128 KB, mirrors, port `$2180-$2183` |
@@ -34,12 +34,12 @@ The Verilog skeleton follows the **multi-chip structure of the original SNES** (
 | Top | `rtl/snes_plus_top.v` | connects all modules |
 
 Verification done (measured, `make check`):
-- `make test` and `make iverilog`: 56 checks.
-- `make mutation`: 11 of 11 faults found.
+- `make test` and `make iverilog`: 63 checks.
+- `make mutation`: 14 of 14 faults found.
 - `make unit`: no differences.
 - `make cpu`: all 256 opcodes, cycle by cycle. `make cpu-int`: the interrupt tests pass. The public vectors run locally with `make cpu-public`.
 - `make cpu-mutation`: 32 of 32 faults found.
-- yosys synthesis: 126 BRAM blocks; about 5,900 LUT with Yosys 0.52.
+- yosys synthesis: 126 BRAM blocks; about 5,400 LUT with Yosys 0.52.
 - The CI on GitHub passes.
 
 **Never run with verilator or nextpnr, or on a board.** Details are in `docs/VERIFICATION.md`.
@@ -52,7 +52,9 @@ project did not fit in either FPGA.
   the clock with `rd`.
 - The DMA stops the CPU at the next CPU cycle, also inside an instruction (`halt` acts in phase 0).
 - All 256 opcodes have a table row. `dbg_illegal` stays as a guard of the tables.
-- `WDM DIV` uses combinational `/` and `%`: they are large and slow in synthesis. Make them sequential.
+- `WDM DIV` repeats its second cycle while the divider works: 11 CPU cycles in total.
+- The 5A22 gives a partial result when a program reads it too soon (8 cycles for a product,
+  16 for a quotient).
 - The WDM extensions assume 16-bit A and X.
 - `sim/vsim.py` supports only a subset of Verilog (one clock, no instance parameters,
   generate, or function). If the RTL needs more, use iverilog or verilator.
@@ -143,7 +145,7 @@ about 20-30k triangles for each frame. Cel-shaded look: toon table (~1k LUT), 2-
 ### List of improvements, in order
 
 1. Verification with real tools: `make iverilog`, `make synth`, and the CI done; remaining: nextpnr (real frequency).
-2. Sequential divider instead of the combinational `/` (small and certain).
+2. Done (2026-11-28): sequential dividers.
 3. Interrupts: done (2026-11-28). The H and V timer IRQ of the 5A22 is still missing.
 4. Done (2026-11-28): full opcode set and verification with test vectors for each instruction (public 65816 suites, if available) and with the reference of section 8.
 5. Prefetch and one clock with enable for the 6/8/12 master clock cycles.
@@ -227,7 +229,7 @@ Question 1 blocks F4; questions 2 and 3 block F8 and F10; question 4 blocks the 
 
 ## 10. Suggested next step
 
-The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. First step: C6 in
+The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. First step: C7 in
 `docs/progress/cpu.md`.
 Criteria for each step:
 - `make check` passes.

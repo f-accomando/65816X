@@ -24,7 +24,7 @@ FIELDS = {
     'pc': (1, 'NONE INC'),
     'sop': (2, 'NONE INC DEC'),
     'wsel': (4, 'RLO RHI PCDL PCDH ALUL ALUH DL PBR AL AH PCL PCH PERL PERH PSW'),
-    'last': (3, 'NO ALW W8 NTK NEC EMU'),
+    'last': (3, 'NO ALW W8 NTK NEC EMU NDIV'),
     'skip': (3, 'NO XNC W8 DL0 EMU'),
     'pcop': (4, 'NONE ABS LONG BRL BR RTS REL16 RTL DPTR DPTRL REWIND VECT'),
     'hold': (2, 'NONE WIDE WAI STP'),

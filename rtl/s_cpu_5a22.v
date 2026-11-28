@@ -1,5 +1,6 @@
 // s_cpu_5a22.v - equivalente del Ricoh 5A22: core + registri $42xx + DMA ($43xx)
-// Semplificazioni: moltiplicazione/divisione istantanee (l'originale impiega 8/16 cicli),
+// Moltiplicazione e divisione: un bit per ciclo di CPU, 8 e 16 cicli come l'originale; il
+// risultato letto prima e' quello parziale. Semplificazioni:
 // DMA generale con modi 0-7 (niente HDMA), registri joypad assenti.
 module s_cpu_5a22 (
   input clk,
@@ -88,6 +89,12 @@ module s_cpu_5a22 (
   // ---- registri $42xx ----
   reg [7:0] wrmpya, wrdiv_l, wrdiv_h;
   reg [15:0] rddiv, rdmpy;
+  reg [23:0] alu_shift;
+  reg [3:0] mpy_left;
+  reg [4:0] div_left;
+  reg alu_wait;                  // il calcolo comincia dal ciclo dopo la scrittura
+  wire [23:0] div_next = {1'b0, alu_shift[23:1]};
+  wire div_fits = ({8'h00, rdmpy} >= div_next);
   reg nmi_flag, vblank_q;
 
   assign regs_hit = (bus_addr[22] == 1'b0) && ((bus_addr[15:5] == 11'h210) || (bus_addr[15:7] == 9'h086));
@@ -125,6 +132,7 @@ module s_cpu_5a22 (
       dma_pending <= 1'b0; dma_active <= 1'b0; mdmaen <= 8'd0; hdmaen <= 8'd0; nmitimen <= 8'd0;
       dch <= 3'd0; dph <= 1'b0; dpat <= 2'd0;
       wrmpya <= 8'd0; wrdiv_l <= 8'd0; wrdiv_h <= 8'd0; rddiv <= 16'd0; rdmpy <= 16'd0;
+      alu_shift <= 24'd0; mpy_left <= 4'd0; div_left <= 5'd0; alu_wait <= 1'b0;
       nmi_flag <= 1'b0; vblank_q <= 1'b0;
     end else begin
       vblank_q <= vblank;
@@ -158,21 +166,37 @@ module s_cpu_5a22 (
         end
       end
 
+      // un passo di moltiplicazione o divisione alla fine di ogni ciclo di CPU
+      if (c_cyc_end) begin
+        if (alu_wait) alu_wait <= 1'b0;
+        else if (mpy_left != 4'd0) begin
+          if (rddiv[0]) rdmpy <= rdmpy + alu_shift[15:0];
+          rddiv <= {1'b0, rddiv[15:1]};
+          alu_shift <= {alu_shift[22:0], 1'b0};
+          mpy_left <= mpy_left - 4'd1;
+        end else if (div_left != 5'd0) begin
+          if (div_fits) rdmpy <= rdmpy - div_next[15:0];
+          rddiv <= {rddiv[14:0], div_fits};
+          alu_shift <= div_next;
+          div_left <= div_left - 5'd1;
+        end
+      end
+
       // scritture ai registri
       if (bus_wr && bus_addr[22] == 1'b0) begin
         if (bus_addr[15:5] == 11'h210) begin
           case (bus_addr[4:0])
             5'h00: nmitimen <= bus_wdata;
             5'h02: wrmpya <= bus_wdata;
-            5'h03: rdmpy <= wrmpya * bus_wdata;
+            5'h03: begin
+              rdmpy <= 16'd0; rddiv <= {bus_wdata, wrmpya}; alu_shift <= {16'd0, bus_wdata};
+              mpy_left <= 4'd8; div_left <= 5'd0; alu_wait <= 1'b1;
+            end
             5'h04: wrdiv_l <= bus_wdata;
             5'h05: wrdiv_h <= bus_wdata;
             5'h06: begin
-              if (bus_wdata == 8'h00) begin rddiv <= 16'hFFFF; rdmpy <= {wrdiv_h, wrdiv_l}; end
-              else begin
-                rddiv <= {wrdiv_h, wrdiv_l} / {8'h00, bus_wdata};
-                rdmpy <= {wrdiv_h, wrdiv_l} % {8'h00, bus_wdata};
-              end
+              rdmpy <= {wrdiv_h, wrdiv_l}; alu_shift <= {bus_wdata, 16'd0};
+              div_left <= 5'd16; mpy_left <= 4'd0; alu_wait <= 1'b1;
             end
             5'h0B: begin mdmaen <= bus_wdata; dma_pending <= (bus_wdata != 8'h00); end
             5'h0C: hdmaen <= bus_wdata;

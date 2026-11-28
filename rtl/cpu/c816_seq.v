@@ -19,6 +19,8 @@ module c816_seq (
   input dlz,
   input [1:0] hold,
   input wake,
+  input is_div,
+  input ext_busy,
   output reg [3:0] t,
   output reg ph,
   output reg illegal,
@@ -34,11 +36,13 @@ module c816_seq (
   wire writes = (bus == 3'd5) || ((bus == 3'd3) && is_store) || ((bus == 3'd6) && e);
 
   // hold codes: 0 none, 1 wide stack, 2 WAI (repeat the step until wake), 3 STP (repeat for ever)
-  wire stall = ((hold == 2'd2) && !wake) || (hold == 2'd3);
+  // ext_busy: the divider of WDM DIV is still working
+  wire stall = ((hold == 2'd2) && !wake) || (hold == 2'd3) || ext_busy;
 
-  // last codes: 0 NO, 1 ALW, 2 W8, 3 NTK, 4 NEC, 5 EMU
+  // last codes: 0 NO, 1 ALW, 2 W8, 3 NTK, 4 NEC, 5 EMU, 6 NDIV
   wire is_last = !stall && ((last == 3'd1) || ((last == 3'd2) && w8) || ((last == 3'd3) && !taken) ||
-                 ((last == 3'd4) && !(e && br_cross)) || ((last == 3'd5) && e));
+                 ((last == 3'd4) && !(e && br_cross)) || ((last == 3'd5) && e) ||
+                 ((last == 3'd6) && !is_div));
   // skip codes: 0 NO, 1 XNC, 2 W8, 3 DL0 (dlz = 1: D[7:0] is 0), 4 EMU
   assign skip1 = ((skip == 3'd1) && !is_store && !xcarry) || ((skip == 3'd2) && w8) ||
                  ((skip == 3'd3) && dlz) || ((skip == 3'd4) && e);

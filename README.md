@@ -30,7 +30,7 @@ Details are in [docs/VERIFICATION.md](docs/VERIFICATION.md) and [docs/progress/c
 ## Quick use
 
 ```
-make test        # assemble tests/test_program.asm and run 56 checks (Python 3 only)
+make test        # assemble tests/test_program.asm and run the system checks (Python 3 only)
 make mutation    # insert 10 faults in the RTL and verify that the tests find each one
 make iverilog    # the same checks with Icarus Verilog
 make unit        # test for each module (WRAM against the reference model)

@@ -5,7 +5,6 @@ criterion and make `make check` pass.
 
 | Phase | Content | Verifiable completion | Risks |
 |---|---|---|---|
-| F1 | Sequential dividers: 5A22 with the latency of the original, `WDM DIV` | no `$div`/`$mod` cell before mapping; mutants on the divider | tests that depend on the instant division |
 | F1b | Minimal board top, ULX3S pin file, nextpnr in the CI for 45k and 85k | placement report with maximum frequency | license of the imported pin file |
 | F2 | NMI/IRQ/BRK/COP interrupts, all opcodes, signal for an unimplemented opcode (`dbg_illegal`), subfolders in `rtl/` | CPU-only harness in iverilog: vectors for all 256 opcodes in native and emulation mode | license and download of the vectors (SingleStepTests) |
 | F3 | SNES timing: one clock with enable, 6/8/12 cycles, `bus_wait`, accelerated mode | cycle counts equal to the vectors; `bus_wait = 0` in SNES mode | reachable frequency |
@@ -19,14 +18,14 @@ criterion and make `make check` pass.
 
 ## Current order: CPU first
 
-For now, develop only the CPU, in the steps C6-C7 of [progress/cpu.md](progress/cpu.md).
-Steps C1-C5 are done: they covered phase F2 and the part of F3 about internal cycles. C6 includes the `WDM DIV` divider of F1.
-C7 is the CPU part of F8. The SNES bus timing (6, 8, 12 clock cycles) stays in F3.
+For now, develop only the CPU, in the step C7 of [progress/cpu.md](progress/cpu.md).
+Steps C1-C6 are done: they covered phase F1 (sequential dividers), phase F2, and the part of F3
+about internal cycles. C7 is the CPU part of F8. The SNES bus timing (6, 8, 12 clock cycles) stays
+in F3. The measurement of the maximum frequency waits for F1b.
 
 ## Next steps
 
-1. C6: speed.
-2. C7: extensions of the CPU.
+1. C7: extensions of the CPU.
 
 ## To decide: host port
 

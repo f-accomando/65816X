@@ -131,8 +131,11 @@ module c816_core (
   wire ext_we_a, ext_we_y, ext_f_we, ext_f_n, ext_f_z, ext_fv_we, ext_f_v, ext_busy;
   wire [15:0] ext_a, ext_y;
   wire ext_go = commit && ext_en && is_wdm;
+  // WDM DIV starts the divider when the sub-opcode arrives, then repeats a cycle while it works
+  wire is_div = is_wdm && ext_en && (dl_by == 8'h02);
+  wire div_start = cyc_end && is_div && (t == 4'd1);
   c816_ext u_ext (
-    .clk(clk), .rst(rst), .go(ext_go), .sub(dl_by), .a(r_a), .x(r_x),
+    .clk(clk), .rst(rst), .go(ext_go), .start(div_start), .sub(dl_by), .a(r_a), .x(r_x),
     .we_a(ext_we_a), .we_y(ext_we_y), .a_out(ext_a), .y_out(ext_y),
     .f_we(ext_f_we), .f_n(ext_f_n), .f_z(ext_f_z), .fv_we(ext_fv_we), .f_v(ext_f_v),
     .busy(ext_busy)
@@ -272,7 +275,7 @@ module c816_core (
     .clk(clk), .rst(rst), .halt(halt), .bus_wait(bus_wait), .bus(bus), .last(last),
     .skip(skip), .imp(imp), .w8(w8), .taken(taken), .br_cross(br_cross),
     .xcarry(xcarry || !r_p[4]), .is_store(is_store), .e(r_e), .dlz(r_d[7:0] == 8'h00),
-    .hold(hold), .wake(wake),
+    .hold(hold), .wake(wake), .is_div(is_div), .ext_busy(ext_busy),
     .t(t), .ph(ph), .illegal(illegal), .cyc_end(cyc_end), .commit(commit), .skip1(skip1),
     .rd(rd), .wr(wr), .sync(sync)
   );

@@ -446,7 +446,7 @@ The cycle model that matched all 1,060,000 vectors uses the same rules as this t
 - **WAI, STP (C5).** Use `hold` codes 2 and 3: the step repeats IO cycles until an interrupt or a reset.
 - **ABORT (optional).** It needs a copy of the registers at the start of each instruction. Leave it out unless the owner asks.
 - **Decimal (C5).** Use ALU input `dec`. No cycle changes (verified).
-- **Divider (C6).** `c816_ext.busy` with `hold = 1` repeats the last step.
+- **Divider (C6).** `c816_ext.busy` repeats a step of `WDM DIV` (section 14).
 - **Wait and SNES timing (F3).** `bus_wait` stretches phase 1. `vda`, `vpa`, and `addr` give the 5A22 what it needs to choose 6, 8, or 12 master clocks.
 - **SDRAM (F4).** The memory port holds `bus_wait` until `din` is valid.
 - **Prefetch, 32-bit mode (C7).** OPF and PRG cycles are explicit, so a prefetch unit can answer them. Width codes 4-7 and op codes 19-31 are free. Keep the prefetch off when `ext_en = 0`.
@@ -613,3 +613,17 @@ Rules that the public vectors confirm:
 
 The public vectors confirm decimal mode, `BRK`, `COP`, `RTI`, and the first cycles of `WAI` and
 `STP`. The directed tests `tb/tb_cpu_int.v` and `tb/tb_snes_nmi.v` check NMI, IRQ, and reset.
+
+## 14. Step C6: sequential dividers (done 2026-11-28)
+
+| Part | Addition |
+|---|---|
+| `c816_ext` | restoring divider, one quotient bit at each FPGA clock; `start` loads A and X; `busy` is 1 for 16 clocks |
+| `c816_core` | `start` at the end of the sub-opcode cycle of `WDM DIV` |
+| `last` | `NDIV`: end the instruction here, unless it is `WDM DIV` |
+| `c816_seq` | `ext_busy` holds the step, as `WAI` does |
+| Sequences | `WDMX` has a second step, an IO cycle |
+| `s_cpu_5a22` | multiply (8 steps) and divide (16 steps), one step at the end of each CPU cycle |
+
+`WDM DIV` takes 11 CPU cycles: the opcode, the sub-opcode, and 9 IO cycles. The extensions exist
+only in extended mode, so no SNES timing changes. The synthesis has no `$div` or `$mod` cell.

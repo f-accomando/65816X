@@ -13,7 +13,10 @@ MUTANTS = [
     ('c816_core', "(r_p[arg[2:0]] == arg[3])", "(r_p[arg[2:0]] != arg[3])", "salti condizionati invertiti"),
     ('c816_ext', "wire [31:0] prod = {16'h0000, a} * {16'h0000, x};", "wire [31:0] prod = {16'h0000, a} + {16'h0000, x};", "WDM MUL somma invece di moltiplicare"),
     ('s_cpu_5a22', "3'd1: boff = {7'd0, dpat[0]};", "3'd1: boff = 8'd0;", "DMA modo 1 senza alternanza dei registri B"),
-    ('s_cpu_5a22', "5'h03: rdmpy <= wrmpya * bus_wdata;", "5'h03: rdmpy <= wrmpya + bus_wdata;", "moltiplicatore 5A22 errato"),
+    ('s_cpu_5a22', "if (rddiv[0]) rdmpy <= rdmpy + alu_shift[15:0];", "if (rddiv[1]) rdmpy <= rdmpy + alu_shift[15:0];", "moltiplicatore 5A22 errato"),
+    ('s_cpu_5a22', "rddiv <= {rddiv[14:0], div_fits};", "rddiv <= {rddiv[14:0], 1'b0};", "divisore 5A22 errato"),
+    ('c816_ext', "quo <= {quo[14:0], fits};", "quo <= {quo[14:0], 1'b0};", "divisore di WDM DIV errato"),
+    ('c816_seq', "|| (hold == 2'd3) || ext_busy;", "|| (hold == 2'd3);", "WDM DIV non attende il divisore"),
     ('wram', "2'd0: port_addr <= port_addr + 17'd1;", "2'd0: ;", "porta WRAM: scrittura senza auto-incremento"),
     ('wram', "if (is_data && rd) port_addr <= port_addr + 17'd1;", "", "porta WRAM: lettura senza auto-incremento"),
     ('c816_core', "load_ret ? ({ah, al} + 16'd1)", "load_ret ? ({ah, al})", "RTS senza +1"),
@@ -78,7 +81,7 @@ CPU_MUTANTS = [
     ('c816_core', "else if (cyc_end && fetch_int && take_nmi) nmi_pend <= 1'b0;", "",
      "NMI stays pending after it is taken"),
     ('c816_core', "wire wake = nmi_pend || irq;", "wire wake = nmi_pend;", "WAI does not end on IRQ"),
-    ('c816_seq', "|| (hold == 2'd3);", "|| 1'b0;", "STP does not stop"),
+    ('c816_seq', "|| (hold == 2'd3)", "|| 1'b0", "STP does not stop"),
     ('s_cpu_5a22', ".nmi(nmi_flag && nmitimen[7])", ".nmi(1'b0)", "the vertical blank does not reach the NMI"),
 ]
 CPU_CASES = 20   # vectors for each opcode and mode

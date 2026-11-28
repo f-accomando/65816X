@@ -1,5 +1,6 @@
 // tb_cpu_int.v - directed test of the interrupts of c816_core: reset, IRQ, NMI, BRK, RTI, WAI,
 // STP, in native and emulation mode. The public vectors do not cover the NMI and IRQ inputs.
+// The last part counts the cycles of WDM MUL and WDM DIV with the extensions on.
 // Memory is bank 0 only. A write to $4000 withdraws the IRQ request, a write to $4001 raises it,
 // a write to $4002 pulses NMI. Each check prints one line; any failure ends with $fatal.
 `timescale 1ns/1ns
@@ -8,6 +9,7 @@ module tb_cpu_int;
   reg rst = 1'b1;
   reg nmi = 1'b0;
   reg irq = 1'b0;
+  reg ext_en = 1'b0;
   wire [23:0] addr;
   wire rd, wr, vda, vpa, sync, cyc_end, dbg_illegal;
   wire [7:0] wdata;
@@ -15,7 +17,7 @@ module tb_cpu_int;
   wire [15:0] dbg_pc, dbg_a, dbg_x, dbg_y;
 
   c816_core dut (
-    .clk(clk), .rst(rst), .halt(1'b0), .bus_wait(1'b0), .ext_en(1'b0), .nmi(nmi), .irq(irq),
+    .clk(clk), .rst(rst), .halt(1'b0), .bus_wait(1'b0), .ext_en(ext_en), .nmi(nmi), .irq(irq),
     .din(din), .addr(addr), .rd(rd), .wr(wr), .wdata(wdata), .vda(vda), .vpa(vpa),
     .sync(sync), .cyc_end(cyc_end), .dbg_illegal(dbg_illegal),
     .dbg_pc(dbg_pc), .dbg_a(dbg_a), .dbg_x(dbg_x), .dbg_y(dbg_y)
@@ -197,6 +199,27 @@ module tb_cpu_int;
     @(negedge clk) rst = 1'b0;
     run_to(16'h8000, 100);
     check(seen, "reset ends STP");
+
+    // extensions: cycles of WDM MUL and WDM DIV
+    @(negedge clk) rst = 1'b1;
+    ext_en = 1'b1;
+    put(16'h8000, 8'h18); put(16'h8001, 8'hFB);                          // CLC, XCE
+    put(16'h8002, 8'hC2); put(16'h8003, 8'h30);                          // REP #$30
+    put(16'h8004, 8'hA9); put(16'h8005, 8'h11); put(16'h8006, 8'h11);    // LDA #$1111
+    put(16'h8007, 8'hA2); put(16'h8008, 8'h07); put(16'h8009, 8'h00);    // LDX #$0007
+    put(16'h800A, 8'h42); put(16'h800B, 8'h01);                          // WDM $01  MUL
+    put(16'h800C, 8'h42); put(16'h800D, 8'h02);                          // WDM $02  DIV
+    put(16'h800E, 8'hDB);                                                // STP
+    repeat (3) @(posedge clk);
+    @(negedge clk) rst = 1'b0;
+    run_to(16'h800A, 200);
+    start_cycle = cycles;
+    run_to(16'h800C, 100);
+    check(seen && cycles - start_cycle == 2, "WDM MUL takes 2 cycles");
+    start_cycle = cycles;
+    run_to(16'h800E, 100);
+    check(seen && cycles - start_cycle == 11, "WDM DIV takes 11 cycles");
+    check(dbg_a === 16'h1111 && dbg_y === 16'h0000, "WDM DIV gives the quotient and the remainder");
 
     if (fails != 0) begin
       $display("%0d checks failed", fails);

@@ -54,6 +54,13 @@ wram 0037 55
 wram 0038 21   # T15 WDM inerte in modalita' accelerata
 wram 0039 43
 wram 003A 02   # modalita' estesa attiva
+wram 003C FF   # T17 WDM DIV per zero
+wram 003D FF
+wram 003E 11
+wram 003F 11
+wram 0040 3F   # T16 prodotto parziale
+wram 0041 F7   # T16 prodotto finito
+wram 0042 08
 vram_l 0000 11 # T7 DMA verso VRAM
 vram_h 0000 22
 vram_l 0001 33

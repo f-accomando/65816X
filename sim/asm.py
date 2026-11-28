@@ -105,12 +105,16 @@ def assemble(src):
         except KeyError:
             raise AsmError("riga %d: modo non supportato: %s" % (ln, raw.strip()))
     image = bytearray(0x10000)
+    used = set()
 
     def put(addr, bs):
         for i, b in enumerate(bs):
             off = addr + i - 0x8000
             if not 0 <= off < 0x8000:
                 raise AsmError("indirizzo fuori ROM: %04X" % (addr + i))
+            if off in used:
+                raise AsmError("due blocchi sullo stesso indirizzo: %04X" % (addr + i))
+            used.add(off)
             image[off] = b & 0xFF
 
     for it in items:

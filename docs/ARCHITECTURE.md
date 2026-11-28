@@ -100,7 +100,20 @@ This is the behavior of the real chip. The extensions assume 16-bit A and X.
 | `$04` | MACRD | `A = ACC[15:0]`, `Y = ACC[31:16]` |
 | `$05` | MACCLR | `ACC32 = 0` |
 
+`DIV` takes 11 CPU cycles, because a sequential divider gives one bit at each FPGA clock. The
+other sub-opcodes take 2 cycles.
+
 Planned and not yet done: DOT3, CROSS3, ROT, BLIT, FILL, 32-bit registers R0-R7.
+
+## Multiply and divide of the 5A22
+
+| Start | Operation | Time | Result |
+|---|---|---|---|
+| write `$4203` | `$4202` x `$4203`, 8 x 8 bits | 8 CPU cycles | product in `$4216-$4217` |
+| write `$4206` | `$4204-$4205` / `$4206`, 16 / 8 bits | 16 CPU cycles | quotient in `$4214-$4215`, remainder in `$4216-$4217` |
+
+The unit does one step at the end of each CPU cycle. A read that comes too soon gives the partial
+value, as on the real chip. A division by 0 gives the quotient `$FFFF` and the dividend as remainder.
 
 ## Known limits
 
@@ -108,7 +121,8 @@ Planned and not yet done: DOT3, CROSS3, ROT, BLIT, FILL, 32-bit registers R0-R7.
 - Interrupt sampling and the wake up of `WAI` can differ from the real chip by a cycle.
 - The cycle counts match the real chip for all opcodes. The 6/8/12 master clocks of the original bus are not emulated.
 - The reset sequence (7 cycles) follows the data sheet and was not compared with a chip.
-- The 5A22 multiplies and divides instantly. WDM DIV uses a combinational divider. Replace it with a sequential divider.
+- The multiplier and the divider of the 5A22 stop while the DMA holds the CPU. Their partial
+  values were not compared with the real chip.
 - DMA: no HDMA. The DMA moves 1 byte every 2 cycles.
 - The VRAM read does not model the prefetch of the original.
 - Here, a DMA from WRAM to `$2180` copies the data. On the real SNES it does not work (fix in phase F7).

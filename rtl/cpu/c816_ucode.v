@@ -21,7 +21,8 @@ module c816_ucode (
       case ({seq, t})
         10'h001: begin  end  // IMP 1
         10'h011: begin pcinc = 1'd1; end  // WDM 1
-        10'h021: begin bus = 3'd2; cap = 3'd4; pcinc = 1'd1; end  // WDMX 1
+        10'h021: begin bus = 3'd2; cap = 3'd4; pcinc = 1'd1; last = 3'd6; end  // WDMX 1
+        10'h022: begin  end  // WDMX 2
         10'h031: begin bus = 3'd2; cap = 3'd4; pcinc = 1'd1; last = 3'd2; end  // IMM 1
         10'h032: begin bus = 3'd2; cap = 3'd5; pcinc = 1'd1; end  // IMM 2
         10'h041: begin bus = 3'd2; cap = 3'd4; pcinc = 1'd1; last = 3'd0; end  // IMM8P 1

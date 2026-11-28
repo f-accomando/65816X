@@ -68,124 +68,48 @@ Check the device numbers in the script against the Lattice datasheet.
 Today variant A **does not fit** (126 blocks of 108: placeholder ROM and WRAM in BRAM). The CI checks
 only B. Add A to the CI when the memory is on SDRAM (roadmap phase F4).
 
-## 5. Results measured on 2026-11-27
+## 5. Results measured on 2026-11-28
 
-In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, with `make check`.
-The system uses the new core `c816`.
+In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, after step C6.
+Older results are in the git history of this file.
 
 | Check | Result |
 |---|---|
-| `make test` | 56/56 (the program ended in 1305 cycles) |
-| `make mutation` | 11 of 11 faults found |
-| `make iverilog` | 56/56 |
+| `make test` | 63/63 (the program ended in 1523 cycles) |
+| `make mutation` | 14 of 14 faults found |
+| `make iverilog` | 63/63 |
 | `make unit` | 0 differences, 28,123 accesses to the WRAM port |
 | `make cpu` | 256 of 256 opcodes; 102,400 of 102,400 vectors |
-| `make cpu-int` | the core test and the system NMI test pass |
+| `make cpu-int` | the core test and the system NMI test pass; `WDM MUL` 2 cycles, `WDM DIV` 11 cycles |
 | `make cpu-mutation` | 32 of 32 faults found |
-| equivalent LUT4 | 5876 (7% of the 85F, 13% of the 45F) |
+| `$div` and `$mod` cells before mapping | none |
+| equivalent LUT4 | 5411 (6% of the 85F, 12% of the 45F) |
 | `DP16KD` | 126 (61% of the 85F, 117% of the 45F); yosys puts the decode table in one block |
-| `MULT18X18D` | 2 |
-| `TRELLIS_FF` | 718 |
+| `MULT18X18D` | 1 |
+| `TRELLIS_FF` | 789 |
 | `TRELLIS_DPR16X4` | 12 |
-
-With the old core, the system took 1321 cycles for the test program, 4393 equivalent LUT4, and 726 FF.
-
-Before the change to `rtl/wram.v`, the WRAM used 16,384 `TRELLIS_DPR16X4` (about 98,000 LUT,
-calculated). The full synthesis did not end in 570 s.
-
-One test inserted three faults by hand in the CPU (one extra byte written, Z flag not updated,
-core stopped). The CPU test bench found all three.
 
 ### Public vectors
 
-| Run | Result |
-|---|---|
-| `make ref-public` | 0 of 1,030,026 vectors differ; 29,974 decimal vectors skipped |
-| `make cpu-public` | 0 of 256 opcodes; 266,966 of 1,060,000 vectors; 3 min 22 s |
-| `make cpu-public SST_FLAGS="--d0 --page1"` | 47 of 256 opcodes; 523,405 of 529,750 vectors |
-| `make cpu-public CORE=c816 SST_FLAGS="--limit 1000 --bus"` | 26 of 256 opcodes; 60,201 of 106,000 vectors. Of the 28 opcodes of work order 3, only `$69` and `$E9` fail, because decimal mode is missing. None of the 28 has a cycle or bus difference |
-| `make cpu-public CORE=c816 SST_FLAGS="--limit 1000 --bus --d0"` | 28 of 256 opcodes; 31,033 of 53,118 vectors |
-
-The cycle counts differ in all vectors. The core uses 2 clocks for each read.
-
-The first `make ref-public` run found two errors in the reference model. Both are fixed:
-the high byte of S in emulation mode, and a read of the second byte of `WDM`.
-
-Since 2026-11-27 the reference model also records each bus cycle, and `make ref-public` compares
-them: 0 differences in 1,030,026 vectors. Thus the own vectors check the cycles, also in the CI.
-
-### Public vectors on the new core
-
-Run on 2026-11-27, all vectors, with the cycle and bus checks. At that time the repository had two
-cores, and `CORE=c816` selected the one that is the only core today.
+All vectors, with the cycle and bus checks.
 
 | Run | Result |
 |---|---|
-| `make cpu-public CORE=c816 SST_FLAGS="--bus"` | **50 of 256 opcodes**; 1,032,847 of 1,060,000 vectors; 0 cycle differences |
-| `make cpu-public CORE=c816 SST_FLAGS="--bus --d0"` | **53 of 256 opcodes**; 529,750 of 529,750 vectors; 0 cycle differences |
+| `make ref-public` (reference model, after step C5) | 0 of 5,080,400 vectors differ, cycles included |
+| `make cpu-public SST_FLAGS="--bus"` (after step C6) | **256 of 256 opcodes**; 5,080,400 of 5,080,400 vectors; 0 cycle differences; 40 minutes |
 
-In the first run, only `$69`, `$6D`, and `$E9` fail, only in A and P, because decimal mode is missing.
-No vector of any opcode has a cycle or bus difference.
+The comparisons found three errors during the development. All are fixed.
 
-### Public vectors after step C3 (all addressing modes)
-
-Run on 2026-11-28, all vectors of the 177 opcodes, with the cycle and bus checks.
-
-| Run | Result |
-|---|---|
-| `make ref-public` | 0 of 3,239,910 vectors differ, cycles included; 300,090 decimal vectors skipped |
-| `make cpu-public SST_FLAGS="--bus"` | **147 of 256 opcodes**; 3,277,325 of 3,540,000 vectors; 0 cycle differences |
-| `make cpu-public SST_FLAGS="--limit 500 --bus --d0"` | 177 of 256 opcodes; 88,622 of 88,622 vectors |
-
-In the full run, only the 15 forms of `ADC` and of `SBC` fail, only in A and P, because decimal mode
-is missing.
-
-### Public vectors after step C4 (all instructions except interrupts)
-
-Run on 2026-11-28, all vectors of the 251 opcodes, with the cycle and bus checks.
-
-| Run | Result |
-|---|---|
-| `make ref-public` | 0 of 4,680,310 vectors differ, cycles included; 300,090 decimal vectors skipped |
-| `make cpu-public SST_FLAGS="--bus"` | **221 of 256 opcodes**; 4,717,725 of 4,980,400 vectors; 0 cycle differences |
-| `make cpu-public SST_FLAGS="--limit 300 --bus --d0"` | 251 of 256 opcodes; 75,080 of 75,080 vectors |
-
-In the full run, only the 15 forms of `ADC` and of `SBC` fail, because decimal mode is missing.
-A vector of `MVN` or `MVP` covers a whole block move, with up to about 7,000 cycles.
-
-### Public vectors after step C5 (all 256 opcodes)
-
-Run on 2026-11-28, all vectors, with the cycle and bus checks.
-
-| Run | Result |
-|---|---|
-| `make ref-public` | 0 of 5,080,400 vectors differ, cycles included |
-| `make cpu-public SST_FLAGS="--bus"` | **256 of 256 opcodes**; 5,080,400 of 5,080,400 vectors; 0 cycle differences |
-
-The interrupt test found one error in the core: a second IRQ right after the entry of the first one.
-The error is fixed.
+- Reference model: the high byte of S in emulation mode.
+- Reference model: a read of the second byte of `WDM`.
+- Core: a second IRQ right after the entry of the first one.
 
 ### CI on GitHub
 
-These numbers are from the system with the old core. First run on 2026-11-27, commit `b7903f3`, `ubuntu-24.04`, Icarus Verilog 12.0 and Yosys 0.33:
-[run 46048677412](https://github.com/f-accomando/65816X/actions/runs/46048677412). All steps passed.
-The simulation and CPU results are equal to the local results. The synthesis counts differ:
-
-| Cells | Yosys 0.52 (local) | Yosys 0.33 (CI) |
-|---|---|---|
-| equivalent LUT4 | 4393 (5% of the 85F, 10% of the 45F) | 12604 (15% of the 85F, 29% of the 45F) |
-| `LUT4` | 3149 | 9572 |
-| `CCU2C` | 610 | 1504 |
-| `DP16KD` | 125 | 125 |
-| `MULT18X18D` | 2 | 2 |
-| `TRELLIS_FF` | 726 | 726 |
-| `TRELLIS_DPR16X4` | 12 | 12 |
-
-The cause of the LUT difference is not investigated. Quote the LUT count with the yosys version.
-
-With the core `c816` in the system (commit `99858f4`,
-[run 46074388791](https://github.com/f-accomando/65816X/actions/runs/46074388791)), Yosys 0.33 counts
-11245 equivalent LUT4 (13% of the 85F). The cells are 8383 `LUT4`, 1419 `CCU2C`, and 680 `TRELLIS_FF`.
+The CI runs on `ubuntu-24.04` with Icarus Verilog 12.0 and Yosys 0.33. The simulation and CPU
+results are equal to the local results. The synthesis counts differ: after step C5, Yosys 0.33
+counts 13307 equivalent LUT4 against 5876 for Yosys 0.52. The cause is not investigated.
+Quote each LUT count with the yosys version.
 
 ## 6. Not verified
 

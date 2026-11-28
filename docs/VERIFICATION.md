@@ -72,14 +72,14 @@ only B. Add A to the CI when the memory is on SDRAM (roadmap phase F4).
 
 ## 5. Results measured on 2026-11-28
 
-In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, after step P1 of the PPU.
+In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, after the extensions were limited to native mode.
 Older results are in the git history of this file.
 
 | Check | Result |
 |---|---|
-| `make test` | 98/98 (the program ended in 2059 cycles) |
-| `make mutation` | 18 of 18 faults found |
-| `make iverilog` | 98/98 |
+| `make test` | 102/102 (the program ended in 2141 cycles) |
+| `make mutation` | 19 of 19 faults found |
+| `make iverilog` | 102/102 |
 | `make unit` | 0 differences: 28,123 accesses to the WRAM port and 20,000 operations of the `WDM` unit; the video timing passes |
 | `make cpu` | 256 of 256 opcodes; 102,400 of 102,400 vectors |
 | `make cpu-int` | the core test and the system NMI test pass; `WDM MUL` 2 cycles, `WDM DIV` 11 cycles; the NMI after 306,962 clocks |
@@ -87,7 +87,7 @@ Older results are in the git history of this file.
 | `make ppu-mutation` | 6 of 6 faults found |
 | `make synth-ppu` | PPU alone: 389 equivalent LUT4, 32 `DP16KD`, no multiplier |
 | `$div` and `$mod` cells before mapping | none |
-| equivalent LUT4 | 5718 (7% of the 85F, 13% of the 45F) |
+| equivalent LUT4 | 5827 (7% of the 85F, 13% of the 45F) |
 | `DP16KD` | 126 (61% of the 85F, 117% of the 45F); yosys puts the decode table in one block |
 | `MULT18X18D` | 1 |
 | `TRELLIS_FF` | 793 |
@@ -100,7 +100,7 @@ All vectors, with the cycle and bus checks.
 | Run | Result |
 |---|---|
 | `make ref-public` (reference model, after step C5) | 0 of 5,080,400 vectors differ, cycles included |
-| `make cpu-public SST_FLAGS="--bus"` (after step C7a) | **256 of 256 opcodes**; 5,080,400 of 5,080,400 vectors; 0 cycle differences; 42 minutes |
+| `make cpu-public SST_FLAGS="--bus"` (after the native-mode rule) | **256 of 256 opcodes**; 5,080,400 of 5,080,400 vectors; 0 cycle differences |
 
 The comparisons found three errors during the development. All are fixed.
 

@@ -34,8 +34,8 @@ The Verilog skeleton follows the **multi-chip structure of the original SNES** (
 | Top | `rtl/snes_plus_top.v` | connects all modules |
 
 Verification done (measured, `make check`):
-- `make test` and `make iverilog`: 98 checks.
-- `make mutation`: 18 of 18 faults found.
+- `make test` and `make iverilog`: 102 checks.
+- `make mutation`: 19 of 19 faults found.
 - `make unit`: no differences.
 - `make cpu`: all 256 opcodes, cycle by cycle. `make cpu-int`: the interrupt tests pass. The public vectors run locally with `make cpu-public`.
 - `make cpu-mutation`: 32 of 32 faults found.

@@ -1,13 +1,13 @@
 {
  "65816x": {
-  "content": "3d326d50ac6d",
+  "content": "36d19a4287e8",
   "sources": {
    "Makefile": "d4d8b76e31e3",
    "README.md": "155e1a3789d4",
    "docs/ARCHITECTURE.md": "9693b9af5c6b",
    "docs/ROADMAP.md": "a685ed45ff46",
    "docs/VARIANTS.md": "fa56ac744d25",
-   "docs/VERIFICATION.md": "71458b0b8150",
+   "docs/VERIFICATION.md": "91a9b1b194b6",
    "docs/progress/cpu.md": "012cbe6a037a",
    "docs/progress/system.md": "8ab8d5460842",
    "manuals/themes/paper.toml": "a338e8ca8a85",

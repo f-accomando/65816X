@@ -8,7 +8,7 @@ BUDGET ?= B
 
 RTL := $(filter %.v,$(shell cat rtl/files.f))
 
-.PHONY: test mutation cpu-mutation cpu-int rom iverilog unit ppu-unit ppu-mutation synth-ppu cpu cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
+.PHONY: test mutation cpu-mutation cpu-int rom iverilog unit ppu-unit ppu ppu-update ppu-mutation synth-ppu cpu cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
 
 # Collaudo con il mini simulatore Python (nessuna dipendenza esterna)
 test:
@@ -57,6 +57,14 @@ ppu-unit:
 	mkdir -p build
 	$(IVERILOG) -g2012 -s tb_ppu_timing -o build/tb_ppu_timing.vvp rtl/ppu/ppu_timing.v tb/tb_ppu_timing.v
 	$(VVP) -n build/tb_ppu_timing.vvp
+
+# Scenes of the PPU: the RTL against the reference model, pictures in build/ppu (needs iverilog)
+ppu:
+	$(PY) sim/ppu_run.py
+
+# writes the CRC lists of the scenes from the model: check the difference before you keep it
+ppu-update:
+	$(PY) sim/ppu_run.py --update
 
 # Faults in the PPU: its benches must find each one (needs iverilog)
 ppu-mutation:
@@ -127,7 +135,7 @@ manual-check:
 	$(PY) manuals/tools/manuals.py check
 
 # Tutto quello che esegue la CI
-check: tables-check test mutation iverilog unit cpu cpu-int cpu-mutation ppu-mutation synth manual-check
+check: tables-check test mutation iverilog unit cpu cpu-int cpu-mutation ppu ppu-mutation synth manual-check
 
 clean:
 	rm -rf build rom.hex

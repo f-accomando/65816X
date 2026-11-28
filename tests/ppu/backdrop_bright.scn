@@ -1,0 +1,36 @@
+# brightness and forced blank over a fixed backdrop
+# written by sim/ppu_scenes.py
+region ntsc
+load cgram tests/ppu/backdrop_bright.cgram.hex
+at 0 10 w 2100 0F
+at 8 300 w 2100 00
+at 20 300 w 2100 01
+at 32 300 w 2100 02
+at 44 300 w 2100 03
+at 56 300 w 2100 04
+at 68 300 w 2100 05
+at 80 300 w 2100 06
+at 92 300 w 2100 07
+at 104 300 w 2100 08
+at 116 300 w 2100 09
+at 128 300 w 2100 0A
+at 140 300 w 2100 0B
+at 152 300 w 2100 0C
+at 164 300 w 2100 0D
+at 176 300 w 2100 0E
+at 188 300 w 2100 0F
+at 200 300 w 2100 8F
+at 206 300 w 2100 0F
+at 210 22 w 2100 0B
+at 211 23 w 2100 04
+at 212 100 w 2100 0B
+at 213 149 w 2100 04
+at 214 150 w 2100 0B
+at 215 276 w 2100 04
+at 216 277 w 2100 0B
+at 217 278 w 2100 04
+at 219 128 w 2100 80
+at 219 192 w 2100 0F
+at 223 339 w 2100 07
+at 230 0 w 2100 0F
+frames 2 compare 1

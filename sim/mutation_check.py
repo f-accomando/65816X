@@ -5,7 +5,7 @@ Esce con errore se anche un solo guasto non viene rilevato o se un modello non s
 import os, sys, io, contextlib, subprocess
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import run_tests, vsim
+import ppu_run, run_tests, vsim
 
 # (modulo, testo originale, testo guasto, descrizione)
 MUTANTS = [
@@ -104,6 +104,13 @@ PPU_MUTANTS = [
     ('ppu_timing', "overscan ? 9'd240 : 9'd225", "overscan ? 9'd240 : 9'd224", "vertical blank at line 224"),
     ('ppu_timing', "pal && interlace && field && (vcnt == 9'd311)", "1'b0", "no long line in PAL with interlace"),
     ('ppu_timing', "(hdot >= 9'd274)", "(hdot >= 9'd256)", "horizontal blank starts at dot 256"),
+    ('ppu_math', "bright <= inidisp[3:0];", "bright <= inidisp[3:0] + 4'd1;", "brightness off by one"),
+    ('ppu_math', "inidisp[7] ? 15'd0 : backdrop", "backdrop", "forced blank ignored"),
+    ('ppu_top', ".raddr(8'd0)", ".raddr(8'd1)", "backdrop taken from CGRAM word 1"),
+    ('ppu_cgram', "cgadd <= wdata;\n      half <= 1'b0;", "cgadd <= wdata;", "$2121 keeps the half word"),
+    ('ppu_cgram', "cgadd <= cgadd + 8'd1;", "cgadd <= cgadd;", "CGRAM address does not advance"),
+    ('ppu_math', "(hdot >= 9'd22) && (hdot <= 9'd277)", "(hdot >= 9'd23) && (hdot <= 9'd278)",
+     "picture one dot late"),
 ]
 PPU_BENCHES = ['tb_ppu_timing']
 
@@ -114,19 +121,24 @@ def run_ppu():
     os.makedirs(work, exist_ok=True)
     sources = [os.path.join(root, p) for p in run_tests.RTL]
 
-    def passes(files):
-        for bench in PPU_BENCHES:
-            vvp = os.path.join(work, bench + '.vvp')
-            subprocess.run([os.environ.get('IVERILOG', 'iverilog'), '-g2012', '-s', bench, '-o', vvp]
-                           + files + [os.path.join(root, 'tb', bench + '.v')], check=True)
-            try:
-                done = subprocess.run([os.environ.get('VVP', 'vvp'), '-n', vvp], stdout=subprocess.DEVNULL,
-                                      timeout=600, cwd=root)
-            except subprocess.TimeoutExpired:
-                return False
-            if done.returncode != 0:
-                return False
-        return True
+    def bench_passes(files, bench):
+        vvp = os.path.join(work, bench + '.vvp')
+        subprocess.run([os.environ.get('IVERILOG', 'iverilog'), '-g2012', '-s', bench, '-o', vvp]
+                       + files + [os.path.join(root, 'tb', bench + '.v')], check=True)
+        try:
+            done = subprocess.run([os.environ.get('VVP', 'vvp'), '-n', vvp], stdout=subprocess.DEVNULL,
+                                  timeout=600, cwd=root)
+        except subprocess.TimeoutExpired:
+            return False
+        return done.returncode == 0
+
+    def passes(files, timing_first=False):
+        """The scenes and the benches; the test that finds a fault soonest runs first."""
+        scenes = lambda: not ppu_run.run(files, quiet=True, work=os.path.join(work, 'ppu'), all_patterns=False)
+        tests = [scenes] + [(lambda b=b: bench_passes(files, b)) for b in PPU_BENCHES]
+        if timing_first:
+            tests.reverse()
+        return all(test() for test in tests)       # all() stops at the first failure
 
     if not passes(sources):
         print("ERROR: a test fails without any fault")
@@ -140,7 +152,7 @@ def run_ppu():
         copy = os.path.join(work, module + '.v')
         with open(copy, 'w') as f:
             f.write(source.replace(old, new, 1))
-        found = not passes([copy if p == paths[0] else p for p in sources])
+        found = not passes([copy if p == paths[0] else p for p in sources], module == 'ppu_timing')
         missed += not found
         print("%-8s %s" % ('FOUND' if found else 'MISSED', text))
     print("PPU: %d faults of %d missed" % (missed, len(PPU_MUTANTS)))

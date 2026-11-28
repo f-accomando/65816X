@@ -16,12 +16,14 @@
 | `make cpu-int` | interrupts: directed tests of the core (`tb/tb_cpu_int.v`) and of the system NMI (`tb/tb_snes_nmi.v`) | iverilog |
 | `make cpu-mutation` | inserts faults in the core; fails if the vectors and the interrupt tests miss even one | iverilog |
 | `make ppu-unit` | video timing against a second description in `tb/tb_ppu_timing.v`: NTSC and PAL, interlace, overscan, 3 patterns of `mce`; part of `make unit` | iverilog |
+| `make ppu` | scenes of `tests/ppu/`: the PPU against the reference model `sim/ppu_ref.py`, pixel by pixel; pictures in `build/ppu/` | iverilog |
+| `make ppu-update` | same as above, and writes the CRC lists of the scenes from the model | iverilog |
 | `make ppu-mutation` | inserts faults in the PPU; fails if its benches miss even one | iverilog |
 | `make synth-ppu` | synthesis of the PPU alone, for information; not part of `make check` | yosys |
 | `make manual-check` | the manual matches its sources (see `manuals/README.md`) | Python 3 |
 | `make tables` | writes the generated tables of the new CPU core | Python 3 |
 | `make tables-check` | the generated tables match `rtl/cpu/c816_tables.txt` | Python 3 |
-| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `cpu-int`, `cpu-mutation`, `ppu-mutation`, `synth`, `manual-check` | iverilog, yosys |
+| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `cpu-int`, `cpu-mutation`, `ppu`, `ppu-mutation`, `synth`, `manual-check` | iverilog, yosys |
 
 Keep `sim/vsim.py` while the RTL needs no parameters, `generate`, or `function`.
 Do not shape the RTL for the mini simulator: the design would get worse.
@@ -33,6 +35,8 @@ The CI (`.github/workflows/ci.yml`) runs the same commands on each pull request 
 - `rtl/files.f`: list of the RTL sources. The Makefile, `sim/run_tests.py`, and `sim/mutation_check.py` read it.
   In the comments of this file, write no word that ends in `.v` (the Makefile filters with `%.v`).
 - `tests/<program>.expect`: expected values. `sim/run_tests.py` and `sim/gen_tb.py` read it.
+- `sim/ppu_scenes.py`: writes the scenes of `tests/ppu/` (fixed seed). A scene gives the register writes
+  and their places. `tests/ppu/<name>.expect` holds one CRC32 for each line of the model picture.
 - `sim/cpu_ref.py`: reference model of the CPU. `sim/cpu_vectors.py` makes the vectors from it
   (fixed seed). `tests/cpu_pass.txt`: opcodes and modes that must continue to pass.
 - New check: add one line to the `.expect` file. New mutant: add one line to `MUTANTS`, `CPU_MUTANTS`, or `PPU_MUTANTS` in `sim/mutation_check.py`.
@@ -72,7 +76,7 @@ only B. Add A to the CI when the memory is on SDRAM (roadmap phase F4).
 
 ## 5. Results measured on 2026-11-28
 
-In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, after the extensions were limited to native mode.
+In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, after step P2 of the PPU.
 Older results are in the git history of this file.
 
 | Check | Result |
@@ -84,10 +88,11 @@ Older results are in the git history of this file.
 | `make cpu` | 256 of 256 opcodes; 102,400 of 102,400 vectors |
 | `make cpu-int` | the core test and the system NMI test pass; `WDM MUL` 2 cycles, `WDM DIV` 11 cycles; the NMI after 306,962 clocks |
 | `make cpu-mutation` | 32 of 32 faults found |
-| `make ppu-mutation` | 6 of 6 faults found |
-| `make synth-ppu` | PPU alone: 389 equivalent LUT4, 32 `DP16KD`, no multiplier |
+| `make ppu` | 5 scenes, 0 pixel differences; the first scene also with 2 other patterns of `mce` |
+| `make ppu-mutation` | 12 of 12 faults found |
+| `make synth-ppu` | PPU alone: 440 equivalent LUT4, 33 `DP16KD`, no multiplier |
 | `$div` and `$mod` cells before mapping | none |
-| equivalent LUT4 | 5827 (7% of the 85F, 13% of the 45F) |
+| equivalent LUT4 | 5711 (7% of the 85F, 13% of the 45F) |
 | `DP16KD` | 126 (61% of the 85F, 117% of the 45F); yosys puts the decode table in one block |
 | `MULT18X18D` | 1 |
 | `TRELLIS_FF` | 793 |
@@ -122,3 +127,4 @@ Quote each LUT count with the yosys version.
 - Placement and maximum frequency (nextpnr is not installed).
 - The partial values of the 5A22 multiplier and divider against a real chip.
 - Operation on a real board.
+- No picture was compared with a real console or with another emulator.

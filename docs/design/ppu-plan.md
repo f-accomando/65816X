@@ -1,7 +1,7 @@
 # PPU development plan
 
 Status: proposal. Date: 2026-11-28. This document plans the original PPU (part 1) and the enhanced PPU+ (part 2).
-It changes no decision of `HANDOFF.md`, section 3. Step P1 is done. The other steps have not started.
+It changes no decision of `HANDOFF.md`, section 3. Steps P1 and P2 are done. The other steps have not started.
 The open work of the whole system is in [progress/system.md](../progress/system.md).
 
 ## 0. How to read this document
@@ -16,7 +16,7 @@ The open work of the whole system is in [progress/system.md](../progress/system.
 ### 0.1 Starting point [V]
 
 - `rtl/ppu/ppu_timing.v` gives the line and frame timing (step P1). `rtl/ppu/ppu_top.v` holds it.
-- `ppu_top` has `$2100` (stored only), `$2115-$2119`, and `$2139-$213A`. Increments are 1, 32, 128. No address remap, no prefetch.
+- `ppu_top` has `$2100`, `$2121-$2122` (step P2), `$2115-$2119`, and `$2139-$213A`. Increments are 1, 32, 128. No address remap, no prefetch.
 - `ppu_top` writes VRAM at any time. It ignores the forced blank and the active display.
 - VRAM is two arrays `vram_l` and `vram_h` (32768 x 8). `tests/test_program.expect` and `sim/run_tests.py` read `u_ppu.vram_l` and `u_ppu.vram_h`.
 - `tb/tb_snes_nmi.v` expects the NMI at 306,900 to 307,100 clocks after reset.
@@ -183,6 +183,15 @@ Check of 2026-11-28 of the timing rows (master clock to vertical blank, and the 
 - Only A gives the field flag, the horizontal blank flag, and the NMI position.
 - The other rows of the table were not checked.
 
+Check of 2026-11-28 for step P2:
+
+- Sources: <https://snes.nesdev.org/wiki/PPU_registers>, <https://snes.nesdev.org/wiki/Palettes>,
+  and <https://snes.nesdev.org/wiki/Timing>.
+- Confirmed: forced blank, the backdrop word, the writes of `$2121` and `$2122`, and the visible lines.
+- The visible part of a line runs from master clock 88 to 1112. These are the dots 22 to 277.
+- The brightness has "linear steps" from none to full. No formula was found.
+- A colour memory write in the active display goes to another address on the real chip.
+
 Documents to read for these checks (read only, do not copy text): fullsnes by Martin Korth, anomie's register and timing documents, the SNESdev wiki. Their licenses: to check.
 
 ## 1.6 BRAM and fit
@@ -205,19 +214,18 @@ The target `make synth-ppu` synthesizes `ppu_top` alone. It prints its blocks, L
 
 ## 1.7 Steps
 
-Each step closes with `make check` passing. Each step adds its mutants to the list `PPU_MUTANTS` in `sim/mutation_check.py`. `make ppu-mutation` runs them (iverilog). `make ppu-unit` is part of `make unit`. Step P2 adds `make ppu` to `make check`. Add each new PPU bench to `PPU_BENCHES`.
+Each step closes with `make check` passing. Each step adds its mutants to the list `PPU_MUTANTS` in `sim/mutation_check.py`. `make ppu-mutation` runs them (iverilog). `make ppu-unit` is part of `make unit`. `make ppu` runs the scenes and is part of `make check`. Add each new PPU bench to `PPU_BENCHES`.
 
 ### P1. Timing generator (done)
 - Result: `rtl/ppu/ppu_timing.v` and `rtl/ppu/ppu_top.v` replace the stub. `make ppu-unit` checks the timing.
 - Mutants: 6 in `PPU_MUTANTS`. The plan asked for 4. The 2 others cover the long line and the horizontal blank.
 - Later steps add the registers that read the counters (P3, P10) and the H/V IRQ (P11).
 
-### P2. Pixel stream, backdrop, reference model, scene tools
-- Content: `ppu_math.v` with backdrop (CGRAM 0), brightness, forced blank. Scene format, `tb/tb_ppu.v` (scene player), `sim/ppu_ref.py` (same features), `sim/ppu_cmp.py` (compare, PNG output with Python `zlib`). Format in section 3.2.
-- Files: `rtl/ppu/ppu_math.v`, `rtl/ppu/ppu_cgram.v`, `tb/tb_ppu.v`, `sim/ppu_ref.py`, `sim/ppu_scenes.py`, `sim/ppu_cmp.py`, `tests/ppu/`.
-- Done when: `make ppu` runs scene `backdrop_bright` (brightness 0-15 and forced blank changed at given lines). The RTL dump equals the model dump on all lines. `build/ppu/backdrop_bright.png` exists.
-- Mutants: brightness off by one; forced blank ignored; CGRAM 0 read from CGRAM 1.
-- Depends on: P1. Risk: low. Agent: two agents, one for the model and one for the RTL. Standard, N=3.
+### P2. Pixel stream, backdrop, reference model, scene tools (done)
+- Result: `ppu_cgram.v`, `ppu_math.v`, `tb/tb_ppu.v`, `sim/ppu_ref.py`, `sim/ppu_scenes.py`, `sim/ppu_cmp.py`, `sim/ppu_run.py`.
+- Scenes: 5 in `tests/ppu/`. One loads the colour memory through the bus. Three have random writes.
+- Mutants: 6 new ones. The plan asked for 3.
+- One agent wrote the model first and then the Verilog. The plan asked for two agents.
 
 ### P3. Registers and memory ports
 - Content: all write registers, write-twice latches, VRAM prefetch and remap, access rules. Then CGRAM and OAM latches, OAM reload and rotation, reads `$2134-$213F` with their flip-flops, MDR approximation.

@@ -40,7 +40,7 @@ The reference model for `make unit` is `tb/wram_ref.v`.
 | Address | Content |
 |---|---|
 | `$0000-$1FFF` | mirror of the first 8 KB of the WRAM |
-| `$2100-$213F` | PPU (VRAM: `$2115-$2119`, `$2139-$213A`) |
+| `$2100-$213F` | PPU: `$2100`, VRAM (`$2115-$2119`, `$2139-$213A`), colour memory (`$2121-$2122`) |
 | `$2140-$217F` | APU ports (mirrored every 4 bytes) |
 | `$2180-$2183` | WRAM port (data and 17-bit address with auto-increment) |
 | `$4200-$421F` | 5A22 registers: NMITIMEN, mul/div, `$420B` MDMAEN, `$4210/$4212` status |
@@ -140,6 +140,19 @@ value, as on the real chip. A division by 0 gives the quotient `$FFFF` and the d
 The system uses NTSC without interlace and without overscan. The registers `$2133` and `$213F` do not
 exist yet. The sources of the values are in [design/ppu-plan.md](design/ppu-plan.md), section 1.5.
 
+## Pixel path
+
+The PPU draws only the backdrop today: word 0 of the colour memory.
+
+- `ppu_cgram.v` holds 256 colours of 15 bits. `$2121` sets the address. `$2122` takes the low byte,
+  then the high byte. Then the address advances. Bit 15 is not stored.
+- `ppu_math.v` gives one pixel for each visible dot: lines 1-224 (239 with overscan), dots 22-277.
+- `$2100` bit 7 makes the picture black (forced blank). Bits 3-0 give the brightness.
+- A register write during a dot acts from the next dot.
+- The pixel stream carries the colour before the brightness, and the brightness. The video output
+  will scale the colour.
+- `sim/ppu_cmp.py` scales a colour by N / 15 for the pictures. No document gives the formula.
+
 ## Known limits
 
 - No `ABORT`. No IRQ from the system: the H and V timers of the 5A22 do not exist.
@@ -151,7 +164,11 @@ exist yet. The sources of the values are in [design/ppu-plan.md](design/ppu-plan
 - DMA: no HDMA. The DMA moves 1 byte every 2 cycles.
 - The VRAM read does not model the prefetch of the original.
 - Here, a DMA from WRAM to `$2180` copies the data. On the real SNES it does not work (fix in phase F7).
-- The PPU has only the video timing and the VRAM port. It draws no picture. The APU is a placeholder.
+- The PPU draws only the backdrop colour: no background layers and no sprites. The APU is a
+  placeholder.
+- A colour memory write is accepted at any time. The real chip needs a blank period.
+- The colour memory has no read (`$213B`) yet.
+- On the real chip, a change of `$2100` inside a line can lag or fade. The design does not do that.
 - The NMI comes at the start of dot 0 of the first line of the vertical blank. One source puts it
   half a dot later.
 - The two sources differ about the long dots of a line (section 1.5 of the PPU plan). No chip was

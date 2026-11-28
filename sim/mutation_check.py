@@ -24,6 +24,7 @@ MUTANTS = [
     ('wram', "2'd0: port_addr <= port_addr + 17'd1;", "2'd0: ;", "porta WRAM: scrittura senza auto-incremento"),
     ('wram', "if (is_data && rd) port_addr <= port_addr + 17'd1;", "", "porta WRAM: lettura senza auto-incremento"),
     ('c816_core', "load_ret ? ({ah, al} + 16'd1)", "load_ret ? ({ah, al})", "RTS senza +1"),
+    ('c816_core', "wire ext_on = ext_en && !r_e;", "wire ext_on = ext_en;", "WDM attivo anche in emulazione"),
     ('s_cpu_5a22', ".ext_en(ext_en), .nmi", ".ext_en(1'b1), .nmi", "WDM attivo anche in modalita' SNES"),
     ('c816_seq', "if ((t == 4'd1) && !imp) illegal <= 1'b1;", "if (t == 4'd1) illegal <= 1'b1;", "segnale di opcode non implementato sempre acceso"),
     ('ext_regs', "assign enhanced = (mode == 8'd2);", "assign enhanced = (mode != 8'd0);", "estensioni attive anche in modalita' accelerata"),

@@ -55,7 +55,7 @@ project did not fit in either FPGA.
 - `WDM DIV` repeats its second cycle while the divider works: 11 CPU cycles in total.
 - The 5A22 gives a partial result when a program reads it too soon (8 cycles for a product,
   16 for a quotient).
-- The WDM extensions assume 16-bit A and X.
+- The WDM extensions run only in native mode. They assume 16-bit A and X.
 - `sim/vsim.py` supports only a subset of Verilog (one clock, no instance parameters,
   generate, or function). If the RTL needs more, use iverilog or verilator.
 - Give each large memory one read address. Otherwise it goes into logic

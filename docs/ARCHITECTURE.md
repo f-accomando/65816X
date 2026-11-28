@@ -88,7 +88,8 @@ All 256 opcodes run, with the cycle counts of the real chip.
 ### Enhanced extensions through `WDM #sub`
 
 The 65816 reserves `WDM` for future use, so original games do not use it.
-The extensions run only in **extended mode** (`$5F01 = 2`, input `ext_en` of the core).
+The extensions run only in **extended mode** (`$5F01 = 2`, input `ext_en` of the core) and in
+**native mode** of the processor (`E = 0`). In emulation mode, `WDM` only skips two bytes.
 With `$5F01 = 0` (SNES, the value after reset) or `1` (accelerated), `WDM` only skips two bytes.
 This is the behavior of the real chip. The extensions assume 16-bit A and X.
 

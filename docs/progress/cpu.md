@@ -17,7 +17,8 @@ The list of what must continue to pass is in `tests/cpu_pass.txt`.
   `make unit` checks the unit with 20,000 operations
   ([cpu-extensions.md](../design/cpu-extensions.md)).
 - `make cpu-mutation`: 32 of 32 faults found.
-- `WDM` extensions: the system test checks them (MUL, DIV, MAC, MACRD, and the two modes without effect).
+- `WDM` extensions: the system test checks them (MUL, DIV, MAC, MACRD, the two modes without effect,
+  and emulation mode).
   `WDM DIV` uses a sequential divider.
 - Differences from the real chip (the public vectors do not cover them):
 
@@ -42,7 +43,7 @@ To close a step, make `make check` pass.
 ## Rules (do not break)
 
 - In SNES mode, make the CPU behave like the real 65C816. Run the `WDM` extensions only with
-  `$5F01 = 2` (input `ext_en` of the core).
+  `$5F01 = 2` (input `ext_en` of the core) and in native mode (`E = 0`).
 - Run one sequence step for each cycle of the real chip. Check the cycles with the public vectors
   and `SST_FLAGS=--bus` after a change to the sequences.
 - Change the sequences and the decode only in `rtl/cpu/c816_tables.txt`. Then run `make tables`.

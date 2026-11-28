@@ -96,6 +96,10 @@ wram 0063 23
 wram 0064 01
 wram 0065 00
 wram 0066 02   # T20 versione estensioni
+wram 0067 34   # T21 WDM in emulazione
+wram 0068 55
+wram 0069 55
+wram 006A 12
 vram_l 0000 11 # T7 DMA verso VRAM
 vram_h 0000 22
 vram_l 0001 33

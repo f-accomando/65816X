@@ -5,7 +5,8 @@
 // offset). Execute happens at commit.
 // Interrupts: nmi is taken on its rising edge, irq while it is 1 and P.I = 0. Both are sampled
 // at the end of an instruction; the next opcode fetch then loads a pseudo-opcode ($101 NMI,
-// $102 IRQ) and does not move the program counter. WDM runs the extensions only with ext_en = 1.
+// $102 IRQ) and does not move the program counter. WDM runs the extensions only with ext_en = 1
+// and in native mode (E = 0). In emulation mode WDM is the 2-byte instruction of the real chip.
 module c816_core (
   input clk,
   input rst,
@@ -46,7 +47,9 @@ module c816_core (
     .ir(ir), .seq(seq), .op(op), .ea(ea), .w(w), .src(src), .dst(dst), .arg(arg),
     .imp(imp), .seq_wdmx(seq_wdmx)
   );
-  wire [5:0] seq_eff = ((ir == 9'h042) && ext_en) ? seq_wdmx : seq;
+  wire r_e;
+  wire ext_on = ext_en && !r_e;        // the extensions assume the registers of native mode
+  wire [5:0] seq_eff = ((ir == 9'h042) && ext_on) ? seq_wdmx : seq;
 
   // ---- cycle descriptor ----
   wire [3:0] t;
@@ -68,7 +71,6 @@ module c816_core (
   // ---- registers ----
   wire [15:0] r_a, r_x, r_y, r_s, r_d, r_pc;
   wire [7:0] r_pbr, r_dbr, r_p;
-  wire r_e;
   wire ph;
   wire illegal;
   wire commit;
@@ -130,10 +132,10 @@ module c816_core (
   wire is_wdm = (op == 5'd18);
   wire ext_we_a, ext_we_y, ext_f_we, ext_f_n, ext_f_z, ext_fv_we, ext_f_v, ext_busy;
   wire [15:0] ext_a, ext_y;
-  wire ext_go = commit && ext_en && is_wdm;
+  wire ext_go = commit && ext_on && is_wdm;
   // WDM DIV and DIVS start the divider when the sub-opcode arrives, then repeat a cycle while it
   // works
-  wire is_div = is_wdm && ext_en && ((dl_by == 8'h02) || (dl_by == 8'h07));
+  wire is_div = is_wdm && ext_on && ((dl_by == 8'h02) || (dl_by == 8'h07));
   wire div_start = cyc_end && is_div && (t == 4'd1);
   c816_ext u_ext (
     .clk(clk), .rst(rst), .go(ext_go), .start(div_start), .sub(dl_by), .a(r_a), .x(r_x),

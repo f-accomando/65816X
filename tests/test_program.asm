@@ -311,6 +311,22 @@ eqend:  STA $7E0024         ; 77
         LDA $2180           ; BB (WRAM[31])
         STA $7E0033
 
+; T21: in modalita' di emulazione WDM non fa nulla, anche in modalita' estesa
+        REP #$30
+        LDA #$1234
+        LDX #$0010
+        LDY #$5555
+        SEC
+        XCE                 ; emulazione: A, X, Y a 8 bit
+        WDM $01
+        STA $7E0067         ; 34
+        TYA
+        STA $7E0068         ; 55
+        CLC
+        XCE
+        REP #$30
+        STA $7E0069         ; 55 12: anche la parte alta di A (B) e' intatta
+
 done:   BRA done
 
         .org $E800

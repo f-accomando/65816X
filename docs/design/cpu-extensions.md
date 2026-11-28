@@ -1,7 +1,7 @@
 # CPU extensions
 
-The extensions are new operations behind `WDM #sub`. They run only in extended mode (`$5F01 = 2`).
-In the other modes, `WDM` skips two bytes, as on the real chip.
+The extensions are new operations behind `WDM #sub`. They run only in extended mode (`$5F01 = 2`)
+and in native mode of the processor. In all other cases, `WDM` skips two bytes, as on the real chip.
 
 This document has two parts: what exists (step C7a), and the proposals for the rest of C7. No
 proposal of section 3 is approved.

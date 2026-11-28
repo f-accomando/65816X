@@ -9,7 +9,8 @@ rtl/cpu/c816_addr.v
 rtl/cpu/c816_ext.v
 rtl/cpu/c816_core.v
 rtl/s_cpu_5a22.v
-rtl/ppu_stub.v
+rtl/ppu/ppu_timing.v
+rtl/ppu/ppu_top.v
 rtl/apu_stub.v
 rtl/wram.v
 rtl/cart_rom.v

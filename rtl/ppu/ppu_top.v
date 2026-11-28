@@ -1,19 +1,32 @@
-// ppu_stub.v - PPU1/PPU2 ridotte: timing video, VRAM via $2115-$2119/$2139-$213A.
-// Nessun rendering. Qui si innestera' la pipeline PPU+ (rasterizer, toon, compositor).
-// Semplificazione: la lettura VRAM non modella il prefetch dell'originale.
-module ppu_stub (
+// ppu_top.v - PPU1 and PPU2. Today: the line and frame timing (ppu_timing.v) and the VRAM
+// through $2115-$2119 and $2139-$213A. No picture yet: docs/design/ppu-plan.md has the steps.
+// Simplifications: a VRAM read has no prefetch, and a write is accepted at any time.
+module ppu_top (
   input clk,
   input rst,
+  input mce,          // master clock enable
+  input pal,
+  input interlace,
+  input overscan,
   input [23:0] addr,
   input rd,
   input wr,
   input [7:0] wdata,
   output reg [7:0] rdata,
   output hit,
-  output reg vblank,
-  output reg [8:0] hpos,
-  output reg [8:0] vpos
+  output vblank
 );
+  // The other outputs get their readers with the next steps (counters, H/V IRQ, HDMA).
+  wire [10:0] hclk;
+  wire [8:0] hdot, vcnt;
+  wire field, dot_en, hblank, frame_start;
+
+  ppu_timing u_timing (
+    .clk(clk), .rst(rst), .mce(mce), .pal(pal), .interlace(interlace), .overscan(overscan),
+    .hclk(hclk), .hdot(hdot), .vcnt(vcnt), .field(field), .dot_en(dot_en),
+    .hblank(hblank), .vblank(vblank), .frame_start(frame_start)
+  );
+
   reg [7:0] inidisp, vmain;
   reg [15:0] vmadd;
   reg [7:0] vram_l [0:32767];
@@ -36,14 +49,8 @@ module ppu_stub (
   always @(posedge clk) begin
     rdata <= rb;
     if (rst) begin
-      inidisp <= 8'h80; vmain <= 8'h00; vmadd <= 16'd0; hpos <= 9'd0; vpos <= 9'd0; vblank <= 1'b0;
+      inidisp <= 8'h80; vmain <= 8'h00; vmadd <= 16'd0;
     end else begin
-      if (hpos == 9'd340) begin
-        hpos <= 9'd0;
-        if (vpos == 9'd261) vpos <= 9'd0; else vpos <= vpos + 9'd1;
-      end else hpos <= hpos + 9'd1;
-      vblank <= (vpos >= 9'd225);
-
       if (hit && wr) begin
         case (addr[5:0])
           6'h00: inidisp <= wdata;

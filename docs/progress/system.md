@@ -13,14 +13,17 @@ The phases are in [ROADMAP.md](../ROADMAP.md). The open questions are in [HANDOF
 - **Assembler**: `sim/asm.py` knows only part of the instructions and addressing modes of the core.
 - **IRQ timers**: the H and V timers of the 5A22 (`$4207-$420A`) and their IRQ.
 - **F1b**: minimal board top, pins, nextpnr in the CI. It depends on the choice of the board.
-- **PPU**: the owner answers the questions Q1-Q10 of [ppu-plan.md](../design/ppu-plan.md). Then do
-  step P1, the timing generator.
+- **PPU**: do step P2 of [ppu-plan.md](../design/ppu-plan.md): the pixel stream, the reference model,
+  and the scene tools. The owner has not answered the questions Q1-Q10 yet.
+- **Video timing**: check the long dots, the NMI position, and the field value after reset. Use a
+  chip or a third document.
 - From F3: see the roadmap.
 
 ## Rules (do not break)
 
 - Ask the user before you change a user decision (HANDOFF, section 3).
 - List the RTL sources only in `rtl/files.f`.
+- Count the video time with the enable `mce`. The master clock is never a clock net.
 - Give each large memory one address, with a registered read. Otherwise it does not go into BRAM.
 - Give each new function a check and at least one mutant.
 - Compute each quotient and remainder of `rtl/` in steps. A `/` or `%` operator makes large and

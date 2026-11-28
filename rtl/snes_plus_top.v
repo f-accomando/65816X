@@ -18,7 +18,6 @@ module snes_plus_top (
   wire [7:0] ext_mode, ext_speed;
   wire ext_enhanced;
   wire vblank;
-  wire [8:0] hpos, vpos;
 
   s_cpu_5a22 u_cpu (
     .clk(clk), .rst(rst), .ext_en(ext_enhanced),
@@ -29,7 +28,9 @@ module snes_plus_top (
   );
   cart_rom u_rom (.clk(clk), .rst(rst), .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_rom), .hit(hit_rom));
   wram u_wram (.clk(clk), .rst(rst), .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_wram), .hit(hit_wram));
-  ppu_stub u_ppu (.clk(clk), .rst(rst), .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_ppu), .hit(hit_ppu), .vblank(vblank), .hpos(hpos), .vpos(vpos));
+  // NTSC, no interlace, no overscan. In simulation one clk is one master clock (mce = 1).
+  ppu_top u_ppu (.clk(clk), .rst(rst), .mce(1'b1), .pal(1'b0), .interlace(1'b0), .overscan(1'b0),
+    .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_ppu), .hit(hit_ppu), .vblank(vblank));
   apu_stub u_apu (.clk(clk), .rst(rst), .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_apu), .hit(hit_apu));
   ext_regs u_ext (.clk(clk), .rst(rst), .addr(bus_addr), .rd(bus_rd), .wr(bus_wr), .wdata(bus_wdata), .rdata(rd_ext), .hit(hit_ext), .mode(ext_mode), .speed(ext_speed), .enhanced(ext_enhanced));
 

@@ -10,7 +10,7 @@
                  |  +-------------+  +---------+ |   addr[23:0], rd, wr, wdata[7:0]
                  |  regs $42xx/$43xx, mul/div    |--------+--------+--------+--------+
                  +-------------------------------+        |        |        |        |
-                                                       cart_rom  wram   ppu_stub apu_stub ext_regs
+                                                       cart_rom  wram   ppu_top  apu_stub ext_regs
 ```
 
 Each peripheral has two outputs: `hit` (the address is its own) and `rdata` (registered data).
@@ -120,6 +120,25 @@ Planned and not yet done: DOT3, CROSS3, ROT, BLIT, FILL, 32-bit registers R0-R7.
 The unit does one step at the end of each CPU cycle. A read that comes too soon gives the partial
 value, as on the real chip. A division by 0 gives the quotient `$FFFF` and the dividend as remainder.
 
+## Video timing
+
+`rtl/ppu/ppu_timing.v` counts the master clocks of the video chips. The master clock is the enable
+`mce`, not a clock net. The top ties `mce` to 1. Thus one FPGA clock is one master clock today.
+
+| Item | Value |
+|---|---|
+| Dot | 4 master clocks; dots 323 and 327 take 6 |
+| Line | 340 dots, 1364 master clocks |
+| Short line | NTSC, no interlace, field 1, line 240: no long dot, 1360 master clocks |
+| Long line | PAL, interlace, field 1, line 311: 341 dots, 1368 master clocks |
+| Frame | 262 lines (NTSC) or 312 (PAL); with interlace, field 0 has one line more |
+| Field | changes in each frame, after dot 0 of line 0 |
+| Vertical blank | from line 225 (240 with overscan) to the end of the frame |
+| Horizontal blank | from dot 274 to the end of dot 0 |
+
+The system uses NTSC without interlace and without overscan. The registers `$2133` and `$213F` do not
+exist yet. The sources of the values are in [design/ppu-plan.md](design/ppu-plan.md), section 1.5.
+
 ## Known limits
 
 - No `ABORT`. No IRQ from the system: the H and V timers of the 5A22 do not exist.
@@ -131,4 +150,11 @@ value, as on the real chip. A division by 0 gives the quotient `$FFFF` and the d
 - DMA: no HDMA. The DMA moves 1 byte every 2 cycles.
 - The VRAM read does not model the prefetch of the original.
 - Here, a DMA from WRAM to `$2180` copies the data. On the real SNES it does not work (fix in phase F7).
-- PPU and APU are placeholders.
+- The PPU has only the video timing and the VRAM port. It draws no picture. The APU is a placeholder.
+- The NMI comes at the start of dot 0 of the first line of the vertical blank. One source puts it
+  half a dot later.
+- The two sources differ about the long dots of a line (section 1.5 of the PPU plan). No chip was
+  measured.
+- No chip was compared for the field value after reset.
+- No chip was compared for a change of overscan or interlace inside a frame.
+- With `mce` tied to 1, the CPU does about 3 times more cycles in a frame than the original (estimate).

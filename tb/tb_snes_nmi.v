@@ -1,5 +1,6 @@
-// tb_snes_nmi.v - the NMI of the system: the vertical blank of the video stub reaches the core
-// through the 5A22 when $4200 bit 7 is 1. The program waits with WAI, the handler reads $4210.
+// tb_snes_nmi.v - the NMI of the system: the vertical blank of the PPU reaches the core through
+// the 5A22 when $4200 bit 7 is 1. The program waits with WAI, the handler reads $4210.
+// The vertical blank starts at line 225: 225 x 1364 = 306900 clocks after reset (mce = 1).
 `timescale 1ns/1ps
 module tb_snes_nmi;
   reg clk = 1'b0;
@@ -40,7 +41,7 @@ module tb_snes_nmi;
     dut.u_wram.mem[17'h11] = 8'h00;
     repeat (4) @(posedge clk);
     rst = 1'b0;
-    while (cycles < 200000 && dut.u_wram.mem[17'h10] !== 8'h01) begin
+    while (cycles < 400000 && dut.u_wram.mem[17'h10] !== 8'h01) begin
       @(posedge clk);
       cycles = cycles + 1;
     end
@@ -50,8 +51,8 @@ module tb_snes_nmi;
                dut.u_wram.mem[17'h10], dut.u_wram.mem[17'h11], pc);
       $fatal(1);
     end
-    if (cycles < 76000) begin
-      $display("FAIL: the NMI came before the vertical blank (%0d clocks)", cycles);
+    if (cycles < 306900 || cycles > 307100) begin
+      $display("FAIL: the NMI did not come at the start of the vertical blank (%0d clocks)", cycles);
       $fatal(1);
     end
     $display("NMI test: PASS after %0d clocks", cycles);

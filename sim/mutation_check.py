@@ -91,6 +91,61 @@ CPU_MUTANTS = [
 CPU_CASES = 20   # vectors for each opcode and mode
 
 
+# Faults in the PPU (rtl/ppu/): (module, original text, faulty text, description).
+# They run with Icarus Verilog on the benches of the PPU: option --ppu.
+PPU_MUTANTS = [
+    ('ppu_timing', "wire long_dot = ((hdot == 9'd323) || (hdot == 9'd327)) && !short_line;",
+     "wire long_dot = 1'b0;", "no long dots"),
+    ('ppu_timing', "!pal && !interlace && field && (vcnt == 9'd240)", "!pal && !interlace && (vcnt == 9'd240)",
+     "short line in every frame"),
+    ('ppu_timing', "wire extra = interlace && !field;", "wire extra = (interlace || pal) && !field;",
+     "PAL with 313 lines without interlace"),
+    ('ppu_timing', "overscan ? 9'd240 : 9'd225", "overscan ? 9'd240 : 9'd224", "vertical blank at line 224"),
+    ('ppu_timing', "pal && interlace && field && (vcnt == 9'd311)", "1'b0", "no long line in PAL with interlace"),
+    ('ppu_timing', "(hdot >= 9'd274)", "(hdot >= 9'd256)", "horizontal blank starts at dot 256"),
+]
+PPU_BENCHES = ['tb_ppu_timing']
+
+
+def run_ppu():
+    root = run_tests.ROOT
+    work = os.path.join(root, 'build', 'mut')
+    os.makedirs(work, exist_ok=True)
+    sources = [os.path.join(root, p) for p in run_tests.RTL]
+
+    def passes(files):
+        for bench in PPU_BENCHES:
+            vvp = os.path.join(work, bench + '.vvp')
+            subprocess.run([os.environ.get('IVERILOG', 'iverilog'), '-g2012', '-s', bench, '-o', vvp]
+                           + files + [os.path.join(root, 'tb', bench + '.v')], check=True)
+            try:
+                done = subprocess.run([os.environ.get('VVP', 'vvp'), '-n', vvp], stdout=subprocess.DEVNULL,
+                                      timeout=600, cwd=root)
+            except subprocess.TimeoutExpired:
+                return False
+            if done.returncode != 0:
+                return False
+        return True
+
+    if not passes(sources):
+        print("ERROR: a test fails without any fault")
+        return 1
+    missed = 0
+    for module, old, new, text in PPU_MUTANTS:
+        paths = [p for p in sources if run_tests.module_name(p) == module]
+        source = open(paths[0]).read() if paths else ''
+        if old not in source:
+            raise SystemExit("pattern not found for the fault: " + text)
+        copy = os.path.join(work, module + '.v')
+        with open(copy, 'w') as f:
+            f.write(source.replace(old, new, 1))
+        found = not passes([copy if p == paths[0] else p for p in sources])
+        missed += not found
+        print("%-8s %s" % ('FOUND' if found else 'MISSED', text))
+    print("PPU: %d faults of %d missed" % (missed, len(PPU_MUTANTS)))
+    return 1 if missed else 0
+
+
 def cpu_bench(sources, work, vectors):
     """Compile the CPU test bench with these sources; return the number of failing vectors."""
     root = run_tests.ROOT
@@ -175,6 +230,8 @@ def run(mutated):
 if __name__ == '__main__':
     if sys.argv[1:] == ['--cpu']:
         sys.exit(run_cpu())
+    if sys.argv[1:] == ['--ppu']:
+        sys.exit(run_ppu())
     bad = 0
     for m in MUTANTS:
         rc, out = run(m)

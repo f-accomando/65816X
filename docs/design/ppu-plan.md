@@ -1,7 +1,7 @@
 # PPU development plan
 
 Status: proposal. Date: 2026-11-28. This document plans the original PPU (part 1) and the enhanced PPU+ (part 2).
-It changes no decision of `HANDOFF.md`, section 3. No step of this plan has started.
+It changes no decision of `HANDOFF.md`, section 3. Step P1 is done. The other steps have not started.
 The open work of the whole system is in [progress/system.md](../progress/system.md).
 
 ## 0. How to read this document
@@ -15,11 +15,11 @@ The open work of the whole system is in [progress/system.md](../progress/system.
 
 ### 0.1 Starting point [V]
 
-- `rtl/ppu_stub.v`: `hpos` counts FPGA clocks 0-340, `vpos` counts lines 0-261, `vblank` is 1 for `vpos >= 225`.
-- The stub has `$2100` (stored only), `$2115-$2119`, and `$2139-$213A`. Increments are 1, 32, 128. No address remap, no prefetch.
-- The stub writes VRAM at any time. It ignores the forced blank and the active display.
+- `rtl/ppu/ppu_timing.v` gives the line and frame timing (step P1). `rtl/ppu/ppu_top.v` holds it.
+- `ppu_top` has `$2100` (stored only), `$2115-$2119`, and `$2139-$213A`. Increments are 1, 32, 128. No address remap, no prefetch.
+- `ppu_top` writes VRAM at any time. It ignores the forced blank and the active display.
 - VRAM is two arrays `vram_l` and `vram_h` (32768 x 8). `tests/test_program.expect` and `sim/run_tests.py` read `u_ppu.vram_l` and `u_ppu.vram_h`.
-- `tb/tb_snes_nmi.v` expects the NMI after 76,000 to 200,000 clocks. Real line timing breaks these bounds.
+- `tb/tb_snes_nmi.v` expects the NMI at 306,900 to 307,100 clocks after reset.
 - `rtl/s_cpu_5a22.v`: `.irq(1'b0)`; `$4212` gives only the vblank bit; `$420C` is stored, but no HDMA exists; `$4207-$420A` are not decoded.
 - `sim/vsim.py` does not support instance parameters, `generate`, `function`/`task`, `signed`, x/z, or more than one clock. `make test` parses every file in `rtl/files.f`.
 - `syn/budget.py`: 45F = 108 `DP16KD`, 85F = 208, threshold 256 `TRELLIS_DPR16X4`. Today: 126 blocks (WRAM 64, VRAM 32, ROM 29, decode table 1).
@@ -93,7 +93,7 @@ Rules:
 
 | File | Function | Original chip | LUT [E] |
 |---|---|---|---|
-| `ppu_top.v` | replaces `rtl/ppu_stub.v`; same bus ports; instance name stays `u_ppu` | both | 0.1k |
+| `ppu_top.v` | holds all PPU modules; the bus ports and the instance name `u_ppu` of the old stub | both | 0.1k |
 | `ppu_timing.v` | `mce` counters, long dots, short line, NTSC/PAL, field | PPU2 | 0.2k |
 | `ppu_regs.v` | registers, write-twice latches, MDR, counters latch, STAT77/78 | both | 1.5k |
 | `ppu_vram.v` | 2 x 32K x 8, port A (bus) and port B (render) | VRAM chips | 0.1k |
@@ -152,9 +152,12 @@ The split of the modules is by function, not by chip. The column "Original chip"
 | Master clock | NTSC 21.477272 MHz, PAL 21.281370 MHz |
 | Line | 1364 master clocks = 340 dots; dots 323 and 327 last 6 master clocks |
 | Short line | NTSC, interlace off, field 1, line 240: 1360 master clocks |
-| Long line | PAL, interlace on, field 1, line 311: 1368 master clocks |
+| Long line | PAL, interlace on, field 1, line 311: 1368 master clocks, 341 dots |
 | Lines per frame | NTSC 262 (interlace: 263 and 262); PAL 312 (interlace: 313 and 312) |
 | Vertical blank | starts at line 225, or 240 with overscan (`$2133` bit 2) |
+| Horizontal blank flag | set at dot 274, cleared at dot 1 |
+| Field flag | changes in each frame, at line 0, dot 1 |
+| NMI | at about dot 0.5 of the first line of the vertical blank |
 | Visible pixels | 256 for each line, about dots 22-277; 512 in modes 5, 6, and pseudo-hires |
 | VRAM fetch | 1 word for each dot in modes 0-6; Mode 7 reads 1 map byte (low chip) and 1 pixel byte (high chip) per dot |
 | HDMA | init near line 0 start; transfer near master clock 1104 of each visible line |
@@ -169,6 +172,16 @@ The split of the modules is by function, not by chip. The column "Original chip"
 | Multiplier | `$2134-$2136` = M7A (16-bit signed) x last byte of M7B (8-bit signed); not valid while Mode 7 renders |
 | Color math | half is not applied when the sub screen pixel is the fixed color; OBJ palettes 0-3 never take color math |
 | Versions | `$213E` PPU1 version 1; `$213F` PPU2 version 2 or 3 |
+
+Check of 2026-11-28 of the timing rows (master clock to vertical blank, and the three rows after it):
+
+- Source A: <https://wiki.superfamicom.org/timing>. Source B: <https://snes.nesdev.org/wiki/Timing>.
+- A and B agree on the clocks, the short line, the lines per frame, and the first blank line.
+- Long dots: A gives two dots of 6 master clocks (323 and 327). B gives four dots of 5.
+- Both give the same line length. The design follows A. The difference is inside the horizontal blank.
+- Only B describes the long line.
+- Only A gives the field flag, the horizontal blank flag, and the NMI position.
+- The other rows of the table were not checked.
 
 Documents to read for these checks (read only, do not copy text): fullsnes by Martin Korth, anomie's register and timing documents, the SNESdev wiki. Their licenses: to check.
 
@@ -188,18 +201,16 @@ Documents to read for these checks (read only, do not copy text): fullsnes by Ma
 | B (85F, 208) | 126 | 133 (64%) | ARAM 32 (F6) brings it to 165 (79%) |
 | A (45F, 108) | 126 (does not fit) | 133 (does not fit) | after F4 (WRAM 60 and ROM 29 out): 44 blocks; with ARAM: 76 (70%) |
 
-Add a target `make synth-ppu`. It synthesizes `ppu_top` alone and prints its blocks, LUT, and multipliers. Thus each step has a measured PPU number, also before F4.
+The target `make synth-ppu` synthesizes `ppu_top` alone. It prints its blocks, LUT, and multipliers. Thus each step has a measured PPU number, also before F4.
 
 ## 1.7 Steps
 
-Each step closes with `make check` passing. Each step adds its mutants to a new list `PPU_MUTANTS` in `sim/mutation_check.py`, run by `make ppu-mutation` (iverilog). Add `ppu`, `ppu-unit`, and `ppu-mutation` to `make check`.
+Each step closes with `make check` passing. Each step adds its mutants to the list `PPU_MUTANTS` in `sim/mutation_check.py`. `make ppu-mutation` runs them (iverilog). `make ppu-unit` is part of `make unit`. Step P2 adds `make ppu` to `make check`. Add each new PPU bench to `PPU_BENCHES`.
 
-### P1. Timing generator
-- Content: move the stub to `rtl/ppu/ppu_top.v`. Add `ppu_timing.v` with the counters of section 1.5. Add the input `mce` (tied to 1 in the top). Keep the register behaviour of the stub.
-- Files: `rtl/ppu/ppu_top.v`, `rtl/ppu/ppu_timing.v`, `rtl/files.f`, `rtl/snes_plus_top.v`, `tb/tb_ppu_timing.v`, `tb/tb_snes_nmi.v`, `Makefile`.
-- Done when: see section 6 (first work order).
-- Mutants: no long dots; short line in every frame; PAL with 313 lines without interlace; vblank at line 224.
-- Depends on: nothing. Risk: low. Agent: standard, N=2.
+### P1. Timing generator (done)
+- Result: `rtl/ppu/ppu_timing.v` and `rtl/ppu/ppu_top.v` replace the stub. `make ppu-unit` checks the timing.
+- Mutants: 6 in `PPU_MUTANTS`. The plan asked for 4. The 2 others cover the long line and the horizontal blank.
+- Later steps add the registers that read the counters (P3, P10) and the H/V IRQ (P11).
 
 ### P2. Pixel stream, backdrop, reference model, scene tools
 - Content: `ppu_math.v` with backdrop (CGRAM 0), brightness, forced blank. Scene format, `tb/tb_ppu.v` (scene player), `sim/ppu_ref.py` (same features), `sim/ppu_cmp.py` (compare, PNG output with Python `zlib`). Format in section 3.2.
@@ -581,43 +592,3 @@ Measure part 1 with `make synth-ppu` after each step. Quote each LUT count with 
 | Q10 | BRAM of B (section 2.7) | WRAM in SDRAM also in B | no reverb buffer | **WRAM in SDRAM** (the same code as A) |
 
 HANDOFF question 1 (A or B first) sets the order of X11. Part 1 is the same for A and B.
-
-# 6. First work order: P1, timing generator
-
-**Goal.** Replace the FPGA-clock counters of the stub with SNES line timing driven by `mce`. Keep all register behaviour.
-
-**Branch.** `claude/ppu-timing`, from an up-to-date `main`.
-
-**Content.**
-1. Move `rtl/ppu_stub.v` to `rtl/ppu/ppu_top.v`. Rename the module to `ppu_top`. Keep the instance name `u_ppu` and the arrays `vram_l` and `vram_h`.
-2. Add `rtl/ppu/ppu_timing.v` with inputs `clk`, `rst`, `mce`, `pal`, `interlace`, `overscan`.
-3. Give it outputs `hclk[10:0]`, `hdot[8:0]`, `vcnt[8:0]`, `field`, `dot_en`, `hblank`, `vblank`, `frame_start`.
-4. Implement the values of section 1.5: line lengths, long dots, short and long lines, lines per frame, vblank start.
-5. In `rtl/snes_plus_top.v`, tie `mce` to 1 and `pal`, `interlace`, `overscan` to 0. Keep `vblank` to the 5A22.
-6. Update `rtl/files.f`.
-7. Add `tb/tb_ppu_timing.v` and a `ppu-unit` part of `make unit`.
-8. Change the bounds of `tb/tb_snes_nmi.v` to the new frame (vblank at 225 x 1364 = 306,900 clocks [C]).
-
-**Completion criterion.**
-- `make unit` prints `PPU timing: PASS`. The test checks, for NTSC and PAL, with interlace off and on, over 4 frames:
-  - master clocks per line: 1364; the short and long lines of section 1.5;
-  - `hdot` runs 0-339, and the dots 323 and 327 last 6 `mce`;
-  - lines per frame: 262 / 263+262 (NTSC), 312 / 313+312 (PAL);
-  - `vblank` rises at line 225 (240 with overscan) and falls at line 0;
-  - `field` toggles at each frame.
-- The same values with `mce` every clock, every second clock, and in a pseudo-random pattern of 3 in 7 clocks.
-- All checks of `make test` and `make iverilog` pass. `make cpu-int` passes with the new bounds.
-- `make synth` gives 126 `DP16KD`, as before.
-- Update `docs/progress/system.md`, `docs/ARCHITECTURE.md` (PPU line), and the manual if it shows timing.
-
-**Mutants** (new list `PPU_MUTANTS`, option `--ppu` of `sim/mutation_check.py`):
-- no long dots (all dots 4 `mce`);
-- short line in every frame;
-- PAL with 313 lines without interlace;
-- vblank at line 224.
-
-`make ppu-mutation` must report 4 of 4 found.
-
-**Risk.** Low.
-
-**Agent.** Standard model, N=2. Check the [C] values of section 1.5 against one document first, and record the source in the commit message.

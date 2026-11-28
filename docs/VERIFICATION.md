@@ -7,19 +7,21 @@
 | `make test` | full system with the Python simulator `sim/vsim.py` | Python 3 |
 | `make mutation` | inserts faults in the RTL; fails if the tests miss even one | Python 3 |
 | `make iverilog` | full system with Icarus Verilog, same values as `make test` | iverilog |
-| `make unit` | test for each module against a reference model (today: the WRAM with 100,000 random cycles, and the `WDM` unit with 20,000 operations) | iverilog |
+| `make unit` | test for each module against a reference model (today: the video timing, the WRAM with 100,000 random cycles, and the `WDM` unit with 20,000 operations) | iverilog |
 | `make cpu` | CPU only: one instruction for each vector, score in `build/cpu_score.txt`, pass list `tests/cpu_pass.txt`. It checks the cycle count and each bus cycle when the vectors give them. | iverilog |
 | `make cpu-update` | same as above, and writes `tests/cpu_pass.txt` again | iverilog |
-
 | `make synth` | ECP5 synthesis and budget check (default `BUDGET=B`) | yosys |
 | `make ref-public SST=<folder>` | reference model against the public vectors | public vectors |
 | `make cpu-public SST=<folder>` | CPU against the public vectors, score in `build/cpu_public_score.txt` | iverilog, public vectors |
 | `make cpu-int` | interrupts: directed tests of the core (`tb/tb_cpu_int.v`) and of the system NMI (`tb/tb_snes_nmi.v`) | iverilog |
 | `make cpu-mutation` | inserts faults in the core; fails if the vectors and the interrupt tests miss even one | iverilog |
+| `make ppu-unit` | video timing against a second description in `tb/tb_ppu_timing.v`: NTSC and PAL, interlace, overscan, 3 patterns of `mce`; part of `make unit` | iverilog |
+| `make ppu-mutation` | inserts faults in the PPU; fails if its benches miss even one | iverilog |
+| `make synth-ppu` | synthesis of the PPU alone, for information; not part of `make check` | yosys |
 | `make manual-check` | the manual matches its sources (see `manuals/README.md`) | Python 3 |
 | `make tables` | writes the generated tables of the new CPU core | Python 3 |
 | `make tables-check` | the generated tables match `rtl/cpu/c816_tables.txt` | Python 3 |
-| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `cpu-int`, `cpu-mutation`, `synth`, `manual-check` | iverilog, yosys |
+| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `cpu-int`, `cpu-mutation`, `ppu-mutation`, `synth`, `manual-check` | iverilog, yosys |
 
 Keep `sim/vsim.py` while the RTL needs no parameters, `generate`, or `function`.
 Do not shape the RTL for the mini simulator: the design would get worse.
@@ -33,7 +35,7 @@ The CI (`.github/workflows/ci.yml`) runs the same commands on each pull request 
 - `tests/<program>.expect`: expected values. `sim/run_tests.py` and `sim/gen_tb.py` read it.
 - `sim/cpu_ref.py`: reference model of the CPU. `sim/cpu_vectors.py` makes the vectors from it
   (fixed seed). `tests/cpu_pass.txt`: opcodes and modes that must continue to pass.
-- New check: add one line to the `.expect` file. New mutant: add one line to `MUTANTS` in `sim/mutation_check.py`.
+- New check: add one line to the `.expect` file. New mutant: add one line to `MUTANTS`, `CPU_MUTANTS`, or `PPU_MUTANTS` in `sim/mutation_check.py`.
 
 ### Public vectors
 
@@ -70,7 +72,7 @@ only B. Add A to the CI when the memory is on SDRAM (roadmap phase F4).
 
 ## 5. Results measured on 2026-11-28
 
-In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, after step C7a.
+In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, after step P1 of the PPU.
 Older results are in the git history of this file.
 
 | Check | Result |
@@ -78,15 +80,17 @@ Older results are in the git history of this file.
 | `make test` | 98/98 (the program ended in 2059 cycles) |
 | `make mutation` | 18 of 18 faults found |
 | `make iverilog` | 98/98 |
-| `make unit` | 0 differences: 28,123 accesses to the WRAM port and 20,000 operations of the `WDM` unit |
+| `make unit` | 0 differences: 28,123 accesses to the WRAM port and 20,000 operations of the `WDM` unit; the video timing passes |
 | `make cpu` | 256 of 256 opcodes; 102,400 of 102,400 vectors |
-| `make cpu-int` | the core test and the system NMI test pass; `WDM MUL` 2 cycles, `WDM DIV` 11 cycles |
+| `make cpu-int` | the core test and the system NMI test pass; `WDM MUL` 2 cycles, `WDM DIV` 11 cycles; the NMI after 306,962 clocks |
 | `make cpu-mutation` | 32 of 32 faults found |
+| `make ppu-mutation` | 6 of 6 faults found |
+| `make synth-ppu` | PPU alone: 389 equivalent LUT4, 32 `DP16KD`, no multiplier |
 | `$div` and `$mod` cells before mapping | none |
-| equivalent LUT4 | 5761 (7% of the 85F, 13% of the 45F) |
+| equivalent LUT4 | 5718 (7% of the 85F, 13% of the 45F) |
 | `DP16KD` | 126 (61% of the 85F, 117% of the 45F); yosys puts the decode table in one block |
 | `MULT18X18D` | 1 |
-| `TRELLIS_FF` | 789 |
+| `TRELLIS_FF` | 793 |
 | `TRELLIS_DPR16X4` | 12 |
 
 ### Public vectors

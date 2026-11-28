@@ -20,7 +20,7 @@ Details are in [docs/VERIFICATION.md](docs/VERIFICATION.md) and [docs/progress/c
 |---|---|---|
 | Core 65816X | `rtl/cpu/` | all 256 opcodes, cycle by cycle (2 clocks for each CPU cycle); NMI, IRQ, reset |
 | Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registers `$42xx`, mul/div, general DMA (8 channels, modes 0-7), no HDMA |
-| PPU1/PPU2 | `rtl/ppu_stub.v` | video timing and VRAM, no rendering |
+| PPU1/PPU2 | `rtl/ppu/` | line and frame timing of the SNES, VRAM; no rendering |
 | SPC700 + DSP | `rtl/apu_stub.v` | 4 ports `$2140-$2143` with echo and signature `$AA/$BB` |
 | WRAM | `rtl/wram.v` | 128 KB, mirrors, port `$2180-$2183` |
 | Cartridge | `rtl/cart_rom.v` | LoROM 64 KB (placeholder for the SDRAM) |
@@ -31,7 +31,7 @@ Details are in [docs/VERIFICATION.md](docs/VERIFICATION.md) and [docs/progress/c
 
 ```
 make test        # assemble tests/test_program.asm and run the system checks (Python 3 only)
-make mutation    # insert 10 faults in the RTL and verify that the tests find each one
+make mutation    # insert faults in the RTL and verify that the tests find each one
 make iverilog    # the same checks with Icarus Verilog
 make unit        # test for each module (WRAM against the reference model)
 make cpu         # test bench of the CPU only: score in build/cpu_score.txt

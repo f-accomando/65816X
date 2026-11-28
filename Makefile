@@ -8,7 +8,7 @@ BUDGET ?= B
 
 RTL := $(filter %.v,$(shell cat rtl/files.f))
 
-.PHONY: test mutation cpu-mutation cpu-int rom iverilog unit cpu cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
+.PHONY: test mutation cpu-mutation cpu-int rom iverilog unit ppu-unit ppu-mutation synth-ppu cpu cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
 
 # Collaudo con il mini simulatore Python (nessuna dipendenza esterna)
 test:
@@ -45,12 +45,22 @@ iverilog: rom.hex build/checks.vh
 	$(VVP) -n build/sim.vvp
 
 # Test per modulo con Icarus Verilog (confronto con i modelli di riferimento in tb/)
-unit:
+unit: ppu-unit
 	mkdir -p build
 	$(IVERILOG) -g2012 -o build/tb_wram.vvp rtl/wram.v tb/wram_ref.v tb/tb_wram.v
 	$(VVP) -n build/tb_wram.vvp
 	$(IVERILOG) -g2012 -s tb_c816_ext -o build/tb_c816_ext.vvp rtl/cpu/c816_ext.v tb/tb_c816_ext.v
 	$(VVP) -n build/tb_c816_ext.vvp
+
+# Timing of the PPU, against the description in the bench (needs iverilog)
+ppu-unit:
+	mkdir -p build
+	$(IVERILOG) -g2012 -s tb_ppu_timing -o build/tb_ppu_timing.vvp rtl/ppu/ppu_timing.v tb/tb_ppu_timing.v
+	$(VVP) -n build/tb_ppu_timing.vvp
+
+# Faults in the PPU: its benches must find each one (needs iverilog)
+ppu-mutation:
+	$(PY) sim/mutation_check.py --ppu
 
 # Banco di prova della sola CPU: pagella in build/cpu_score.txt (vedi docs/VERIFICATION.md)
 build/cpu_vectors.txt: sim/cpu_vectors.py sim/cpu_ref.py
@@ -103,6 +113,12 @@ synth: rom.hex
 	$(YOSYS) -q -l build/synth.log -p "read_verilog $(RTL); synth_ecp5 -top snes_plus_top; tee -q -o build/stat.json stat -json"
 	$(PY) syn/budget.py build/stat.json $(BUDGET)
 
+# Resources of the PPU alone (information for each step of docs/design/ppu-plan.md)
+synth-ppu:
+	mkdir -p build
+	$(YOSYS) -q -l build/synth_ppu.log -p "read_verilog $(filter rtl/ppu/%,$(RTL)); synth_ecp5 -top ppu_top; tee -q -o build/stat_ppu.json stat -json"
+	$(PY) syn/budget.py build/stat_ppu.json $(BUDGET)
+
 # The manual in manuals/pdf (needs reportlab). manual-check fails if its sources changed.
 manual:
 	$(PY) manuals/tools/manuals.py build
@@ -111,7 +127,7 @@ manual-check:
 	$(PY) manuals/tools/manuals.py check
 
 # Tutto quello che esegue la CI
-check: tables-check test mutation iverilog unit cpu cpu-int cpu-mutation synth manual-check
+check: tables-check test mutation iverilog unit cpu cpu-int cpu-mutation ppu-mutation synth manual-check
 
 clean:
 	rm -rf build rom.hex

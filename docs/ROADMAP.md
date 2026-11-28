@@ -26,7 +26,8 @@ clock cycles) stays in F3. The measurement of the maximum frequency waits for F1
 ## Next steps
 
 1. Owner decisions on the extensions (C7b) and on the PPU plan.
-2. PPU, step P1 of [design/ppu-plan.md](design/ppu-plan.md): the timing generator.
+2. PPU, step P2 of [design/ppu-plan.md](design/ppu-plan.md): the pixel stream, the reference model,
+   and the scene tools.
 
 ## To decide: host port
 

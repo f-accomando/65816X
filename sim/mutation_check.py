@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """mutation_check.py - verifica che il collaudo scopra davvero errori: introduce guasti
 nell'RTL (in memoria) e controlla che run_tests.py fallisca per ognuno.
-Esce con errore se anche un solo guasto non viene rilevato o se un modello non si trova."""
-import os, sys, io, contextlib, subprocess
+Esce con errore se anche un solo guasto non viene rilevato o se un modello non si trova.
+The faults run in parallel (run_tests.jobs(): SIM_JOBS, or one for each processor). Each fault of
+--cpu and --ppu has its own folder build/mut/<cpu|ppu>/<number>. The lines come out in the order
+of the lists."""
+import os, sys, io, contextlib, shutil, subprocess
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import ppu_regs_run, ppu_run, run_tests, vsim
@@ -142,51 +146,108 @@ PPU_MUTANTS = [
 PPU_BENCHES = ['tb_ppu_timing']
 
 
+def in_parallel(pool_class, work, items):
+    """work(item) for each item, run_tests.jobs() at a time; the results in the order of the items."""
+    pool = pool_class(max_workers=run_tests.jobs())
+    try:
+        yield from pool.map(work, items)
+    finally:
+        pool.shutdown(cancel_futures=True)      # after an error, do not start the other items
+
+
+def fault_files(sources, mutant, folder):
+    """Write the module with the fault in folder. Return (the new list of sources, folder)."""
+    module, old, new, text = mutant
+    paths = [p for p in sources if run_tests.module_name(p) == module]
+    source = open(paths[0]).read() if paths else ''
+    if old not in source:
+        raise SystemExit("pattern not found for the fault: " + text)
+    os.makedirs(folder, exist_ok=True)
+    copy = os.path.join(folder, module + '.v')
+    with open(copy, 'w') as f:
+        f.write(source.replace(old, new, 1))
+    return [copy if p == paths[0] else p for p in sources], folder
+
+
+def ppu_bench_passes(files, bench, work):
+    root = run_tests.ROOT
+    os.makedirs(work, exist_ok=True)
+    vvp = os.path.join(work, bench + '.vvp')
+    subprocess.run([os.environ.get('IVERILOG', 'iverilog'), '-g2012', '-s', bench, '-o', vvp]
+                   + files + [os.path.join(root, 'tb', bench + '.v')], check=True)
+    # A bench that passes the time limit counts as a failure, so it can hide a fault that no test
+    # finds. Keep the limit far above the time of a good run: some minutes alone, and about
+    # 20 minutes when other programs also keep all the processors busy.
+    try:
+        done = subprocess.run([os.environ.get('VVP', 'vvp'), '-n', vvp], stdout=subprocess.DEVNULL,
+                              timeout=3600, cwd=root)
+    except subprocess.TimeoutExpired:
+        return False
+    return done.returncode == 0
+
+
+def ppu_registers_pass(files, work):
+    return not ppu_regs_run.run(files, quiet=True, work=os.path.join(work, 'regs'))
+
+
+def ppu_fault_found(fault, module, scene_files):
+    """Run the scenes and the benches on one fault until a test fails; the test that probably
+    finds a fault of `module` runs first. All the work is in this process and in this folder."""
+    files, work = fault
+
+    def scenes():
+        return not ppu_run.run(files, quiet=True, work=os.path.join(work, 'ppu'), all_patterns=False,
+                               workers=1, scenes=scene_files)
+
+    def registers():
+        return ppu_registers_pass(files, work)
+
+    timing = [(lambda b=b: ppu_bench_passes(files, b, work)) for b in PPU_BENCHES]
+    if module == 'ppu_timing':
+        tests = timing + [registers, scenes]
+    elif module in ('ppu_regs', 'ppu_cgram', 'ppu_vram', 'ppu_oam'):
+        tests = [registers, scenes] + timing
+    else:
+        tests = [scenes, registers] + timing
+    found = not all(test() for test in tests)      # all() stops at the first failure
+    for name in ('ppu', 'regs'):                   # large dumps: do not keep one set for each fault
+        shutil.rmtree(os.path.join(work, name), ignore_errors=True)
+    return found
+
+
 def run_ppu():
     root = run_tests.ROOT
-    work = os.path.join(root, 'build', 'mut')
-    os.makedirs(work, exist_ok=True)
+    work = os.path.join(root, 'build', 'mut', 'ppu')
+    clean_work = os.path.join(work, 'clean')
     sources = [os.path.join(root, p) for p in run_tests.RTL]
+    faults = [fault_files(sources, m, os.path.join(work, '%02d' % n)) for n, m in enumerate(PPU_MUTANTS)]
+    # made once, here: the processes below only read the files of the generated scenes
+    scene_files = ppu_run.scene_files()
+    scene_jobs = ppu_run.scene_jobs(sources, os.path.join(clean_work, 'ppu'), scenes=scene_files,
+                                    all_patterns=False)
 
-    def bench_passes(files, bench):
-        vvp = os.path.join(work, bench + '.vvp')
-        subprocess.run([os.environ.get('IVERILOG', 'iverilog'), '-g2012', '-s', bench, '-o', vvp]
-                       + files + [os.path.join(root, 'tb', bench + '.v')], check=True)
-        try:
-            done = subprocess.run([os.environ.get('VVP', 'vvp'), '-n', vvp], stdout=subprocess.DEVNULL,
-                                  timeout=600, cwd=root)
-        except subprocess.TimeoutExpired:
-            return False
-        return done.returncode == 0
-
-    def passes(files, module=''):
-        """The scenes and the benches; the test that probably finds a fault of `module` runs first."""
-        scenes = lambda: not ppu_run.run(files, quiet=True, work=os.path.join(work, 'ppu'), all_patterns=False)
-        registers = lambda: not ppu_regs_run.run(files, quiet=True, work=os.path.join(work, 'regs'))
-        timing = [(lambda b=b: bench_passes(files, b)) for b in PPU_BENCHES]
-        if module == 'ppu_timing':
-            tests = timing + [registers, scenes]
-        elif module in ('ppu_regs', 'ppu_cgram', 'ppu_vram', 'ppu_oam'):
-            tests = [registers, scenes] + timing
-        else:
-            tests = [scenes, registers] + timing
-        return all(test() for test in tests)       # all() stops at the first failure
-
-    if not passes(sources):
-        print("ERROR: a test fails without any fault")
-        return 1
-    missed = 0
-    for module, old, new, text in PPU_MUTANTS:
-        paths = [p for p in sources if run_tests.module_name(p) == module]
-        source = open(paths[0]).read() if paths else ''
-        if old not in source:
-            raise SystemExit("pattern not found for the fault: " + text)
-        copy = os.path.join(work, module + '.v')
-        with open(copy, 'w') as f:
-            f.write(source.replace(old, new, 1))
-        found = not passes([copy if p == paths[0] else p for p in sources], module)
-        missed += not found
-        print("%-8s %s" % ('FOUND' if found else 'MISSED', text))
+    # One pool of processes for everything (the model of the scenes is Python). The tests without
+    # any fault go first in the queue; the faults start as soon as a process is free.
+    pool = ProcessPoolExecutor(max_workers=run_tests.jobs())
+    try:
+        benches = [pool.submit(ppu_bench_passes, sources, b, clean_work) for b in PPU_BENCHES]
+        registers = pool.submit(ppu_registers_pass, sources, clean_work)
+        scenes = [pool.submit(ppu_run.one_scene, job) for job in scene_jobs]
+        results = [pool.submit(ppu_fault_found, fault, m[0], scene_files)
+                   for fault, m in zip(faults, PPU_MUTANTS)]
+        # no line about a fault before all the tests without a fault pass (a scene result is
+        # (name, lines, patterns, problems))
+        if (any(f.result()[3] for f in scenes) or not registers.result()
+                or not all(f.result() for f in benches)):
+            print("ERROR: a test fails without any fault")
+            return 1
+        missed = 0
+        for m, result in zip(PPU_MUTANTS, results):
+            found = result.result()
+            missed += not found
+            print("%-8s %s" % ('FOUND' if found else 'MISSED', m[3]), flush=True)
+    finally:
+        pool.shutdown(cancel_futures=True)      # after an error, do not start the other tests
     print("PPU: %d faults of %d missed" % (missed, len(PPU_MUTANTS)))
     return 1 if missed else 0
 
@@ -198,8 +259,9 @@ def cpu_bench(sources, work, vectors):
     subprocess.run([os.environ.get('IVERILOG', 'iverilog'), '-g2012', '-s', 'tb_cpu', '-I',
                     os.path.join(root, 'tb'), '-o', vvp] + sources + [os.path.join(root, 'tb', 'tb_cpu.v')],
                    check=True)
-    subprocess.run([os.environ.get('VVP', 'vvp'), '-n', vvp, '+vec=' + vectors, '+out=' + result],
-                   check=True, stdout=subprocess.DEVNULL)
+    # tb_cpu keeps 128 characters of a file name: give it names relative to the root
+    subprocess.run([os.environ.get('VVP', 'vvp'), '-n', vvp, '+vec=' + os.path.relpath(vectors, root),
+                    '+out=' + os.path.relpath(result, root)], check=True, stdout=subprocess.DEVNULL, cwd=root)
     with open(result) as f:
         return sum(1 for line in f if line.split()[2].strip('0') != '')
 
@@ -223,37 +285,39 @@ def interrupt_bench(sources, work):
 
 def run_cpu():
     root = run_tests.ROOT
-    work = os.path.join(root, 'build', 'mut')
-    os.makedirs(work, exist_ok=True)
+    work = os.path.join(root, 'build', 'mut', 'cpu')
     vectors = os.path.join(work, 'vectors.txt')
+    clean_work = os.path.join(work, 'clean')
+    os.makedirs(clean_work, exist_ok=True)
     subprocess.run([sys.executable, os.path.join(root, 'sim', 'cpu_vectors.py'), vectors, str(CPU_CASES)],
                    check=True, stdout=subprocess.DEVNULL)
     sources = [os.path.join(root, p) for p in run_tests.RTL]
-    clean = cpu_bench(sources, work, vectors)
-    if clean or not interrupt_bench(sources, work):
+    faults = [fault_files(sources, m, os.path.join(work, '%02d' % n)) for n, m in enumerate(CPU_MUTANTS)]
+    clean = cpu_bench(sources, clean_work, vectors)
+    if clean or not interrupt_bench(sources, clean_work):
         print("ERROR: a test fails without any fault (%d vectors)" % clean)
         return 1
-    missed = 0
-    for module, old, new, text in CPU_MUTANTS:
-        paths = [p for p in sources if run_tests.module_name(p) == module]
-        source = open(paths[0]).read() if paths else ''
-        if old not in source:
-            raise SystemExit("pattern not found for the fault: " + text)
-        copy = os.path.join(work, module + '.v')
-        with open(copy, 'w') as f:
-            f.write(source.replace(old, new, 1))
-        faulty = [copy if p == paths[0] else p for p in sources]
-        failed = cpu_bench(faulty, work, vectors)
+
+    def check(fault):
+        """One fault: (number of failures, the text about the test that failed)."""
+        faulty, folder = fault
+        failed = cpu_bench(faulty, folder, vectors)
         how = "%d vectors" % failed
-        if not failed and not interrupt_bench(faulty, work):
+        if not failed and not interrupt_bench(faulty, folder):
             failed, how = 1, "interrupt test"
+        return failed, how
+
+    missed = 0
+    # threads: the work is in the processes of iverilog and vvp
+    for m, (failed, how) in zip(CPU_MUTANTS, in_parallel(ThreadPoolExecutor, check, faults)):
         missed += failed == 0
-        print("%-8s %s (%s)" % ('FOUND' if failed else 'MISSED', text, how))
+        print("%-8s %s (%s)" % ('FOUND' if failed else 'MISSED', m[3], how), flush=True)
     print("new core: %d faults of %d missed" % (missed, len(CPU_MUTANTS)))
     return 1 if missed else 0
 
 
-def run(mutated):
+def mutated_sources(mutated):
+    """The text of all RTL sources, with the fault of one entry of MUTANTS."""
     srcs = []
     found = False
     for p in run_tests.RTL:
@@ -266,23 +330,35 @@ def run(mutated):
         srcs.append(s)
     if not found:
         raise SystemExit("modulo %s non presente in rtl/files.f" % mutated[0])
+    return srcs
+
+
+def run(mutated):
+    srcs = mutated_sources(mutated)
     run_tests.load_sim = lambda: vsim.Sim(srcs, 'snes_plus_top')
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
         rc = run_tests.main()
     return rc, buf.getvalue()
 
+
+def run_system():
+    for m in MUTANTS:
+        mutated_sources(m)                     # stop at once if a pattern is not there
+    bad = 0
+    # processes: the Python simulator does all its work in Python
+    for m, (rc, out) in zip(MUTANTS, in_parallel(ProcessPoolExecutor, run, MUTANTS)):
+        status = 'RILEVATO' if rc != 0 else 'NON RILEVATO'
+        if rc == 0:
+            bad += 1
+        print("%-13s %s" % (status, m[3]), flush=True)
+    print("%d mutanti su %d non rilevati" % (bad, len(MUTANTS)))
+    return 0 if bad == 0 else 1
+
+
 if __name__ == '__main__':
     if sys.argv[1:] == ['--cpu']:
         sys.exit(run_cpu())
     if sys.argv[1:] == ['--ppu']:
         sys.exit(run_ppu())
-    bad = 0
-    for m in MUTANTS:
-        rc, out = run(m)
-        status = 'RILEVATO' if rc != 0 else 'NON RILEVATO'
-        if rc == 0:
-            bad += 1
-        print("%-13s %s" % (status, m[3]))
-    print("%d mutanti su %d non rilevati" % (bad, len(MUTANTS)))
-    sys.exit(0 if bad == 0 else 1)
+    sys.exit(run_system())

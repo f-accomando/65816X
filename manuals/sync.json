@@ -1,15 +1,15 @@
 {
  "65816x": {
-  "content": "57e1fb37ee78",
+  "content": "eebdaf44d37a",
   "sources": {
-   "Makefile": "8bade625cf23",
+   "Makefile": "62af1ae1af52",
    "README.md": "84378e454291",
    "docs/ARCHITECTURE.md": "39c16c842e7f",
    "docs/ROADMAP.md": "81e126c39999",
    "docs/VARIANTS.md": "ca37ee7c1ac0",
-   "docs/VERIFICATION.md": "86936ffcfd6c",
+   "docs/VERIFICATION.md": "a63217f842b7",
    "docs/progress/cpu.md": "012cbe6a037a",
-   "docs/progress/system.md": "500358f8b630",
+   "docs/progress/system.md": "0030f1ff223a",
    "manuals/themes/paper.toml": "a338e8ca8a85",
    "manuals/tools/mkmanual.py": "750011865c3c",
    "rtl": "c864caae26a1",
@@ -20,7 +20,7 @@
   "content": "9060f6c4dbd9",
   "sources": {
    "docs/ARCHITECTURE.md": "39c16c842e7f",
-   "docs/VERIFICATION.md": "86936ffcfd6c",
+   "docs/VERIFICATION.md": "a63217f842b7",
    "docs/design/ppu-plan.md": "82df1e7e0e91",
    "manuals/themes/paper.toml": "a338e8ca8a85",
    "manuals/tools/mkmanual.py": "750011865c3c",

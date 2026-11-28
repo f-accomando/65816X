@@ -5,8 +5,9 @@ The phases are in [ROADMAP.md](../ROADMAP.md). The open questions are in [HANDOF
 
 ## Open work
 
-- **CI duration**: one run takes more than 30 minutes with the PPU scenes and faults. Split it into
-  parallel jobs, or make `make ppu-mutation` faster (12 minutes on 8 cores).
+- **CI times**: after the next run on GitHub, record the time of each job in
+  [VERIFICATION.md](../VERIFICATION.md), section 5. The one test `tb_ppu_timing` is now the longest part
+  of `make unit` and `make ppu-mutation`.
 - **CI**: GitHub warns that `actions/checkout@v4` and `actions/upload-artifact@v4` use Node.js 20,
   which is deprecated. Move to versions that use Node.js 24.
 - **Synthesis**: find why Yosys 0.33 (CI) counts many more equivalent LUT4 than Yosys 0.52

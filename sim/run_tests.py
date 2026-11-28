@@ -29,6 +29,15 @@ RTL = rtl_files()
 def module_name(path):
     return os.path.splitext(os.path.basename(path))[0]
 
+def jobs():
+    """Number of tests that the runners start at the same time. The environment variable SIM_JOBS
+    sets it; without it, one for each processor that this process can use."""
+    if os.environ.get('SIM_JOBS'):
+        return max(1, int(os.environ['SIM_JOBS']))
+    if hasattr(os, 'sched_getaffinity'):
+        return len(os.sched_getaffinity(0))
+    return os.cpu_count() or 1
+
 def load_expect():
     out = []
     for n, line in enumerate(open(EXPECT), 1):

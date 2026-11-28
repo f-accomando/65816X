@@ -134,7 +134,8 @@ manual:
 manual-check:
 	$(PY) manuals/tools/manuals.py check
 
-# Tutto quello che esegue la CI
+# Tutto quello che esegue la CI. The CI runs these targets in parallel jobs (.github/workflows/ci.yml).
+# The test runners start one test for each processor; SIM_JOBS=<n> sets another number.
 check: tables-check test mutation iverilog unit cpu cpu-int cpu-mutation ppu ppu-mutation synth manual-check
 
 clean:

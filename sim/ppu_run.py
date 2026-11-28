@@ -106,22 +106,32 @@ def one_scene(job):
     return name, len(model), len(patterns), problems
 
 
-def run(sources=None, update=False, quiet=False, work=BUILD, all_patterns=True):
-    """Return the number of failing scenes. In quiet mode, stop soon after the first one."""
+def scene_jobs(sources, work, update=False, all_patterns=True, scenes=None):
+    """Compile the bench in `work`. Return one argument of one_scene for each scene."""
     os.makedirs(work, exist_ok=True)
     sources = sources or [os.path.join(ROOT, p) for p in run_tests.RTL]
     vvp = compile_bench(sources, work)
     # the first scene of the list, and one with backgrounds, also run with the other mce patterns
     jobs = []
-    for path in scene_files():
+    for path in scenes or scene_files():
         extra = all_patterns and os.path.basename(path) in ('backdrop_bright.scn', 'm1_midline.scn')
         jobs.append((path, vvp, work, update, (0,) + (MCE_PATTERNS if extra else ())))
-    workers = os.cpu_count() or 1
+    return jobs
+
+
+def run(sources=None, update=False, quiet=False, work=BUILD, all_patterns=True, workers=None, scenes=None):
+    """Return the number of failing scenes. In quiet mode, stop soon after the first one.
+    workers: processes for the scenes (run_tests.jobs() without it; 1 starts no process).
+    scenes: the scene files, if the caller made them already."""
+    jobs = scene_jobs(sources, work, update, all_patterns, scenes)
+    workers = workers or run_tests.jobs()
+    pool = ProcessPoolExecutor(max_workers=workers) if workers > 1 else None
+    each = pool.map if pool else map
     fails = 0
-    with ProcessPoolExecutor(max_workers=workers) as pool:
+    try:
         step = workers if quiet else len(jobs)         # quiet: stop between two groups
         for first in range(0, len(jobs), step):
-            for name, lines, patterns, problems in pool.map(one_scene, jobs[first:first + step]):
+            for name, lines, patterns, problems in each(one_scene, jobs[first:first + step]):
                 fails += bool(problems)
                 if not quiet:
                     print("%-4s %s (%d lines, %d mce pattern%s)" % ('FAIL' if problems else 'ok', name, lines,
@@ -130,6 +140,9 @@ def run(sources=None, update=False, quiet=False, work=BUILD, all_patterns=True):
                         print("     " + p)
             if fails and quiet:
                 break
+    finally:
+        if pool:
+            pool.shutdown()
     return fails
 
 

@@ -28,7 +28,31 @@
 Keep `sim/vsim.py` while the RTL needs no parameters, `generate`, or `function`.
 Do not shape the RTL for the mini simulator: the design would get worse.
 
-The CI (`.github/workflows/ci.yml`) runs the same commands on each pull request and on each push to `main` and `claude/**`.
+### Tests in parallel
+
+`make mutation`, `make cpu-mutation`, `make ppu-mutation`, and `make ppu` start several tests at the same time.
+The default is one test for each processor. `SIM_JOBS=<n>` sets another number.
+The result lines keep the order of the lists.
+
+- Each CPU fault and each PPU fault has its own folder, `build/mut/<cpu|ppu>/<number>/`. The system faults stay in memory.
+- The tests without a fault must pass before a runner prints a result. In `make ppu-mutation`, they run beside the faults.
+- A PPU fault that no test finds takes longest: all PPU tests run for it, one at a time.
+
+### CI jobs
+
+The CI (`.github/workflows/ci.yml`) runs the same targets on each pull request and on each push to `main` and `claude/**`.
+Its jobs run at the same time.
+
+| Job | Targets | Artifacts |
+|---|---|---|
+| `system` | `tables-check`, `test`, `mutation`, `iverilog`, `manual-check`, `synth` | `manual`, `sintesi` |
+| `cpu` | `cpu`, `cpu-int`, `cpu-mutation` | `pagella-cpu` |
+| `unit` | `unit` | none |
+| `ppu` | `ppu` | `ppu-pictures` |
+| `ppu-mutation` | `ppu-mutation` | none |
+
+Put each target of `check` in exactly one job. All jobs are in one run:
+`gh run watch <run id> --exit-status` waits for all of them.
 
 ## 2. Single sources
 
@@ -95,6 +119,20 @@ Older results are in the git history of this file.
 | `TRELLIS_FF` | 909 |
 | `TRELLIS_DPR16X4` | 16 |
 
+### Duration of the fault tests
+
+Measured on one computer with 8 processors (4 cores), with no other test at the same time.
+"Before" means the runners that took one fault at a time.
+
+| Command | Before | Faults in parallel |
+|---|---|---|
+| `make mutation` | 351 s | 149 s |
+| `make cpu-mutation` | 175 s | 81 s |
+| `make ppu-mutation` | 704 s | 483 s |
+
+The bench `tb_ppu_timing` is the longest single test: 3 to 5 minutes alone, 434 s beside 7 other tests.
+It sets the duration of `make ppu-mutation`: all the faults finish before it does.
+
 ### Public vectors
 
 All vectors, with the cycle and bus checks.
@@ -111,6 +149,10 @@ The comparisons found three errors during the development. All are fixed.
 - Core: a second IRQ right after the entry of the first one.
 
 ### CI on GitHub
+
+Before the parallel jobs, one job took 17 minutes (run 46172598056). The longest steps were
+`ppu-mutation` (6 min 15 s), `mutation` (4 min 7 s), `unit` (2 min 7 s), and `cpu-mutation` (1 min 47 s).
+With the parallel jobs, a run takes about 5 to 6 minutes (estimate; not measured).
 
 The CI runs on `ubuntu-24.04` with Icarus Verilog 12.0 and Yosys 0.33. The simulation and CPU
 results are equal to the local results. The synthesis counts differ: after step C6, Yosys 0.33

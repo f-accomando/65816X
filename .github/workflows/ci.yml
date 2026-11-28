@@ -1,13 +1,17 @@
 # Verifica automatica: simulazioni, mutazioni, test per modulo e sintesi ECP5 con budget.
+# The jobs run at the same time. Together they run each target of "make check", once.
+# When you change the targets of "check", change a job here (see docs/VERIFICATION.md).
+# One run contains all the jobs: "gh run watch <run id> --exit-status" waits for all of them.
 name: verifica
 on:
   push:
     branches: [main, 'claude/**']
   pull_request:
 jobs:
-  verifica:
+  system:
+    name: system, manual, synthesis
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Installa iverilog, yosys e reportlab
@@ -27,32 +31,6 @@ jobs:
         run: make mutation
       - name: make iverilog
         run: make iverilog
-      - name: make unit
-        run: make unit
-      - name: make cpu (banco di prova della CPU)
-        run: make cpu
-      - name: Conserva la pagella della CPU
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pagella-cpu
-          path: build/cpu_score.txt
-          if-no-files-found: ignore
-      - name: make cpu-int (interrupts)
-        run: make cpu-int
-      - name: make cpu-mutation (faults in the new core)
-        run: make cpu-mutation
-      - name: make ppu (scenes of the PPU)
-        run: make ppu
-      - name: Keep the pictures of the PPU scenes
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ppu-pictures
-          path: build/ppu/*.png
-          if-no-files-found: ignore
-      - name: make ppu-mutation (faults in the PPU)
-        run: make ppu-mutation
 
       - name: make manual-check
         run: make manual-check
@@ -75,3 +53,89 @@ jobs:
             build/synth.log
             build/stat.json
           if-no-files-found: ignore
+
+  cpu:
+    name: cpu
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installa iverilog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends iverilog
+      - name: Versioni degli strumenti
+        run: |
+          python3 --version
+          iverilog -V 2>&1 | head -n 1
+      - name: make cpu (banco di prova della CPU)
+        run: make cpu
+      - name: Conserva la pagella della CPU
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pagella-cpu
+          path: build/cpu_score.txt
+          if-no-files-found: ignore
+      - name: make cpu-int (interrupts)
+        run: make cpu-int
+      - name: make cpu-mutation (faults in the new core)
+        run: make cpu-mutation
+
+  unit:
+    name: unit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installa iverilog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends iverilog
+      - name: Versioni degli strumenti
+        run: |
+          python3 --version
+          iverilog -V 2>&1 | head -n 1
+      - name: make unit
+        run: make unit
+
+  ppu:
+    name: ppu scenes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installa iverilog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends iverilog
+      - name: Versioni degli strumenti
+        run: |
+          python3 --version
+          iverilog -V 2>&1 | head -n 1
+      - name: make ppu (scenes of the PPU)
+        run: make ppu
+      - name: Keep the pictures of the PPU scenes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ppu-pictures
+          path: build/ppu/*.png
+          if-no-files-found: ignore
+
+  ppu-mutation:
+    name: ppu faults
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installa iverilog
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends iverilog
+      - name: Versioni degli strumenti
+        run: |
+          python3 --version
+          iverilog -V 2>&1 | head -n 1
+      - name: make ppu-mutation (faults in the PPU)
+        run: make ppu-mutation

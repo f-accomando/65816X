@@ -11,9 +11,9 @@ def read_dump(path):
 
 
 def rgb(value):
-    """One value "bbbbbgggggrrrrr:bright:layer" as 3 bytes."""
+    """One value "bbbbbgggggrrrrr:bright:main:sub" as 3 bytes."""
     try:
-        colour, bright, _ = value.split(':')
+        colour, bright = value.split(':')[:2]
         c, n = int(colour, 2), int(bright, 16)
     except ValueError:                       # unknown bits (x) from the simulator
         return bytes((255, 0, 255))

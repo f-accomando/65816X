@@ -1,7 +1,7 @@
 # PPU development plan
 
 Status: proposal. Date: 2026-11-28. This document plans the original PPU (part 1) and the enhanced PPU+ (part 2).
-It changes no decision of `HANDOFF.md`, section 3. Steps P1, P2, and P3 are done. The other steps have not started.
+It changes no decision of `HANDOFF.md`, section 3. Steps P1 to P4 are done. The other steps have not started.
 The open work of the whole system is in [progress/system.md](../progress/system.md).
 
 ## 0. How to read this document
@@ -242,12 +242,13 @@ Each step closes with `make check` passing. Each step adds its mutants to the li
 - One agent wrote the model first and then the Verilog.
 - Step P10 keeps: the effect of `$2133`, the input `hv_latch`, and the checks at random positions.
 
-### P4. Modes 0 and 1, main and sub screens
-- Content: fetch sequencer, 2 and 4 bpp tiles, map sizes 32/64, 8x8 and 16x16 tiles. Then flips, palettes (mode 0 palette offset per layer), scroll, priority bits, BG3 priority (`$2105` bit 3), `$212C/$212D`.
-- Files: `ppu_bgfetch.v`, `ppu_bgpix.v`, `ppu_prio.v`, model, `tests/ppu/m0_*`, `m1_*`.
-- Done when: 12 directed scenes and 40 random scenes give equal dumps. Per-line CRC lists are in `tests/ppu/*.expect`.
-- Mutants: horizontal flip ignored; 64-wide map wraps at 32; BG3 priority bit ignored; scroll latch keeps the old low bits.
-- Depends on: P3. Risk: medium. Agent: standard, N=3.
+### P4. Modes 0 and 1, main and sub screens (done)
+- Result: `ppu_bgfetch.v`, `ppu_bgpix.v`, `ppu_prio.v`, render port of the video memory, `sim/ppu_bgscenes.py`.
+- 12 directed and 40 random scenes give equal dumps. Their CRC lists are in `tests/ppu/`.
+- Mutants: 9 new ones. The mutant of the scroll latch is the one of step P3.
+- The dump has one more field: the layer of the sub screen.
+- The background registers change only outside dots 6 to 277 in the scenes (see step P16).
+- One agent wrote the model first and then the Verilog.
 
 ### P5. Modes 2-6
 - Content: 8 bpp, direct color (`$2130` bit 0), offset-per-tile in modes 2, 4, 6. Then hi-res modes 5 and 6 (even pixel sub, odd pixel main [C]).
@@ -549,13 +550,14 @@ at 0 0     w 2105 09                       # at line 0, dot 0: bus write
 at 100 280 w 210D 40                       # write in hblank of line 100
 frames 2   compare 1                       # run 2 frames, compare frame 1
 ```
-- `tb/tb_ppu.v` plays the scene into the bus port. It writes `build/ppu/<name>.out`: one line per screen line, 512 values `bbbbbgggggrrrrr:bright:layer`.
+- `tb/tb_ppu.v` plays the scene into the bus port. It writes `build/ppu/<name>.out`: one line per screen line, 512 values `bbbbbgggggrrrrr:bright:main:sub`.
 - `sim/ppu_ref.py` writes the same file. `sim/ppu_cmp.py` prints the first difference (x, y, layers) and writes PNG files of both images and of the difference. The owner can open the PNG files on any device.
 - `tests/ppu/<name>.expect` holds one CRC32 per line. Regenerate it only from the model, and check the difference.
 - One scene in each step loads the memories through the bus, not the back door.
 
 ## 3.3 Random scenes
-`sim/ppu_scenes.py` makes constrained random scenes for each step: mode, map sizes, scroll, windows, math, sprites. Use a fixed seed in the CI and a free seed for local runs.
+`sim/ppu_scenes.py` and `sim/ppu_bgscenes.py` make constrained random scenes for each step: mode, map sizes, scroll, windows, math, sprites. Use a fixed seed in the CI and a free seed for local runs.
+The background scenes are made at each run. Only their CRC lists are in the repository.
 
 ## 3.4 System tests by replay
 The system test bench records each B-bus write (`$21xx`) with its (V, H) position. The model replays the record. Thus a frame made by the CPU, DMA, and HDMA is checked without a CPU model.

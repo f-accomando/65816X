@@ -1,6 +1,7 @@
 // tb_ppu.v - the scene player of the PPU. sim/ppu_run.py starts it.
 // +cmd=<file>     writes of the scene, sorted: "line dot address data" (decimal, decimal, hex, hex)
 // +cgram=<file>   optional: the colour memory, loaded by the back door
+// +vraml=<file> +vramh=<file>   optional: the video memory (low and high bytes), back door
 // +out=<file>     the pixels of the compared frame, in the format of sim/ppu_ref.py
 // +mce=0|1|2      master clock enable: each clk, each second clk, pseudo-random
 // +pal=0|1 +frames=n +compare=k
@@ -21,24 +22,24 @@ module tb_ppu;
   wire [8:0] pix_x, pix_y;
   wire [14:0] pix_even, pix_odd;
   wire [3:0] bright;
-  wire [2:0] dbg_layer;
+  wire [2:0] dbg_layer, dbg_sub;
 
   ppu_top dut (
     .clk(clk), .rst(rst), .mce(mce), .pal(pal), .interlace(1'b0), .overscan(1'b0), .hv_gate(1'b1),
     .addr(addr), .rd(rd), .wr(wr), .wdata(wdata), .rdata(rdata), .hit(hit), .vblank(vblank),
     .pix_valid(pix_valid), .pix_x(pix_x), .pix_y(pix_y), .pix_even(pix_even), .pix_odd(pix_odd),
-    .pix_hires(pix_hires), .bright(bright), .dbg_layer(dbg_layer)
+    .pix_hires(pix_hires), .bright(bright), .dbg_layer(dbg_layer), .dbg_sub(dbg_sub)
   );
 
   always #5 clk = ~clk;
 
-  localparam MAXW = 8192;
+  localparam MAXW = 32768;
   integer wv [0:MAXW-1], wh [0:MAXW-1], wa [0:MAXW-1], wd [0:MAXW-1];
   integer nw, next, frame, frames, compare, mode, seed, count, x, y, f, code, v, h, a, d;
-  reg [8*512-1:0] cmd_file, cgram_file, out_file;
+  reg [8*512-1:0] cmd_file, cgram_file, vraml_file, vramh_file, out_file;
   reg [14:0] even [0:256*239-1], odd [0:256*239-1];
   reg [3:0] br [0:256*239-1];
-  reg [2:0] layer [0:256*239-1];
+  reg [2:0] layer [0:256*239-1], under [0:256*239-1];
 
   // the pattern of mce
   always @(negedge clk) begin
@@ -57,6 +58,7 @@ module tb_ppu;
       odd[y * 256 + x] = pix_odd;
       br[y * 256 + x] = bright;
       layer[y * 256 + x] = dbg_layer;
+      under[y * 256 + x] = dbg_sub;
       count = count + 1;
     end
   end
@@ -106,11 +108,18 @@ module tb_ppu;
     #1;
     for (x = 0; x < 256; x = x + 1) dut.u_regs.u_cgram.mem[x] = 15'd0;
     if ($value$plusargs("cgram=%s", cgram_file)) $readmemh(cgram_file, dut.u_regs.u_cgram.mem);
+    for (x = 0; x < 32768; x = x + 1) begin
+      dut.u_regs.u_vram.vram_l[x] = 8'h00;
+      dut.u_regs.u_vram.vram_h[x] = 8'h00;
+    end
+    if ($value$plusargs("vraml=%s", vraml_file)) $readmemh(vraml_file, dut.u_regs.u_vram.vram_l);
+    if ($value$plusargs("vramh=%s", vramh_file)) $readmemh(vramh_file, dut.u_regs.u_vram.vram_h);
     repeat (4) @(negedge clk);
     rst = 1'b0;
     // after the reset the position is line 0, dot 0, without a dot_en pulse
     play_dot(0, 0);
-    while (frame < frames) begin
+    // the compared frame ends the run as soon as its last visible line is over
+    while (frame < frames && !(frame == compare && dut.u_timing.vcnt > 224)) begin
       @(negedge clk);
       if (dut.u_timing.dot_en) begin
         v = dut.u_timing.vcnt;
@@ -130,8 +139,8 @@ module tb_ppu;
     for (y = 0; y < 224; y = y + 1) begin
       for (x = 0; x < 256; x = x + 1) begin
         if (x != 0) $fwrite(f, " ");
-        $fwrite(f, "%b:%h:%0d %b:%h:%0d", even[y*256+x], br[y*256+x], layer[y*256+x],
-                odd[y*256+x], br[y*256+x], layer[y*256+x]);
+        $fwrite(f, "%b:%h:%0d:%0d %b:%h:%0d:%0d", even[y*256+x], br[y*256+x], layer[y*256+x], under[y*256+x],
+                odd[y*256+x], br[y*256+x], layer[y*256+x], under[y*256+x]);
       end
       $fwrite(f, "\n");
     end

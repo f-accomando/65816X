@@ -160,12 +160,23 @@ them. Bit 7 of `$4201` lets the counters latch. The system ties it to 1.
 
 ## Pixel path
 
-The PPU draws only the backdrop today: word 0 of the colour memory.
+The PPU draws the backgrounds of the modes 0 and 1. Sprites, the other modes, and the effects come
+later.
 
+- `ppu_bgfetch.v` reads the video memory for one layer at a time. A line is cut in slots of 8 dots, from
+  dot 6. In slot p it reads tile column p of each layer: the map word, then the tile line. A layer
+  takes 4 FPGA clocks.
+- `ppu_bgpix.v` (one for each layer) keeps three tile columns. It applies the fine scroll and the
+  horizontal mirror.
+- `ppu_prio.v` (one for the main screen, one for the sub screen) picks the front pixel. Colour number 0
+  is transparent. Without a pixel, the screen shows the backdrop.
+- The fetch reads the background registers while it works. A change inside the picture part of a line
+  (dots 6 to 277) can act on a part of that line. The tests change them only outside these dots.
 - `ppu_cgram.v` holds 256 colours of 15 bits. `$2121` sets the address. `$2122` takes the low byte,
   then the high byte. Then the address advances. Bit 15 is not stored.
 - `ppu_math.v` gives one pixel for each visible dot: lines 1-224 (239 with overscan), dots 22-277.
 - `$2100` bit 7 makes the picture black (forced blank). Bits 3-0 give the brightness.
+- `ppu_math.v` reads the colour of the main screen. The colour of the sub screen comes with step P7.
 - A register write during a dot acts from the next dot.
 - The pixel stream carries the colour before the brightness, and the brightness. The video output
   will scale the colour.
@@ -181,8 +192,9 @@ The PPU draws only the backdrop today: word 0 of the colour memory.
   values were not compared with the real chip.
 - DMA: no HDMA. The DMA moves 1 byte every 2 cycles.
 - Here, a DMA from WRAM to `$2180` copies the data. On the real SNES it does not work (fix in phase F7).
-- The PPU draws only the backdrop colour: no background layers and no sprites. The APU is a
-  placeholder.
+- The PPU draws only the backgrounds of the modes 0 and 1: no sprites, no other modes, no effects.
+  The APU is a placeholder.
+- The fetch of the backgrounds does not follow the access slots of the real chip.
 - A colour memory write is accepted at any time. The real chip writes to another address in the
   active display.
 - A sprite memory write in the active display is lost. The real chip writes to another address.

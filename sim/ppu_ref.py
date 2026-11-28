@@ -6,19 +6,27 @@ difference, find which of the two is wrong (the rule of sim/cpu_ref.py). The sou
 where they differ are in docs/design/ppu-plan.md, section 1.5.
 
 Two uses:
-  ppu_ref.py <scene.scn> <dump.out>         the picture of a scene (today: the backdrop only)
+  ppu_ref.py <scene.scn> <dump.out>         the picture of a scene: backgrounds of modes 0 and 1
   ppu_ref.py --regs <seed> <count> <file>   random register accesses with the expected results,
                                             for tb/tb_ppu_regs.v
 
 Timing rules of the scene player: the colour of a dot uses the registers as they are before the
-writes of that dot. A write during dot H acts from dot H + 1.
-Dump: one line for each screen line, 512 values "bbbbbgggggrrrrr:bright:layer". In a 256-wide mode
-each pixel appears twice. layer: 0 backdrop, 7 forced blank."""
+writes of that dot. A write during dot H acts from dot H + 1. The background registers (mode, maps,
+tiles, scroll) are read while a line is fetched: the scenes change them only outside dots 6 to 277.
+Dump: one line for each screen line, 512 values "bbbbbgggggrrrrr:bright:main:sub". In a 256-wide
+mode each pixel appears twice. main and sub: the layer of each screen: 0 backdrop, 1 to 4 a
+background, 7 forced blank."""
 import os, random, sys
 import ppu_scenes
 
 FIRST_DOT, WIDTH = 22, 256
 LAYER_BACKDROP, LAYER_BLANK = 0, 7
+# bits for each pixel of the backgrounds 1 to 4 (the modes 2 to 7 come later)
+DEPTHS = {0: (2, 2, 2, 2), 1: (4, 4, 2)}
+# (background, priority bit), from the front to the back
+ORDER_MODE0 = ((0, 1), (1, 1), (0, 0), (1, 0), (2, 1), (3, 1), (2, 0), (3, 0))
+ORDER_MODE1 = ((0, 1), (1, 1), (0, 0), (1, 0), (2, 1), (2, 0))
+ORDER_MODE1_BG3 = ((2, 1), (0, 1), (1, 1), (0, 0), (1, 0), (2, 0))
 PPU1_VERSION, PPU2_VERSION = 1, 3
 # write-only addresses that read back the data latch of the PPU1
 READ_MDR1 = {0x2100 + x * 0x10 + n for x in range(3) for n in (4, 5, 6, 8, 9, 10)}
@@ -232,10 +240,72 @@ class Ppu:
         return self.mdr1 if addr in READ_MDR1 else 0
 
     # ---- picture ----
-    def pixel(self):
+    def background(self, n, x, line):
+        """The pixel of background n (0 to 3): (colour number, priority bit), or None if transparent."""
+        mode = self.bgmode & 7
+        depth = DEPTHS[mode][n]
+        big = (self.bgmode >> (4 + n)) & 1
+        px = (x + (self.bg1hofs, self.bg2hofs, self.bg3hofs, self.bg4hofs)[n]) & 0x3FF
+        py = (line + (self.bg1vofs, self.bg2vofs, self.bg3vofs, self.bg4vofs)[n]) & 0x3FF
+        sc = (self.bg1sc, self.bg2sc, self.bg3sc, self.bg4sc)[n]
+        tx, ty = px >> (3 + big), py >> (3 + big)
+        where = ((sc >> 2) << 10) + (ty % 32) * 32 + tx % 32
+        right, below = sc & 1 and (tx >> 5) & 1, sc & 2 and (ty >> 5) & 1
+        if right:
+            where += 0x400
+        if below:
+            where += 0x800 if sc & 1 else 0x400
+        entry = self.vram[where & 0x7FFF]
+        tile, palette, priority = entry & 0x3FF, (entry >> 10) & 7, (entry >> 13) & 1
+        mirror_x, mirror_y = (entry >> 14) & 1, entry >> 15
+        fx, fy = px & 7, py & 7
+        if big:                                # a 16 x 16 tile: four tiles n, n+1, n+16, n+17
+            right_half = ((px >> 3) & 1) ^ mirror_x
+            lower_half = ((py >> 3) & 1) ^ mirror_y
+            tile = (tile + right_half + 16 * lower_half) & 0x3FF
+        if mirror_x:
+            fx = 7 - fx
+        if mirror_y:
+            fy = 7 - fy
+        base = (self.bg12nba, self.bg12nba >> 4, self.bg34nba, self.bg34nba >> 4)[n] & 15
+        start = (base << 12) + tile * depth * 4 + fy
+        number = 0
+        for pair in range(depth // 2):         # two bit planes in each word
+            word = self.vram[(start + 8 * pair) & 0x7FFF]
+            number |= ((word >> (7 - fx)) & 1) << (2 * pair)
+            number |= ((word >> (15 - fx)) & 1) << (2 * pair + 1)
+        if not number:
+            return None
+        if mode == 0:
+            return (n * 32 + palette * 4 + number, priority)
+        return (palette * (1 << depth) + number, priority)
+
+    def screens(self, x, line):
+        """((colour number, layer) of the main screen, the same of the sub screen)."""
+        mode = self.bgmode & 7
+        if mode not in DEPTHS:
+            return ((0, LAYER_BACKDROP),) * 2
+        order = ORDER_MODE0 if mode == 0 else (ORDER_MODE1_BG3 if self.bgmode & 8 else ORDER_MODE1)
+        pixels = [None] * 4
+        for n in range(len(DEPTHS[mode])):
+            if (self.tm | self.ts) & (1 << n):
+                pixels[n] = self.background(n, x, line)
+        result = []
+        for enabled in (self.tm, self.ts):
+            for n, priority in order:
+                if enabled & (1 << n) and pixels[n] and pixels[n][1] == priority:
+                    result.append((pixels[n][0], n + 1))
+                    break
+            else:
+                result.append((0, LAYER_BACKDROP))
+        return tuple(result)
+
+    def pixel(self, x, line):
+        """(colour, brightness, layer of the main screen, layer of the sub screen)."""
         if self.inidisp & 0x80:
-            return (0, self.inidisp & 15, LAYER_BLANK)
-        return (self.cgram[0], self.inidisp & 15, LAYER_BACKDROP)
+            return (0, self.inidisp & 15, LAYER_BLANK, LAYER_BLANK)
+        (number, main), (_, sub) = self.screens(x, line)
+        return (self.cgram[number], self.inidisp & 15, main, sub)
 
 
 def render(scene, root=ppu_scenes.ROOT):
@@ -244,6 +314,9 @@ def render(scene, root=ppu_scenes.ROOT):
     if 'cgram' in scene['loads']:
         words = open(os.path.join(root, scene['loads']['cgram'])).read().split()
         ppu.cgram[:len(words)] = [int(w, 16) & 0x7FFF for w in words]
+    if 'vram' in scene['loads']:
+        for where, word in ppu_scenes.read_vram(os.path.join(root, scene['loads']['vram'])):
+            ppu.vram[where] = word
     at = {}
     for v, h, a, d in scene['writes']:
         at.setdefault((v, h), []).append((a, d))
@@ -255,8 +328,8 @@ def render(scene, root=ppu_scenes.ROOT):
             row = []
             for h in range(ppu_scenes.DOTS):
                 if 1 <= v <= last_visible and FIRST_DOT <= h < FIRST_DOT + WIDTH:
-                    colour, bright, layer = ppu.pixel()
-                    text = "%s:%x:%d" % (format(colour, '015b'), bright, layer)
+                    colour, bright, main, sub = ppu.pixel(h - FIRST_DOT, v)
+                    text = "%s:%x:%d:%d" % (format(colour, '015b'), bright, main, sub)
                     row += [text, text]
                 for a, d in at.get((v, h), []):
                     ppu.write(a, d)

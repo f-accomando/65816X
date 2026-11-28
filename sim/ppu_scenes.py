@@ -4,6 +4,7 @@
 A scene (tests/ppu/<name>.scn):
   region ntsc | pal
   load cgram <file>              256 lines, one 15-bit word (hexadecimal) in each
+  load vram <file>               lines "address word" (hexadecimal); the other words are 0
   at <line> <dot> w <addr> <data>   a bus write to a register, during that dot, in each frame
   frames <n> compare <k>         run n frames, compare frame k (the first one is 0)
 
@@ -28,7 +29,7 @@ def parse(path):
         try:
             if f[0] == 'region' and f[1] in LINES:
                 s['region'] = f[1]
-            elif f[0] == 'load' and f[1] == 'cgram':
+            elif f[0] == 'load' and f[1] in ('cgram', 'vram'):
                 s['loads'][f[1]] = f[2]
             elif f[0] == 'at' and f[3] == 'w':
                 v, h, a, d = int(f[1]), int(f[2]), int(f[4], 16), int(f[5], 16)
@@ -49,6 +50,11 @@ def parse(path):
             raise SystemExit("%s:%d: bad line" % (path, n))
     s['writes'].sort(key=lambda w: (w[0], w[1]))     # stable: two writes of a dot keep their order
     return s
+
+
+def read_vram(path):
+    """The pairs (address, word) of a VRAM file."""
+    return [tuple(int(x, 16) for x in line.split()) for line in open(path) if line.strip()]
 
 
 # ---- generator --------------------------------------------------------------------------------

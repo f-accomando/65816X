@@ -23,7 +23,8 @@ footer: 65816X PPU manual
 | Video memory, colour memory, sprite memory | works |
 | Counter latch, product `$2134-$2136` | works |
 | Picture: backdrop colour, brightness, black screen | works |
-| Backgrounds, modes 0 to 6 | **[to be developed]** |
+| Backgrounds, modes 0 and 1 | works |
+| Backgrounds, modes 2 to 6 | **[to be developed]** |
 | Mode 7 picture | **[to be developed]** |
 | Sprites | **[to be developed]** |
 | Windows, colour math, mosaic | **[to be developed]** |
@@ -189,11 +190,11 @@ The first 512 bytes take one word at a time: the second byte stores both. The la
 | `$2101` | OBJSEL | sprite size and tiles | stored |
 | `$2102-$2103` | OAMADD | sprite memory address | works |
 | `$2104` | OAMDATA | sprite memory write | works |
-| `$2105` | BGMODE | background mode | stored |
+| `$2105` | BGMODE | background mode | works: modes 0 and 1 |
 | `$2106` | MOSAIC | mosaic | stored |
-| `$2107-$210A` | BG1SC-BG4SC | background maps | stored |
-| `$210B-$210C` | BG12NBA, BG34NBA | background tiles | stored |
-| `$210D-$2114` | BGnHOFS, BGnVOFS | scroll | stored |
+| `$2107-$210A` | BG1SC-BG4SC | background maps | works |
+| `$210B-$210C` | BG12NBA, BG34NBA | background tiles | works |
+| `$210D-$2114` | BGnHOFS, BGnVOFS | scroll | works |
 | `$2115` | VMAIN | video memory step | works |
 | `$2116-$2117` | VMADD | video memory address | works |
 | `$2118-$2119` | VMDATA | video memory write | works |
@@ -204,7 +205,7 @@ The first 512 bytes take one word at a time: the second byte stores both. The la
 | `$2123-$2125` | W12SEL, W34SEL, WOBJSEL | window selection | stored |
 | `$2126-$2129` | WH0-WH3 | window edges | stored |
 | `$212A-$212B` | WBGLOG, WOBJLOG | window logic | stored |
-| `$212C-$212D` | TM, TS | main and sub screen | stored |
+| `$212C-$212D` | TM, TS | main and sub screen | works; the sub screen colour is used from step P7 |
 | `$212E-$212F` | TMW, TSW | window masks | stored |
 | `$2130-$2132` | CGWSEL, CGADSUB, COLDATA | colour math | stored |
 | `$2133` | SETINI | screen settings | stored |
@@ -413,10 +414,8 @@ Some bits that no register drives keep the last value that the chip put on the b
 
 # The picture
 
-Today the picture shows only the backdrop: colour 0 of the colour memory.
-
 - The video part sends one pixel for each visible dot.
-- A register write during a dot acts from the next dot.
+- A register write during a dot acts from the next dot. The background registers are read while the tiles are fetched: change them in the horizontal blank or the vertical blank.
 - The pixel carries the colour and the brightness. The video output will scale the colour.
 - The test pictures scale a colour by brightness / 15. No document gives the formula.
 
@@ -424,13 +423,141 @@ Today the picture shows only the backdrop: colour 0 of the colour memory.
 
 ![The backdrop changed through the colour registers, line by line.](shots/ppu-colours.png)
 
-# Backgrounds, sprites, and effects
+## Backgrounds
+
+| Mode | Layers | Colours of a tile |
+|---|---|---|
+| 0 | 4 | 4 for each layer; layer n uses the colours from (n - 1) x 32 |
+| 1 | 3 | 16 for layers 1 and 2; 4 for layer 3 |
+
+A map word gives one tile:
+
+| Bits | Meaning |
+|---|---|
+| 15 | mirror up-down |
+| 14 | mirror left-right |
+| 13 | priority: 1 in front |
+| 12-10 | colour group (palette) |
+| 9-0 | tile number |
+
+- A map has 32 x 32 words. `$2107-$210A` select one, two, or four maps.
+- A tile of 4 colours takes 8 words; a tile of 16 colours takes 16 words. Each word holds one row of two bit planes. The left pixel is bit 7.
+- With a size of 16 x 16 (`$2105`), a tile uses the numbers n, n + 1, n + 16, and n + 17.
+- Colour number 0 of a tile is transparent.
+- Line 1 is the first line of the picture. It shows the map row 1 + vertical scroll.
+
+| Place, front first | Mode 0 | Mode 1 |
+|---|---|---|
+| 1 | layers 1, 2 with priority | layers 1, 2 with priority |
+| 2 | layers 1, 2 without | layers 1, 2 without |
+| 3 | layers 3, 4 with priority | layer 3 with priority |
+| 4 | layers 3, 4 without | layer 3 without |
+
+In a place, the lower layer number is in front. In mode 1, bit 3 of `$2105` moves layer 3 with priority to the front.
+
+## A first background
+
+This code shows one tile: a white frame at the top left on a dark blue screen. Run the three boxes in their order.
+
+::: copy
+        SEP #$20
+        ; screen off: the memories are free
+        LDA #$80
+        STA $2100
+        ; mode 0; map of layer 1 at word 0, tiles at word $1000
+        LDA #$00
+        STA $2105
+        STA $2107
+        LDA #$01
+        STA $210B
+        ; scroll: horizontal 0, vertical -1 (line 1 shows row 0)
+        LDA #$00
+        STA $210D
+        STA $210D
+        LDA #$FF
+        STA $210E
+        LDA #$03
+        STA $210E
+        ; colour 0 (backdrop) dark blue, colour 1 white
+        LDA #$00
+        STA $2121
+        STA $2122
+        LDA #$30
+        STA $2122
+        LDA #$FF
+        STA $2122
+        LDA #$7F
+        STA $2122
+:::
+
+::: copy
+        ; tile 1: a square frame, 8 words at $1008
+        LDA #$80
+        STA $2115
+        LDA #$08
+        STA $2116
+        LDA #$10
+        STA $2117
+        LDA #$FF
+        STA $2118
+        LDA #$00
+        STA $2119
+        LDA #$81
+        STA $2118
+        LDA #$00
+        STA $2119
+        LDA #$81
+        STA $2118
+        LDA #$00
+        STA $2119
+        LDA #$81
+        STA $2118
+        LDA #$00
+        STA $2119
+        LDA #$81
+        STA $2118
+        LDA #$00
+        STA $2119
+        LDA #$81
+        STA $2118
+        LDA #$00
+        STA $2119
+        LDA #$81
+        STA $2118
+        LDA #$00
+        STA $2119
+        LDA #$FF
+        STA $2118
+        LDA #$00
+        STA $2119
+:::
+
+::: copy
+        ; map entry at word 0: tile 1, colours 0 to 3
+        STA $2116
+        STA $2117
+        LDA #$01
+        STA $2118
+        LDA #$00
+        STA $2119
+        ; show layer 1; screen on
+        LDA #$01
+        STA $212C
+        LDA #$0F
+        STA $2100
+:::
+
+![Mode 1: three layers.](shots/ppu-mode1.png)
+
+![Mode 0: mirrored tiles and priorities.](shots/ppu-mirror.png)
+
+# Sprites, other modes, and effects
 
 All these parts are **[to be developed]**. Their registers already keep the values.
 
 | Step | Content |
 |---|---|
-| P4, P5 | background modes 0 to 6 |
+| P5 | background modes 2 to 6 |
 | P6 | sprites |
 | P7, P8 | windows, colour math, mosaic |
 | P9 | Mode 7 |
@@ -457,14 +584,14 @@ The enhanced video acts only in extended mode. It is **[to be developed]** and a
 
 | Command | What it checks |
 |---|---|
-| `make ppu` | test pictures against a reference model; pictures in `build/ppu/` |
+| `make ppu` | 57 test pictures against a reference model; pictures in `build/ppu/` |
 | `make ppu-unit` | the timing, and 30,000 random register accesses against the model |
 | `make ppu-mutation` | that these tests find faults that a script puts into the design |
 | `make synth-ppu` | the FPGA resources of the video part |
 
 | Resource, video part alone | Measured on 2026-11-28 |
 |---|---|
-| Logic (equivalent LUT4), yosys 0.52 | 838 |
+| Logic (equivalent LUT4), yosys 0.52 | 1,838 |
 | Block RAM | 34 |
 | Multipliers | 1 |
 
@@ -477,4 +604,5 @@ The video part with all original functions needs about 9,000 to 11,000 LUT4 (est
 - The horizontal scroll uses two latches. One source describes one latch.
 - A change of `$2100` inside a line acts at the next dot. The real chip can lag or fade.
 - The accesses outside a blank period are simpler: see the chapter "Memories".
+- The tiles are fetched in another order than on the real chip. A change of a background register inside a line can act differently.
 - No chip was measured, and no picture was compared with a console or an emulator.

@@ -26,6 +26,15 @@ module ppu_regs (
   input hv_gate,             // bit 7 of $4201: 1 lets $2137 latch the counters
   // render side
   output reg [7:0] inidisp,
+  output reg [7:0] bgmode,
+  output reg [7:0] bg1sc, output reg [7:0] bg2sc, output reg [7:0] bg3sc, output reg [7:0] bg4sc,
+  output reg [7:0] bg12nba, output reg [7:0] bg34nba,
+  output reg [9:0] bg1hofs, output reg [9:0] bg2hofs, output reg [9:0] bg3hofs, output reg [9:0] bg4hofs,
+  output reg [9:0] bg1vofs, output reg [9:0] bg2vofs, output reg [9:0] bg3vofs, output reg [9:0] bg4vofs,
+  output reg [7:0] tm,
+  output reg [7:0] ts,
+  input [14:0] bg_vaddr,     // render port of the video memory
+  output [15:0] bg_vdata,
   input [7:0] cg_raddr,
   output [14:0] cg_rdata
 );
@@ -36,11 +45,10 @@ module ppu_regs (
   wire blank = inidisp[7] || vblank;
 
   // ---- registers ----
-  reg [7:0] obsel, bgmode, mosaic, bg1sc, bg2sc, bg3sc, bg4sc, bg12nba, bg34nba, m7sel, vmain;
-  reg [7:0] w12sel, w34sel, wobjsel, wh0, wh1, wh2, wh3, wbglog, wobjlog, tm, ts, tmw, tsw;
+  reg [7:0] obsel, mosaic, m7sel, vmain;
+  reg [7:0] w12sel, w34sel, wobjsel, wh0, wh1, wh2, wh3, wbglog, wobjlog, tmw, tsw;
   reg [7:0] cgwsel, cgadsub, setini;
   reg [4:0] col_r, col_g, col_b;
-  reg [9:0] bg1hofs, bg2hofs, bg3hofs, bg4hofs, bg1vofs, bg2vofs, bg3vofs, bg4vofs;
   reg [12:0] m7hofs, m7vofs, m7x, m7y;
   reg [15:0] m7a, m7b, m7c, m7d;
   reg [15:0] vmadd;
@@ -74,10 +82,12 @@ module ppu_regs (
     endcase
   end
 
-  wire [7:0] vq_l, vq_h;
+  wire [7:0] vq_l, vq_h, vb_l, vb_h;
+  assign bg_vdata = {vb_h, vb_l};
   ppu_vram u_vram (
     .clk(clk), .addr(vaddr), .we_l(w_vlow && blank), .we_h(w_vhigh && blank), .wdata(wdata),
-    .load((w_vaddr || r_vstep) && blank), .q_l(vq_l), .q_h(vq_h)
+    .load((w_vaddr || r_vstep) && blank), .q_l(vq_l), .q_h(vq_h),
+    .addr_b(bg_vaddr), .qb_l(vb_l), .qb_h(vb_h)
   );
 
   // ---- colour memory ----

@@ -1,33 +1,33 @@
 {
  "65816x": {
-  "content": "62e2025e7240",
+  "content": "57e1fb37ee78",
   "sources": {
    "Makefile": "8bade625cf23",
-   "README.md": "ea10cc49a718",
-   "docs/ARCHITECTURE.md": "b2ff23d8cd6a",
-   "docs/ROADMAP.md": "75768fffb633",
+   "README.md": "84378e454291",
+   "docs/ARCHITECTURE.md": "39c16c842e7f",
+   "docs/ROADMAP.md": "81e126c39999",
    "docs/VARIANTS.md": "ca37ee7c1ac0",
-   "docs/VERIFICATION.md": "a332f8297181",
+   "docs/VERIFICATION.md": "86936ffcfd6c",
    "docs/progress/cpu.md": "012cbe6a037a",
-   "docs/progress/system.md": "4c00723d9c98",
+   "docs/progress/system.md": "500358f8b630",
    "manuals/themes/paper.toml": "a338e8ca8a85",
    "manuals/tools/mkmanual.py": "750011865c3c",
-   "rtl": "c1b7e9c0f4e0",
+   "rtl": "c864caae26a1",
    "sim/asm.py": "7c73bd4abed2"
   }
  },
  "ppu": {
-  "content": "6996a2733904",
+  "content": "9060f6c4dbd9",
   "sources": {
-   "docs/ARCHITECTURE.md": "b2ff23d8cd6a",
-   "docs/VERIFICATION.md": "a332f8297181",
-   "docs/design/ppu-plan.md": "ae2513988ae6",
+   "docs/ARCHITECTURE.md": "39c16c842e7f",
+   "docs/VERIFICATION.md": "86936ffcfd6c",
+   "docs/design/ppu-plan.md": "82df1e7e0e91",
    "manuals/themes/paper.toml": "a338e8ca8a85",
    "manuals/tools/mkmanual.py": "750011865c3c",
-   "rtl/ppu": "e8e9d79d6e40",
-   "sim/ppu_ref.py": "35ed599e1fc5",
-   "sim/ppu_scenes.py": "d725de9c4ee1",
-   "tests/ppu": "411658225d16"
+   "rtl/ppu": "926a6b084624",
+   "sim/ppu_ref.py": "b2c703592d8d",
+   "sim/ppu_scenes.py": "08163ffa9ea2",
+   "tests/ppu": "6906f439fe75"
   }
  }
 }

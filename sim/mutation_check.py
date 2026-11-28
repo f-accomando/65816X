@@ -104,9 +104,9 @@ PPU_MUTANTS = [
     ('ppu_timing', "overscan ? 9'd240 : 9'd225", "overscan ? 9'd240 : 9'd224", "vertical blank at line 224"),
     ('ppu_timing', "pal && interlace && field && (vcnt == 9'd311)", "1'b0", "no long line in PAL with interlace"),
     ('ppu_timing', "(hdot >= 9'd274)", "(hdot >= 9'd256)", "horizontal blank starts at dot 256"),
-    ('ppu_math', "bright <= inidisp[3:0];", "bright <= inidisp[3:0] + 4'd1;", "brightness off by one"),
-    ('ppu_math', "inidisp[7] ? 15'd0 : backdrop", "backdrop", "forced blank ignored"),
-    ('ppu_top', ".cg_raddr(8'd0)", ".cg_raddr(8'd1)", "backdrop taken from CGRAM word 1"),
+    ('ppu_math', "bright <= s_inidisp[3:0];", "bright <= s_inidisp[3:0] + 4'd1;", "brightness off by one"),
+    ('ppu_math', "s_inidisp[7] ? 15'd0 : colour_in", "colour_in", "forced blank ignored"),
+    ('ppu_prio', "default: index = 8'd0;", "default: index = 8'd1;", "backdrop taken from CGRAM word 1"),
     ('ppu_cgram', "cgadd <= wdata;\n      half <= 1'b0;", "cgadd <= wdata;", "$2121 keeps the half word"),
     ('ppu_cgram', "else cgadd <= cgadd + 8'd1;", "else cgadd <= cgadd;", "CGRAM address does not advance"),
     ('ppu_cgram', "wire commit = wr_data && half && !rst;", "wire commit = wr_data && !rst;",
@@ -126,6 +126,18 @@ PPU_MUTANTS = [
      "wrong byte in the high sprite table"),
     ('ppu_math', "(hdot >= 9'd22) && (hdot <= 9'd277)", "(hdot >= 9'd23) && (hdot <= 9'd278)",
      "picture one dot late"),
+    ('ppu_bgpix', "column_attr[4] ? sum[2:0] : (3'd7 - sum[2:0])", "(3'd7 - sum[2:0])", "horizontal mirror ignored"),
+    ('ppu_bgfetch', "wire [2:0] row = mirror_y ? (3'd7 - py[2:0]) : py[2:0];", "wire [2:0] row = py[2:0];",
+     "vertical mirror ignored"),
+    ('ppu_bgfetch', "wire right = sc[0] && tx[5];", "wire right = 1'b0;", "64-wide map wraps at 32"),
+    ('ppu_prio', "if (mode == 3'd1 && bg3_front && hi[2]) layer = 3'd3;\n    else if", "if",
+     "layer 3 priority bit of mode 1 ignored"),
+    ('ppu_bgfetch', "{9'd0, sub_x} + {5'd0, sub_y, 4'd0}", "{9'd0, sub_x} + {8'd0, sub_y, 1'b0}",
+     "16 x 16 tile: wrong tile below"),
+    ('ppu_prio', "{3'b001, pal2, num2[1:0]}", "{3'b000, pal2, num2[1:0]}", "mode 0: layer 2 without its colour offset"),
+    ('ppu_bgpix', "assign opaque = (number != 4'd0);", "assign opaque = 1'b1;", "colour 0 is not transparent"),
+    ('ppu_top', ".enable(ts[4:0])", ".enable(tm[4:0])", "sub screen uses the main screen enables"),
+    ('ppu_bgpix', "wire [36:0] column = sum[3] ? then_ : now;", "wire [36:0] column = now;", "fine scroll stays in one tile"),
 ]
 PPU_BENCHES = ['tb_ppu_timing']
 
@@ -147,13 +159,17 @@ def run_ppu():
             return False
         return done.returncode == 0
 
-    def passes(files, timing_first=False):
-        """The scenes and the benches; the test that finds a fault soonest runs first."""
+    def passes(files, module=''):
+        """The scenes and the benches; the test that probably finds a fault of `module` runs first."""
         scenes = lambda: not ppu_run.run(files, quiet=True, work=os.path.join(work, 'ppu'), all_patterns=False)
         registers = lambda: not ppu_regs_run.run(files, quiet=True, work=os.path.join(work, 'regs'))
-        tests = [registers, scenes] + [(lambda b=b: bench_passes(files, b)) for b in PPU_BENCHES]
-        if timing_first:
-            tests.reverse()
+        timing = [(lambda b=b: bench_passes(files, b)) for b in PPU_BENCHES]
+        if module == 'ppu_timing':
+            tests = timing + [registers, scenes]
+        elif module in ('ppu_regs', 'ppu_cgram', 'ppu_vram', 'ppu_oam'):
+            tests = [registers, scenes] + timing
+        else:
+            tests = [scenes, registers] + timing
         return all(test() for test in tests)       # all() stops at the first failure
 
     if not passes(sources):
@@ -168,7 +184,7 @@ def run_ppu():
         copy = os.path.join(work, module + '.v')
         with open(copy, 'w') as f:
             f.write(source.replace(old, new, 1))
-        found = not passes([copy if p == paths[0] else p for p in sources], module == 'ppu_timing')
+        found = not passes([copy if p == paths[0] else p for p in sources], module)
         missed += not found
         print("%-8s %s" % ('FOUND' if found else 'MISSED', text))
     print("PPU: %d faults of %d missed" % (missed, len(PPU_MUTANTS)))

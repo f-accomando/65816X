@@ -1,15 +1,12 @@
 #!/usr/bin/env python3
-"""budget.py - legge il conteggio celle di yosys (stat -json) e lo confronta con le
-risorse delle varianti ECP5. Uso: python3 syn/budget.py build/stat.json [A] [B]
-Esce con errore se il progetto non entra in una variante richiesta o se la RAM
-distribuita supera la soglia (segno che una memoria grande non e' finita in BRAM)."""
+"""budget.py - legge il conteggio celle di yosys (stat -json) e lo confronta con le risorse della
+ECP5 LFE5U-85F, l'unico FPGA del progetto. Uso: python3 syn/budget.py build/stat.json
+Esce con errore se il progetto non entra o se la RAM distribuita supera la soglia (segno che una
+memoria grande non e' finita in BRAM)."""
 import json, sys
 
-# Risorse dei dispositivi (datasheet Lattice ECP5): LUT4, blocchi DP16KD, moltiplicatori.
-DEVICES = {
-    'A': ('LFE5U-45F', {'LUT4': 43848, 'DP16KD': 108, 'MULT18X18D': 72}),
-    'B': ('LFE5U-85F', {'LUT4': 83640, 'DP16KD': 208, 'MULT18X18D': 156}),
-}
+# Risorse della LFE5U-85F (datasheet Lattice ECP5): LUT4, blocchi DP16KD, moltiplicatori.
+DEVICE, CAPACITY = 'LFE5U-85F', {'LUT4': 83640, 'DP16KD': 208, 'MULT18X18D': 156}
 # Ogni TRELLIS_DPR16X4 e' una RAM 16x4 in logica: oggi ne servono 12. Oltre la soglia
 # una memoria grande e' quasi certamente scivolata in LUT.
 MAX_DPR16X4 = 256
@@ -28,7 +25,7 @@ def cell_counts(path):
         out[name] = out.get(name, 0) + v
     return out
 
-def main(path, variants):
+def main(path):
     c = cell_counts(path)
     dpr = c.get('TRELLIS_DPR16X4', 0)
     # LUT4 occupati: LUT4 + 2 per ogni CCU2C (sommatore a 2 bit) + 2 per ogni DPR16X4
@@ -39,14 +36,12 @@ def main(path, variants):
     if dpr > MAX_DPR16X4:
         print("ERRORE: %d TRELLIS_DPR16X4 (soglia %d): una memoria non e' in BRAM" % (dpr, MAX_DPR16X4))
         ok = False
-    for v in variants:
-        name, cap = DEVICES[v]
-        fits = all(used[k] <= cap[k] for k in cap)
-        ok = ok and fits
-        print("variante %s (%s): %s%s" % (v, name, ", ".join(
-            "%s %d/%d (%.0f%%)" % (k, used[k], cap[k], 100.0 * used[k] / cap[k]) for k in cap),
-            "" if fits else "  NON ENTRA"))
+    fits = all(used[k] <= CAPACITY[k] for k in CAPACITY)
+    ok = ok and fits
+    print("%s: %s%s" % (DEVICE, ", ".join(
+        "%s %d/%d (%.0f%%)" % (k, used[k], CAPACITY[k], 100.0 * used[k] / CAPACITY[k]) for k in CAPACITY),
+        "" if fits else "  NON ENTRA"))
     return 0 if ok else 1
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1], sys.argv[2:] or ['B']))
+    sys.exit(main(sys.argv[1]))

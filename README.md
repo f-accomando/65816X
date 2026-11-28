@@ -10,7 +10,7 @@ The project starts from the **multi-chip structure of the original SNES** (not t
 ## Status
 
 The skeleton works. The Python mini simulator, Icarus Verilog, and yosys synthesis for ECP5 verify it.
-The CI on GitHub passes. Measured: 128 BRAM blocks, and about 5,700 LUT with Yosys 0.52. It fits in the 85F. It does not fit in the 45F yet (BRAM).
+The CI on GitHub passes. Measured: 128 BRAM blocks, and about 5,700 LUT with Yosys 0.52. The target is the ECP5 LFE5U-85F.
 CPU: all 256 opcodes pass all 5,080,400 public test vectors, cycle by cycle.
 **Not verified**: placement, maximum frequency, verilator, and real hardware.
 Details are in [docs/VERIFICATION.md](docs/VERIFICATION.md) and [docs/progress/cpu.md](docs/progress/cpu.md).
@@ -35,7 +35,7 @@ make iverilog    # the same checks with Icarus Verilog
 make unit        # test for each module (WRAM against the reference model)
 make cpu         # test bench of the CPU only: score in build/cpu_score.txt
 make cpu-public SST=<folder>   # the same with the public vectors (not in the repository)
-make synth       # ECP5 synthesis with yosys and budget; BUDGET="A B" checks both variants
+make synth       # ECP5 synthesis with yosys and the budget of the 85F
 make manual      # build the PDF manual (needs reportlab)
 make check       # everything that the CI runs
 ```
@@ -50,7 +50,7 @@ make check       # everything that the CI runs
 - [docs/progress/cpu.md](docs/progress/cpu.md) and [docs/progress/system.md](docs/progress/system.md): status, open work, and rules of each area.
 - [HANDOFF.md](HANDOFF.md): for the next session: user decisions, proposals and results, ideas not yet in the code, open questions, next steps.
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): bus, memory map, supported opcodes, WDM extensions, limits.
-- [docs/VARIANTS.md](docs/VARIANTS.md): variants A (ECP5-45F) and B (ECP5-85F), LUT and BRAM budget, bottlenecks, FPU and cache.
+- [docs/VARIANTS.md](docs/VARIANTS.md): the target FPGA, LUT and BRAM budget, bottlenecks, FPU and cache.
 - [docs/ROADMAP.md](docs/ROADMAP.md): project phases and next steps.
 - [docs/VERIFICATION.md](docs/VERIFICATION.md): check commands, synthesis budget, measured results.
 

@@ -63,9 +63,9 @@ jobs:
         with:
           name: manual
           path: build/manuals/*.pdf
-      - name: make synth (budget variante B)
+      - name: make synth (budget 85F)
         timeout-minutes: 10
-        run: make synth BUDGET=B
+        run: make synth
       - name: Conserva il rapporto di sintesi
         if: always()
         uses: actions/upload-artifact@v4

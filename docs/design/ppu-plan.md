@@ -21,7 +21,7 @@ The open work of the whole system is in [progress/system.md](../progress/system.
 - `tb/tb_snes_nmi.v` expects the NMI at 306,900 to 307,100 clocks after reset.
 - `rtl/s_cpu_5a22.v`: `.irq(1'b0)`; `$4212` gives only the vblank bit; `$420C` is stored, but no HDMA exists; `$4207-$420A` are not decoded.
 - `sim/vsim.py` does not support instance parameters, `generate`, `function`/`task`, `signed`, x/z, or more than one clock. `make test` parses every file in `rtl/files.f`.
-- `syn/budget.py`: 45F = 108 `DP16KD`, 85F = 208, threshold 256 `TRELLIS_DPR16X4`. Today: 128 blocks (WRAM 64, VRAM 32, ROM 29, decode table 1, CGRAM and OAM 2).
+- `syn/budget.py`: 85F = 208 `DP16KD`, threshold 256 `TRELLIS_DPR16X4`. Today: 128 blocks (WRAM 64, VRAM 32, ROM 29, decode table 1, CGRAM and OAM 2).
 - Bus: one CPU cycle = 2 FPGA clocks; `rd`/`wr` pulse for one clock in phase 0; the top registers `hit`; read data is valid one clock later.
 
 ### 0.2 Assumptions
@@ -215,10 +215,9 @@ Documents to read for these checks (read only, do not copy text): fullsnes by Ma
 | Video line buffer | 8 x 512 x 16 bit | 4 | dual clock |
 | **New in part 1** | | **7** [E] | |
 
-| Variant | Today [V] | With part 1 [E] | Note |
+| FPGA | Today [V] | With part 1 [E] | Note |
 |---|---|---|---|
-| B (85F, 208) | 126 | 133 (64%) | ARAM 32 (F6) brings it to 165 (79%) |
-| A (45F, 108) | 126 (does not fit) | 133 (does not fit) | after F4 (WRAM 60 and ROM 29 out): 44 blocks; with ARAM: 76 (70%) |
+| 85F, 208 blocks | 128 | 133 (64%) | ARAM 32 (F6) brings it to 165 (79%) |
 
 The target `make synth-ppu` synthesizes `ppu_top` alone. It prints its blocks, LUT, and multipliers. Thus each step has a measured PPU number, also before F4.
 
@@ -336,7 +335,7 @@ Each step closes with `make check` passing. Each step adds its mutants to the li
 - PPU+ acts only with `$5F01 = 2` (signal `ext_enhanced`). In modes 0 and 1, the PPU+ registers do not answer the bus, and PPU+ sends no SDRAM request.
 - With PPU+ synthesized, every part 1 scene gives the same CRCs in SNES mode. A mutant that removes the gate must fail a test.
 - Resolution: SNES resolutions only (decision 6). The 3D layer is 256x224 (239 with overscan). B can add 512x224.
-- Decision of the owner (Q1, 2026-11-28): the base 3D layer is 256x224. Variant B can try 512x448 later.
+- Decision of the owner (Q1, 2026-11-28): the base 3D layer is 256x224. A later version can try 512x448.
 - At 512x448 the SDRAM needs about 170-220 MB/s (estimate). The 3D layer then joins in the video output stage.
 - Look: point sampling, toon ramps, and outlines give the "Wind Waker" sharpness (decision 7). Filtering is an option, not the default (Q7).
 - Legacy DMA and the legacy PPU stay identical. The advanced DMA is a separate engine.
@@ -366,21 +365,21 @@ Each step closes with `make check` passing. Each step adds its mutants to the li
 
 ### Modules (files under `rtl/ppup/`)
 
-| File | Function | LUT A [E] | LUT B [E] |
-|---|---|---|---|
-| `ppup_regs.v`, `ppup_fifo.v` | registers, status, FIFO, fences | 0.5k | 0.5k |
-| `mp_arb.v` (in `rtl/`) | SDRAM arbiter with deadlines | 0.8k | 1.0k |
-| `adma.v` | advanced DMA (1 instance in A, 2 in B) | 1.5k | 3.0k |
-| `ppup_scanout.v` + compositor changes | 3D layer from SDRAM | 0.8k | 1.0k |
-| `ppup_vertex.v` | viewport (A); transform and light (B) | 0.4k | 3.0k |
-| `ppup_setup.v` | triangle setup, reciprocal of the area | 2.5k | 3.5k |
-| `ppup_bin.v` | band lists | 0.6k | 0.8k |
-| `ppup_raster.v` | edge walk, quads | 2.0k | 3.5k |
-| `ppup_tex.v` | cache, 4 and 8 bpp, RGB555; B: bilinear, DXT1, perspective | 1.5k | 6.0k |
-| `ppup_shade.v` | toon table; B: combiner, fog, alpha | 1.0k | 5.0k |
-| `ppup_band.v`, `ppup_wb.v` | band buffers, clear, outline, write-back; B: bloom | 1.3k | 3.5k |
-| OBJ doubling in `ppu_obj.v` | 256 entries, 64 per line, 68 tiles | 0.5k | 0.5k |
-| **Total** | | **~13k** | **~31k** |
+| File | Function | LUT [E] |
+|---|---|---|
+| `ppup_regs.v`, `ppup_fifo.v` | registers, status, FIFO, fences | 0.5k |
+| `mp_arb.v` (in `rtl/`) | SDRAM arbiter with deadlines | 1.0k |
+| `adma.v` | advanced DMA, 2 instances | 3.0k |
+| `ppup_scanout.v` + compositor changes | 3D layer from SDRAM | 1.0k |
+| `ppup_vertex.v` | transform and light | 3.0k |
+| `ppup_setup.v` | triangle setup, reciprocal of the area | 3.5k |
+| `ppup_bin.v` | band lists | 0.8k |
+| `ppup_raster.v` | edge walk, quads | 3.5k |
+| `ppup_tex.v` | cache, 4 and 8 bpp, RGB555, bilinear, DXT1, perspective | 6.0k |
+| `ppup_shade.v` | toon table, combiner, fog, alpha | 5.0k |
+| `ppup_band.v`, `ppup_wb.v` | band buffers, clear, outline, write-back, bloom | 3.5k |
+| OBJ doubling in `ppu_obj.v` | 256 entries, 64 per line, 68 tiles | 0.5k |
+| **Total** | | **~31k** |
 
 ## 2.3 Clocking and memory interfaces
 
@@ -396,13 +395,11 @@ Each step closes with `make check` passing. Each step adds its mutants to the li
 | Choice | Alternatives | Recommendation |
 |---|---|---|
 | Z buffer | (a) full frame Z in SDRAM; (b) 32x32 tiles in BRAM with 2D bins; (c) full-width bands in BRAM with 1D bins | **(c)**. Random Z traffic on a 16-bit SDRAM (a) costs about 150-300 MB/s [E]. 1D bins are simple, and the write-back is one linear burst per line |
-| Band height | 8 lines (A), 16 lines (B) | 256 x 8 x 16 bit = 4 KB: Z 2 blocks and color 2 blocks in A |
+| Band height | 8 lines, 16 lines | **16 lines**, in two banks for 2 px/clk |
 | Blitter | separate unit; quad mode of the rasterizer | **Quad mode** (HANDOFF section 5) |
 | Command input | CPU writes to the FIFO port; descriptor lists in SDRAM through `adma` | **Both**. The CPU port is for small scenes and tests |
-| Vertex work in A | hardware T&L; CPU with WDM MAC | **CPU** (VARIANTS: T&L only in B) |
-| Texture filter | point; bilinear | **Point** in A and B; bilinear is an option bit in B |
+| Texture filter | point; bilinear | **Point** by default; bilinear is an option bit |
 | Transparency of the 3D layer | colour key; 1 coverage bit per pixel (RGB555 + 1) | **Coverage bit** |
-| Variant selection | `ifdef` (not in `vsim.py`); constant input ports tied in each board top | **Constant inputs** `cfg_b`. yosys removes the unused logic (verify with `make synth BUDGET="A B"`) |
 
 ## 2.5 SDRAM bandwidth [E]
 
@@ -412,48 +409,47 @@ Scene: 25,000 triangles per frame, 30 fps, 256x224, overdraw 3.
 |---|---|
 | Command lists (40 B per triangle) | 30 |
 | Bin write and read (32 B per record, 1.2 bands per triangle) | 58 |
-| Texture misses (A; double for bilinear in B) | 5 (10) |
+| Texture misses (double with bilinear) | 5 (10) |
 | Write-back of the frame | 3.4 |
 | Scan-out (60 Hz) | 6.9 |
 | CPU and ROM in SNES mode (worst case) | 7 |
-| CPU and WRAM in enhanced mode without cache (A) | up to 50 |
+| CPU and WRAM in enhanced mode without cache | up to 50 |
 | **Total** | **~110-160** |
 
 - A 16-bit SDRAM gives 200 MB/s at 100 MHz and 332 MB/s at 166 MHz (peak). Real efficiency is about 60% [E].
 - The design fits at 166 MHz. At 100 MHz it is tight. The chip part and its clock: to check (HANDOFF question 8).
 - To save bandwidth, keep the triangle records at 24-32 bytes. Let small scenes use the CPU FIFO port.
 
-## 2.6 Variants A and B
+## 2.6 Features
 
-| Feature | A (45F) | B (85F) |
-|---|---|---|
-| Pixel rate | 1 px/clk | 2 px/clk |
-| Vertex | screen space from the CPU | T&L, perspective divide, N.L lighting |
-| Texture | affine, point, 4/8 bpp paletted, RGB555 | + perspective, bilinear option, DXT1, second texture |
-| Shading | Gouraud intensity, toon table, outline | + 2-3 stage combiner, alpha, fog, bloom |
-| Band | 256 x 8 | 256 x 16 (two banks for 2 px/clk) |
-| Advanced DMA | 1 engine | 2 engines |
-| 3D layer | 256x224 | 256x224, optional 512x224 |
-| OBJ doubling | yes | yes |
+| Feature | Content |
+|---|---|
+| Pixel rate | 2 px/clk |
+| Vertex | transform and light, perspective divide, N.L lighting |
+| Texture | affine and perspective, point, bilinear option, 4/8 bpp paletted, RGB555, DXT1, second texture |
+| Shading | Gouraud intensity, toon table, outline, 2-3 stage combiner, alpha, fog, bloom |
+| Band | 256 x 16 (two banks) |
+| Advanced DMA | 2 engines |
+| 3D layer | 256x224, optional 512x224 |
+| OBJ doubling | yes |
 
 ## 2.7 BRAM and multipliers [E]
 
-| Memory | A | B |
-|---|---|---|
-| Band Z and color (double) | 4 | 8 |
-| Object ID band (outline) | 1 | 2 |
-| Texture cache | 2 | 4 |
-| Command FIFO | 2 | 2 |
-| Scan-out line FIFO | 1 | 1 |
-| Setup record buffer | 2 | 2 |
-| 3D palette and toon tables | 1 | 1 |
-| Second OAM (doubling) | 1 | 1 |
-| Bloom line buffers | - | 2 |
-| **Total** | **14** | **23** |
+| Memory | Blocks |
+|---|---|
+| Band Z and color (double) | 8 |
+| Object ID band (outline) | 2 |
+| Texture cache | 4 |
+| Command FIFO | 2 |
+| Scan-out line FIFO | 1 |
+| Setup record buffer | 2 |
+| 3D palette and toon tables | 1 |
+| Second OAM (doubling) | 1 |
+| Bloom line buffers | 2 |
+| **Total** | **23** |
 
-- A after F4: 76 (part 1 and ARAM) + boot ROM 4 + scratchpad 8 + PPU+ 14 = **102 of 108 (94%)** [E]. This is tight. Reduce the band to 4 lines or drop the outline band if `make synth BUDGET=A` fails.
-- B: 165 + boot 4 + scratchpad 16 + I-cache 4 + reverb 9 + PPU+ 23 = **221 of 208** [E]. This does not fit. Move the WRAM (64) to SDRAM in B too, or drop the reverb buffer (owner, Q10).
-- Multipliers: A about 10 (setup 4, shading 3, Mode 7 3); B about 30 (T&L 6, perspective 4, bilinear 6, shading 6, setup 6). Both are far below 72 and 156.
+- All parts: 165 (part 1 and ARAM) + boot ROM 4 + scratchpad 16 + I-cache 4 + reverb 9 + PPU+ 23 = **221 of 208** [E]. This does not fit. Move the WRAM (64) to SDRAM, or drop the reverb buffer (owner, Q10).
+- Multipliers: about 30 (T&L 6, perspective 4, bilinear 6, shading 6, setup 6). This is far below 156.
 
 ## 2.8 Steps
 
@@ -461,7 +457,7 @@ Scene: 25,000 triangles per frame, 30 fps, 256x224, overdraw 3.
 - Content: fixed-point formats (vertex 12.4, Z 16 bit, texture coordinates, gradients), fill rule (top-left), command words, registers `$5F40-$5F7F`, framebuffer layout. The width and the height of the 3D layer are parameters.
 - Files: `docs/design/ppup-formats.md`.
 - Done when: the owner approves the note. Each later step cites its section.
-- Depends on: HANDOFF question 1. Risk: medium. Agent: expensive, N=4 (a wrong format costs rework in all steps).
+- Depends on: nothing. Risk: medium. Agent: expensive, N=4 (a wrong format costs rework in all steps).
 
 ### X1. Memory port and arbiter
 - Content: `mp_*` interface, `mp_arb.v`, `tb/sdram_model.v` (own code: latency, refresh, row misses).
@@ -512,10 +508,10 @@ Scene: 25,000 triangles per frame, 30 fps, 256x224, overdraw 3.
 - Depends on: X7. Risk: low. Agent: standard, N=3.
 
 ### X9. Vertex stage
-- Content: `ppup_vertex.v`. A: viewport and clip flags. B: 3x4 matrix in 16.16, reciprocal (table plus one Newton step), N.L.
+- Content: `ppup_vertex.v`. Viewport and clip flags. 3x4 matrix in 16.16, reciprocal (table plus one Newton step), N.L.
 - Done when: 10,000 random vertices are bit-exact against the model.
 - Mutants: matrix row swapped; reciprocal without the Newton step.
-- Depends on: X6. Risk: medium (B). Agent: standard N=3 in A; expensive N=4 in B.
+- Depends on: X6. Risk: medium. Agent: expensive, N=4.
 
 ### X10. Doubled sprites (extended mode)
 - Content: second OAM, 64 sprites and 68 tiles per line, only with mode 2 and an enable bit.
@@ -523,9 +519,9 @@ Scene: 25,000 triangles per frame, 30 fps, 256x224, overdraw 3.
 - Mutants: gate leak; limit stays 32 in mode 2.
 - Depends on: P6, X2. Risk: high (legacy module). Agent: expensive, N=4.
 
-### X11. B features (one work order each)
+### X11. Further features (one work order each)
 - Content: 2 px/clk, perspective, bilinear, alpha, fog, combiner, bloom, DXT1, second texture.
-- Done when: each feature has a model case, a scene, a mutant, and `make synth BUDGET=B` passes.
+- Done when: each feature has a model case, a scene, a mutant, and `make synth` passes.
 - Depends on: X7-X9. Risk: medium. Agent: standard, N=3 each.
 
 ### X12. Performance test
@@ -590,8 +586,7 @@ The system test bench records each B-bus write (`$21xx`) with its (V, H) positio
 | Part 1 PPU (`rtl/ppu/`) | 9-11k | 3 (VRAM 32 already counted) | 2-3 |
 | 5A22 timers and HDMA | 1.1k | 0 | 0 |
 | Video and DVI | 1.0k | 4 | 0 |
-| PPU+ A | 13k | 14 | ~7 |
-| PPU+ B | 31k | 23 | ~27 |
+| PPU+ | 31k | 23 | ~27 |
 
 Measure part 1 with `make synth-ppu` after each step. Quote each LUT count with the yosys version (`docs/VERIFICATION.md`, section 5).
 
@@ -599,15 +594,14 @@ Measure part 1 with `make synth-ppu` after each step. Quote each LUT count with 
 
 | # | Question | Alternative 1 | Alternative 2 | Recommendation |
 |---|---|---|---|---|
-| Q1 | 3D layer resolution (answered on 2026-11-28) | 256x224 (+512x224 in B) | 320x240 | **Decided: 256x224** |
+| Q1 | 3D layer resolution (answered on 2026-11-28) | 256x224 (+512x224) | 320x240 | **Decided: 256x224** |
 | Q2 | HDMI output mode | 640x480, 2x2 | 1280x720, 3x3 (742 Mbit/s per lane: to check on ECP5) | **640x480** |
 | Q3 | Frame rate | frame lock at 60.09/50.02 Hz, no SDRAM | SDRAM frame buffer at 60.00/50.00 Hz, one repeated frame about every 10 s | **Frame lock**; fallback if the monitor refuses |
 | Q4 | Accuracy target | dot-sequential (section 1.4) | exact fetch slots | **Dot-sequential** |
 | Q5 | Second reference | `bm` `ppu_equiv.c` with a scene adapter | Python model only | **Both** (needs access to `bm`) |
 | Q6 | External test ROMs and emulators | local use outside the repository after a license check | own scenes only | **Local use** |
-| Q7 | Texture filter in B | point only | point default, bilinear as an option bit | **Option bit** |
+| Q7 | Texture filter | point only | point default, bilinear as an option bit | **Option bit** |
 | Q8 | Doubled sprites | double the legacy OBJ unit and add the blitter | blitter only | **Both** (OBJ doubling costs ~0.5k LUT [E]) |
 | Q9 | Interlace on HDMI | bob | weave with a frame buffer | **Bob** |
-| Q10 | BRAM of B (section 2.7) | WRAM in SDRAM also in B | no reverb buffer | **WRAM in SDRAM** (the same code as A) |
+| Q10 | BRAM (section 2.7) | WRAM in SDRAM | no reverb buffer | **WRAM in SDRAM** |
 
-HANDOFF question 1 (A or B first) sets the order of X11. Part 1 is the same for A and B.

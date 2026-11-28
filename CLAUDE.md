@@ -16,7 +16,7 @@ Read files in small slices (`grep`, or `offset` and `limit`). The current state 
 | Phases of the project | `docs/ROADMAP.md` |
 | Bus, memory map, opcodes, extensions | `docs/ARCHITECTURE.md` |
 | Check commands, synthesis budget, measured results | `docs/VERIFICATION.md` |
-| Variants A and B, resource estimates | `docs/VARIANTS.md` |
+| Target FPGA, logic and BRAM budget | `docs/VARIANTS.md` |
 | User manual: text, build, rules | `manuals/README.md` |
 | Design of the CPU core, work orders | `docs/design/cpu-core.md` |
 | CPU extensions: what exists, proposals | `docs/design/cpu-extensions.md` |

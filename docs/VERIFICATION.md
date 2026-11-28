@@ -10,7 +10,7 @@
 | `make unit` | test for each module against a reference model (today: the video timing, the WRAM with 100,000 random cycles, and the `WDM` unit with 20,000 operations) | iverilog |
 | `make cpu` | CPU only: one instruction for each vector, score in `build/cpu_score.txt`, pass list `tests/cpu_pass.txt`. It checks the cycle count and each bus cycle when the vectors give them. | iverilog |
 | `make cpu-update` | same as above, and writes `tests/cpu_pass.txt` again | iverilog |
-| `make synth` | ECP5 synthesis and budget check (default `BUDGET=B`) | yosys |
+| `make synth` | ECP5 synthesis and budget check of the LFE5U-85F | yosys |
 | `make ref-public SST=<folder>` | reference model against the public vectors | public vectors |
 | `make cpu-public SST=<folder>` | CPU against the public vectors, score in `build/cpu_public_score.txt` | iverilog, public vectors |
 | `make cpu-int` | interrupts: directed tests of the core (`tb/tb_cpu_int.v`) and of the system NMI (`tb/tb_snes_nmi.v`) | iverilog |
@@ -63,16 +63,13 @@ Trap: with `iverilog -g2012`, the word `ref` is reserved. Do not use it as an in
 
 ## 4. Synthesis budget
 
-`syn/budget.py` reads `build/stat.json` and compares it with the variant:
+`syn/budget.py` reads `build/stat.json` and compares it with the LFE5U-85F:
 
 - equivalent LUT4: `LUT4 + 2 x CCU2C + 2 x TRELLIS_DPR16X4` (estimate before placement);
 - `DP16KD` BRAM blocks and `MULT18X18D` multipliers;
 - error above 256 `TRELLIS_DPR16X4`: a large memory went into logic instead of BRAM.
 
 Check the device numbers in the script against the Lattice datasheet.
-
-Today variant A **does not fit** (128 blocks of 108: placeholder ROM and WRAM in BRAM). The CI checks
-only B. Add A to the CI when the memory is on SDRAM (roadmap phase F4).
 
 ## 5. Results measured on 2026-11-28
 
@@ -92,8 +89,8 @@ Older results are in the git history of this file.
 | `make ppu-mutation` | 21 of 21 faults found |
 | `make synth-ppu` | PPU alone: 838 equivalent LUT4, 34 `DP16KD`, 1 multiplier |
 | `$div` and `$mod` cells before mapping | none |
-| equivalent LUT4 | 5703 (7% of the 85F, 13% of the 45F) |
-| `DP16KD` | 128 (62% of the 85F, 119% of the 45F); yosys puts the decode table in one block |
+| equivalent LUT4 | 5703 (7% of the 85F) |
+| `DP16KD` | 128 (62% of the 85F); yosys puts the decode table in one block |
 | `MULT18X18D` | 2 |
 | `TRELLIS_FF` | 909 |
 | `TRELLIS_DPR16X4` | 16 |

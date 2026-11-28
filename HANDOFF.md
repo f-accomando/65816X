@@ -65,17 +65,19 @@ project did not fit in either FPGA.
 
 ## 3. User decisions (ask before you reopen them)
 
-1. **Target**: ECP5 FPGA on the ULX3S, two variants: A (45F, ~44k LUT) and B (85F, ~84k LUT).
+1. **Target**: ECP5 LFE5U-85F (~84k LUT) on the ULX3S. One variant (changed on 2026-11-28, decision 10).
 2. **Compatibility** with SNES ROMs and cartridges; the extensions are optional ("option C": compatible and extensible). No "new technologies".
 3. **Start from the original multi-chip SNES structure**, not from the 1-chip version.
 4. **Programmable on the machine**: keyboard, assembly, and C.
-5. **Audio of B: 16 voices at 44.1 kHz** (the user proposed 24 voices as on the PS1, then chose 16).
+5. **Audio: 16 voices at 44.1 kHz** (the user proposed 24 voices as on the PS1, then chose 16).
 6. **Resolution**: no 480/720; keep SNES resolutions (the user was interested in double resolution and sprites with the same architecture).
 7. **Look**: "Wind Waker" sharpness (clean polygons and textures, without the blur of the N64) without GameCube emulation.
 8. **CPU core** (2026-11-27): 2 FPGA clocks for each CPU cycle. The design in `docs/design/cpu-core.md`
    is approved, with the proposals of its section 9.3. The user also approved the deletion of the old core.
 9. **3D resolution** (2026-11-28): the base 3D layer is 256x224, 239 lines with overscan. The PPU+
-   formats keep width and height configurable. Thus variant B can try 512x448 later.
+   formats keep width and height configurable. Thus a later version can try 512x448.
+10. **One target** (2026-11-28): drop the 45F. The base is the 85F. Size the design from the original
+    SNES up to the enhanced machine without compromises (`docs/VARIANTS.md`).
 
 ## 4. Proposals of the user (from ChatGPT chats) and results
 
@@ -92,8 +94,8 @@ only the first answers were pasted (CPU section). The other answers are not avai
 | In-order pipeline with 3-5 stages | Changed: 3-stage prefetch | a 65816 with a byte bus gains little from 5 stages |
 | Branch prediction | Postponed | short pipeline, little gain |
 | L1 cache 4-8 KB (I and D) + L2 32-128 KB | **Changed**: 16 KB scratchpad for each core + optional 4 KB I-cache for each core; no L2 | BRAM is already at 88-94%, and coherence with I/O and DMA is the difficult point |
-| Separate buses: instructions, data, DMA, peripherals | **Adopted** in B (3 buses in A) | the DMA does not block the fetch |
-| DMA with 8-16 channels, bursts, command lists, priorities | Changed: 8 legacy channels + advanced engines (1 in A, 2 in B) | the legacy DMA must stay identical |
+| Separate buses: instructions, data, DMA, peripherals | **Adopted** | the DMA does not block the fetch |
+| DMA with 8-16 channels, bursts, command lists, priorities | Changed: 8 legacy channels + 2 advanced engines | the legacy DMA must stay identical |
 | 64-bit internal bus | **Rejected** | the SDRAM of the ULX3S is 16-bit |
 | 8 vector registers of 128 bits | **Rejected** | too many LUT for a 65816 |
 | 50-100 MHz clock | Reduced to 50-80 MHz | realistic on ECP5 |
@@ -104,26 +106,25 @@ only the first answers were pasted (CPU section). The other answers are not avai
 
 ## 5. Proposal of Claude
 
-### Variants (details in `docs/VARIANTS.md`)
+### The design (details in `docs/VARIANTS.md`)
 
-| | A (ECP5-45F) | B (ECP5-85F) |
-|---|---|---|
-| Core | 1 core 65816X | 2 cores 65816X (SA-1 style) |
-| Bus | 3 | 4 separate |
-| Math | MUL, DIV, MAC | MUL, DIV, MAC, T&L, DOT3, CROSS3, ROT |
-| DMA | 1 advanced engine | 2 advanced engines |
-| PPU+ | 1 px/clk, toon | 2 px/clk, bilinear, perspective, alpha, fog, toon, 2-3 stage combiner, bloom, DXT1 |
-| Audio | original DSP 8 voices 32 kHz | 16 voices 44.1 kHz with reverb + original DSP 32 kHz |
-| Estimate | ~37k LUT (84%), BRAM ~87% (WRAM in SDRAM) | ~73k LUT (87%), BRAM ~87% |
+| Part | Content |
+|---|---|
+| Core | 2 cores 65816X (SA-1 style) |
+| Bus | 4 separate |
+| Math | MUL, DIV, MAC, T&L, DOT3, CROSS3, ROT |
+| DMA | 2 advanced engines |
+| PPU+ | 2 px/clk, bilinear, perspective, alpha, fog, toon, 2-3 stage combiner, bloom, DXT1 |
+| Audio | 16 voices 44.1 kHz with reverb + original DSP 32 kHz |
 
-B excludes SuperFX/DSP-1/Cx4 (load them as an alternative bitstream), FPU, and RISC-V: they do not fit.
+The design excludes SuperFX/DSP-1/Cx4 (load them as an alternative bitstream), FPU, and RISC-V: they do not fit.
 
 ### PPU+ pipeline (to implement)
 
 1. Command FIFO
 2. Vertex (MAC)
 3. Triangle setup
-4. Rasterizer (1 px/clk in A, 2 px/clk in B)
+4. Rasterizer (2 px/clk)
 5. Texture + Z (Z for each tile in BRAM)
 6. Shading
 7. Framebuffer (SDRAM, double buffer)
@@ -141,7 +142,7 @@ about 20-30k triangles for each frame. Cel-shaded look: toon table (~1k LUT), 2-
 - **Cache**: only a 4 KB read-only I-cache for each core; non-cacheable areas `$2100-$21FF`, `$4000-$43FF`, shared WRAM; disabled in SNES mode.
 - **Audio**: 16 voices with reverb ~5k LUT; it needs a 22.5792 MHz oscillator or a resampler (~0.5k LUT); the original DSP stays at 32 kHz with a rate converter.
 - **Boot and OS**: 4-8 KB boot ROM in BRAM, over the vectors, disabled with a register write (to assign in `$5F00-$5FFF`); OS from SD or flash loaded in RAM (monitor, editor, on-device assembler, BASIC), ~8-16 KB.
-- **Quad-core cluster** (discussed, not in the variants): core 0 + 3 workers. Each has 16 KB of local BRAM and a DMA. They use mailboxes, semaphores, and IRQ. All see the same map with a core ID. In compatible mode, only core 0 is active.
+- **Quad-core cluster** (discussed, not in the design): core 0 + 3 workers. Each has 16 KB of local BRAM and a DMA. They use mailboxes, semaphores, and IRQ. All see the same map with a core ID. In compatible mode, only core 0 is active.
 - **Alternative with real chips**: WDC W65C816S (~14 MHz) and a Cortex-M33/M7 MCU instead of FPU + RISC-V. That needs ~66k LUT in total + ~1k LUT of bridge. Other options: salvaged original PPU/APU, a glue CPLD, or an "enhancer" cartridge such as the FXPak.
 
 ### List of improvements, in order
@@ -214,7 +215,7 @@ of the SNES mode.
 
 ## 9. Open questions for the user
 
-1. Which variant do we implement first, A or B?
+1. Answered on 2026-11-28: one target, the 85F (decision 10).
 2. 32-bit mode with a prefix: yes or no?
 3. FPU and RISC-V, Cortex MCU, or none of the three?
 4. License of the repository (not chosen).
@@ -223,13 +224,13 @@ of the SNES mode.
 7. Standalone machine or ARM in control (Pi Zero W, later possibly CM3)? In a standalone machine, the
    system lives in the FPGA, and a Raspberry is only a development tool. Proposal of Claude: a small boot ROM in the FPGA and an
    SPI host port; Pi Zero W first, CM3 only if it is not sufficient. It blocks phase F4 and the place of the host port.
-8. Which ULX3S do you have (45F or 85F, how much SDRAM)? It blocks the board tests of F4.
+8. Which ULX3S 85F do you have, and how much SDRAM? It blocks the board tests of F4.
 9. Permission to download the 65816 test vectors (SingleStepTests) in the CI, without a copy in the repository?
    The user permitted a local download on 2026-11-27 (folder `65816-test-vectors`, next to the repository).
 10. Do you approve the encoding of R0-R7 and DOT3 (`docs/design/cpu-extensions.md`, section 3)?
 11. The questions Q1-Q10 of the PPU plan (`docs/design/ppu-plan.md`, section 5).
 
-Question 1 blocks F4; questions 2 and 3 block F8 and F10; question 4 blocks the import of third-party files.
+Questions 2 and 3 block F8 and F10; question 4 blocks the import of third-party files.
 
 ## 10. Suggested next step
 

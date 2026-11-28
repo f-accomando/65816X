@@ -3,8 +3,6 @@ PY ?= python3
 IVERILOG ?= iverilog
 VVP ?= vvp
 YOSYS ?= yosys
-# varianti controllate da "make synth" (A = 45F, B = 85F); vedi docs/VERIFICATION.md
-BUDGET ?= B
 
 RTL := $(filter %.v,$(shell cat rtl/files.f))
 
@@ -121,13 +119,13 @@ tables-check:
 synth: rom.hex
 	mkdir -p build
 	$(YOSYS) -q -l build/synth.log -p "read_verilog $(RTL); synth_ecp5 -top snes_plus_top; tee -q -o build/stat.json stat -json"
-	$(PY) syn/budget.py build/stat.json $(BUDGET)
+	$(PY) syn/budget.py build/stat.json
 
 # Resources of the PPU alone (information for each step of docs/design/ppu-plan.md)
 synth-ppu:
 	mkdir -p build
 	$(YOSYS) -q -l build/synth_ppu.log -p "read_verilog $(filter rtl/ppu/%,$(RTL)); synth_ecp5 -top ppu_top; tee -q -o build/stat_ppu.json stat -json"
-	$(PY) syn/budget.py build/stat_ppu.json $(BUDGET)
+	$(PY) syn/budget.py build/stat_ppu.json
 
 # The manual in manuals/pdf (needs reportlab). manual-check fails if its sources changed.
 manual:

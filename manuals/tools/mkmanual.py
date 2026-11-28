@@ -70,7 +70,7 @@ class Theme:
                                  textColor=c["heading"], spaceBefore=12, spaceAfter=4),
             "h3": ParagraphStyle("h3", fontName=f["bold"], fontSize=s["h3"], leading=s["h3"] * 1.3,
                                  textColor=c["accent"] if self.name != "paper" else c["heading"], spaceBefore=8,
-                                 spaceAfter=2),
+                                 spaceAfter=2, keepWithNext=1),
             "li": ParagraphStyle("li", leftIndent=14, bulletIndent=2, spaceAfter=2, bulletFontName=f["bold"], bulletColor=c["accent"], **base),
             "step": ParagraphStyle("step", leftIndent=22, bulletIndent=0, spaceAfter=4, **base),
             "cap": ParagraphStyle("cap", fontName=f["italic"], fontSize=s["small"], leading=s["small"] * 1.4,
@@ -222,9 +222,16 @@ def build_story(th, meta, lines, base_dir, width, lang):
                                                                                               fontSize=th.s["body"] - 0.5)))
         if kind == "readme":
             inner.insert(0, Paragraph(lab["readme"], p["label"]))
-        story.append(Spacer(1, 4))
+        story.append(lead(4))
         story.append(Box(th, inner, kind))
         story.append(Spacer(1, 10))
+
+    def lead(gap):
+        """The space before a block; it stays with a "###" heading that comes just before it."""
+        sp = Spacer(1, gap)
+        if story and isinstance(story[-1], Paragraph) and story[-1].style.name == "h3":
+            sp.keepWithNext = 1
+        return sp
 
     first_chapter = True
     while i < len(lines):
@@ -248,7 +255,7 @@ def build_story(th, meta, lines, base_dir, width, lang):
             t.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), c["code_bg"]), ("LEFTPADDING", (0, 0), (-1, -1), 8),
                                    ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
                                    ("LINEBEFORE", (0, 0), (0, -1), 2.5, c["accent"])]))
-            story.extend([Spacer(1, 2), t, Spacer(1, 8)])
+            story.extend([lead(2), t, Spacer(1, 8)])
         elif ln.startswith("# "):
             flush()
             if not first_chapter:

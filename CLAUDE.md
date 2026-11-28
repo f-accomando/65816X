@@ -41,6 +41,9 @@ Read files in small slices (`grep`, or `offset` and `limit`). The current state 
 **Language of the documents.** Write every `.md` file that directs the project in English, with ASD-STE100. These files are `CLAUDE.md`, `README.md`, `HANDOFF.md`, and all files in `docs/`. Write the manual in the same style.
 
 **Manual.** Keep the user manual true. Update `manuals/content/en/65816x.md` in the same change that changes what a user sees or does. Then run `make manual`.
+For each extended or accelerated function that original games can use, add an example to the manual.
+Show how to call it. Show the original code and then the modified code.
+Run both in the simulator. Compare the results.
 
 **ASD-STE100.** Write short sentences: 20 words maximum for an instruction, 25 words maximum for a description. Write one instruction in each sentence. Use the active voice. Use imperative verbs for instructions. Use one word for one meaning. Write 6 sentences maximum in a paragraph.
 

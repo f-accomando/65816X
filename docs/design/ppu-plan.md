@@ -1,7 +1,7 @@
 # PPU development plan
 
 Status: proposal. Date: 2026-11-28. This document plans the original PPU (part 1) and the enhanced PPU+ (part 2).
-It changes no decision of `HANDOFF.md`, section 3. Steps P1 and P2 are done. The other steps have not started.
+It changes no decision of `HANDOFF.md`, section 3. Steps P1, P2, and P3 are done. The other steps have not started.
 The open work of the whole system is in [progress/system.md](../progress/system.md).
 
 ## 0. How to read this document
@@ -16,13 +16,12 @@ The open work of the whole system is in [progress/system.md](../progress/system.
 ### 0.1 Starting point [V]
 
 - `rtl/ppu/ppu_timing.v` gives the line and frame timing (step P1). `rtl/ppu/ppu_top.v` holds it.
-- `ppu_top` has `$2100`, `$2121-$2122` (step P2), `$2115-$2119`, and `$2139-$213A`. Increments are 1, 32, 128. No address remap, no prefetch.
-- `ppu_top` writes VRAM at any time. It ignores the forced blank and the active display.
+- `ppu_regs.v` holds all registers `$2100-$213F` and the three memories (step P3).
 - VRAM is two arrays `vram_l` and `vram_h` (32768 x 8). `tests/test_program.expect` and `sim/run_tests.py` read `u_ppu.vram_l` and `u_ppu.vram_h`.
 - `tb/tb_snes_nmi.v` expects the NMI at 306,900 to 307,100 clocks after reset.
 - `rtl/s_cpu_5a22.v`: `.irq(1'b0)`; `$4212` gives only the vblank bit; `$420C` is stored, but no HDMA exists; `$4207-$420A` are not decoded.
 - `sim/vsim.py` does not support instance parameters, `generate`, `function`/`task`, `signed`, x/z, or more than one clock. `make test` parses every file in `rtl/files.f`.
-- `syn/budget.py`: 45F = 108 `DP16KD`, 85F = 208, threshold 256 `TRELLIS_DPR16X4`. Today: 126 blocks (WRAM 64, VRAM 32, ROM 29, decode table 1).
+- `syn/budget.py`: 45F = 108 `DP16KD`, 85F = 208, threshold 256 `TRELLIS_DPR16X4`. Today: 128 blocks (WRAM 64, VRAM 32, ROM 29, decode table 1, CGRAM and OAM 2).
 - Bus: one CPU cycle = 2 FPGA clocks; `rd`/`wr` pulse for one clock in phase 0; the top registers `hit`; read data is valid one clock later.
 
 ### 0.2 Assumptions
@@ -192,6 +191,17 @@ Check of 2026-11-28 for step P2:
 - The brightness has "linear steps" from none to full. No formula was found.
 - A colour memory write in the active display goes to another address on the real chip.
 
+Check of 2026-11-28 for step P3 (registers):
+
+- Sources: <https://snes.nesdev.org/wiki/PPU_registers> (N), <https://wiki.superfamicom.org/registers> (W),
+  <https://snes.nesdev.org/wiki/Open_bus>, and <https://problemkaputt.de/fullsnes.htm> (F).
+- Horizontal scroll: N and W give two latches. F gives one latch. The design follows N and W.
+  The row "Scroll latches" of the table above is the formula of F.
+- Latch by `$2137`: N latches only when the latch flag is 0. The design latches at each read.
+- `$4201` bit 7: W and F let it gate the latch. N does not name it. The design uses the gate.
+- `$213B`: F and W advance the address after the high byte. The design does the same.
+- Sprite memory address after `$3FF`: no source. The design goes back to 0.
+
 Documents to read for these checks (read only, do not copy text): fullsnes by Martin Korth, anomie's register and timing documents, the SNESdev wiki. Their licenses: to check.
 
 ## 1.6 BRAM and fit
@@ -227,12 +237,11 @@ Each step closes with `make check` passing. Each step adds its mutants to the li
 - Mutants: 6 new ones. The plan asked for 3.
 - One agent wrote the model first and then the Verilog. The plan asked for two agents.
 
-### P3. Registers and memory ports
-- Content: all write registers, write-twice latches, VRAM prefetch and remap, access rules. Then CGRAM and OAM latches, OAM reload and rotation, reads `$2134-$213F` with their flip-flops, MDR approximation.
-- Files: `rtl/ppu/ppu_regs.v`, `ppu_vram.v`, `ppu_oam.v`, `tb/tb_ppu_regs.v`, `sim/ppu_ref.py` (register part).
-- Done when: `make ppu-unit` plays 10,000 random bus accesses (fixed seed) from `sim/ppu_ref.py --regs`. 0 read differences. all checks of `make test` pass. `make synth-ppu`: VRAM 32 blocks, CGRAM and OAM 2 blocks, `TRELLIS_DPR16X4 <= 256`.
-- Mutants: no prefetch; wrong remap mode 1; CGRAM written without the latch; VRAM write accepted in active display; `$213F` read does not reset the flip-flops.
-- Depends on: P2. Risk: medium (many [C] details). Agent: standard, N=3.
+### P3. Registers and memory ports (done)
+- Result: `ppu_regs.v`, `ppu_vram.v`, `ppu_oam.v`, `tb/tb_ppu_regs.v`, `sim/ppu_regs_run.py`.
+- `make ppu-unit` plays 30,000 random accesses: 0 differences. Mutants: 9 new ones.
+- One agent wrote the model first and then the Verilog.
+- Step P10 keeps: the effect of `$2133`, the input `hv_latch`, and the checks at random positions.
 
 ### P4. Modes 0 and 1, main and sub screens
 - Content: fetch sequencer, 2 and 4 bpp tiles, map sizes 32/64, 8x8 and 16x16 tiles. Then flips, palettes (mode 0 palette offset per layer), scroll, priority bits, BG3 priority (`$2105` bit 3), `$212C/$212D`.

@@ -118,7 +118,31 @@ loop:   CLC
         LDA $2139
         STA $7E001C         ; 33
         LDA $213A
-        STA $7E001D         ; 44
+        STA $7E001D         ; 22
+        LDA $2139
+        STA $7E006B         ; 33
+        LDA $213A
+        STA $7E006C         ; 44
+
+; T22: durante l'immagine una scrittura in VRAM si perde; in blank no
+        LDA #$0F
+        STA $2100           ; immagine accesa (riga attiva)
+        LDA #$00
+        STA $2116
+        STA $2117
+        LDA #$AA
+        STA $2118
+        LDA #$BB
+        STA $2119           ; persa
+        LDA #$80
+        STA $2100           ; di nuovo schermo nero
+        LDA #$00
+        STA $2116
+        STA $2117
+        LDA $2139
+        STA $7E006D         ; 11
+        LDA $213A
+        STA $7E006E         ; 22
 
 ; T14: in modalita' SNES ($5F01 = 0) WDM non fa nulla
         REP #$30

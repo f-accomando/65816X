@@ -24,7 +24,7 @@ module tb_ppu;
   wire [2:0] dbg_layer;
 
   ppu_top dut (
-    .clk(clk), .rst(rst), .mce(mce), .pal(pal), .interlace(1'b0), .overscan(1'b0),
+    .clk(clk), .rst(rst), .mce(mce), .pal(pal), .interlace(1'b0), .overscan(1'b0), .hv_gate(1'b1),
     .addr(addr), .rd(rd), .wr(wr), .wdata(wdata), .rdata(rdata), .hit(hit), .vblank(vblank),
     .pix_valid(pix_valid), .pix_x(pix_x), .pix_y(pix_y), .pix_even(pix_even), .pix_odd(pix_odd),
     .pix_hires(pix_hires), .bright(bright), .dbg_layer(dbg_layer)
@@ -104,8 +104,8 @@ module tb_ppu;
     end
     $fclose(f);
     #1;
-    for (x = 0; x < 256; x = x + 1) dut.u_cgram.mem[x] = 15'd0;
-    if ($value$plusargs("cgram=%s", cgram_file)) $readmemh(cgram_file, dut.u_cgram.mem);
+    for (x = 0; x < 256; x = x + 1) dut.u_regs.u_cgram.mem[x] = 15'd0;
+    if ($value$plusargs("cgram=%s", cgram_file)) $readmemh(cgram_file, dut.u_regs.u_cgram.mem);
     repeat (4) @(negedge clk);
     rst = 1'b0;
     // after the reset the position is line 0, dot 0, without a dot_en pulse

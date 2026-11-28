@@ -26,7 +26,7 @@ The Verilog skeleton follows the **multi-chip structure of the original SNES** (
 |---|---|---|
 | Core 65816X | `rtl/cpu/` | all 256 opcodes, cycle by cycle; NMI, IRQ, reset |
 | Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registers `$42xx`, mul/div with the timing of the original, general DMA 8 channels (modes 0-7), no HDMA |
-| PPU1/PPU2 | `rtl/ppu/` | video timing, VRAM, colour memory, backdrop picture (`make ppu`) |
+| PPU1/PPU2 | `rtl/ppu/` | video timing, registers, video, colour, and sprite memories, backdrop picture (`make ppu`) |
 | SPC700 + DSP | `rtl/apu_stub.v` | 4 ports with echo, signature `$AA/$BB` |
 | WRAM | `rtl/wram.v` | 128 KB, mirrors, port `$2180-$2183` |
 | Cartridge | `rtl/cart_rom.v` | LoROM 64 KB (placeholder for the SDRAM) |
@@ -34,12 +34,12 @@ The Verilog skeleton follows the **multi-chip structure of the original SNES** (
 | Top | `rtl/snes_plus_top.v` | connects all modules |
 
 Verification done (measured, `make check`):
-- `make test` and `make iverilog`: 102 checks.
+- `make test` and `make iverilog`: 106 checks.
 - `make mutation`: 19 of 19 faults found.
 - `make unit`: no differences.
 - `make cpu`: all 256 opcodes, cycle by cycle. `make cpu-int`: the interrupt tests pass. The public vectors run locally with `make cpu-public`.
 - `make cpu-mutation`: 32 of 32 faults found.
-- yosys synthesis: 126 BRAM blocks; about 5,800 LUT with Yosys 0.52.
+- yosys synthesis: 128 BRAM blocks; about 5,700 LUT with Yosys 0.52.
 - The CI on GitHub passes.
 
 **Never run with verilator or nextpnr, or on a board.** Details are in `docs/VERIFICATION.md`.
@@ -61,7 +61,7 @@ project did not fit in either FPGA.
 - Give each large memory one read address. Otherwise it goes into logic
   (`make synth` reports it).
 - With `iverilog -g2012`, the word `ref` is reserved.
-- The VRAM read does not model the prefetch of the original (a declared simplification).
+- The VRAM read has the prefetch of the original: the first two reads give the same word.
 
 ## 3. User decisions (ask before you reopen them)
 
@@ -232,8 +232,8 @@ Question 1 blocks F4; questions 2 and 3 block F8 and F10; question 4 blocks the 
 ## 10. Suggested next step
 
 The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. The CPU waits for the decisions of
-`docs/design/cpu-extensions.md`. Steps P1 and P2 of the PPU plan (`docs/design/ppu-plan.md`) are done.
-The next step of the PPU is P3.
+`docs/design/cpu-extensions.md`. Steps P1, P2, and P3 of the PPU plan (`docs/design/ppu-plan.md`) are done.
+The next step of the PPU is P4.
 Criteria for each step:
 - `make check` passes.
 - Each new function has a check and at least one fault in `sim/mutation_check.py`.

@@ -52,11 +52,13 @@ unit: ppu-unit
 	$(IVERILOG) -g2012 -s tb_c816_ext -o build/tb_c816_ext.vvp rtl/cpu/c816_ext.v tb/tb_c816_ext.v
 	$(VVP) -n build/tb_c816_ext.vvp
 
-# Timing of the PPU, against the description in the bench (needs iverilog)
+# Unit tests of the PPU (needs iverilog): the timing against the description in its bench, and
+# random register accesses against the reference model
 ppu-unit:
 	mkdir -p build
 	$(IVERILOG) -g2012 -s tb_ppu_timing -o build/tb_ppu_timing.vvp rtl/ppu/ppu_timing.v tb/tb_ppu_timing.v
 	$(VVP) -n build/tb_ppu_timing.vvp
+	$(PY) sim/ppu_regs_run.py
 
 # Scenes of the PPU: the RTL against the reference model, pictures in build/ppu (needs iverilog)
 ppu:

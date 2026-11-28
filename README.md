@@ -10,8 +10,7 @@ The project starts from the **multi-chip structure of the original SNES** (not t
 ## Status
 
 The skeleton works. The Python mini simulator, Icarus Verilog, and yosys synthesis for ECP5 verify it.
-The CI on GitHub passes. Measured: 126 BRAM blocks, and about 4,400 LUT with Yosys 0.52 (12,600 with
-Yosys 0.33). It fits in the 85F. It does not fit in the 45F yet (BRAM).
+The CI on GitHub passes. Measured: 128 BRAM blocks, and about 5,700 LUT with Yosys 0.52. It fits in the 85F. It does not fit in the 45F yet (BRAM).
 CPU: all 256 opcodes pass all 5,080,400 public test vectors, cycle by cycle.
 **Not verified**: placement, maximum frequency, verilator, and real hardware.
 Details are in [docs/VERIFICATION.md](docs/VERIFICATION.md) and [docs/progress/cpu.md](docs/progress/cpu.md).
@@ -20,7 +19,7 @@ Details are in [docs/VERIFICATION.md](docs/VERIFICATION.md) and [docs/progress/c
 |---|---|---|
 | Core 65816X | `rtl/cpu/` | all 256 opcodes, cycle by cycle (2 clocks for each CPU cycle); NMI, IRQ, reset |
 | Ricoh 5A22 | `rtl/s_cpu_5a22.v` | registers `$42xx`, mul/div, general DMA (8 channels, modes 0-7), no HDMA |
-| PPU1/PPU2 | `rtl/ppu/` | SNES timing, VRAM, colour memory; the picture shows only the backdrop colour |
+| PPU1/PPU2 | `rtl/ppu/` | SNES timing, all registers and memories; the picture shows only the backdrop colour |
 | SPC700 + DSP | `rtl/apu_stub.v` | 4 ports `$2140-$2143` with echo and signature `$AA/$BB` |
 | WRAM | `rtl/wram.v` | 128 KB, mirrors, port `$2180-$2183` |
 | Cartridge | `rtl/cart_rom.v` | LoROM 64 KB (placeholder for the SDRAM) |

@@ -5,7 +5,7 @@ Esce con errore se anche un solo guasto non viene rilevato o se un modello non s
 import os, sys, io, contextlib, subprocess
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import ppu_run, run_tests, vsim
+import ppu_regs_run, ppu_run, run_tests, vsim
 
 # (modulo, testo originale, testo guasto, descrizione)
 MUTANTS = [
@@ -106,9 +106,24 @@ PPU_MUTANTS = [
     ('ppu_timing', "(hdot >= 9'd274)", "(hdot >= 9'd256)", "horizontal blank starts at dot 256"),
     ('ppu_math', "bright <= inidisp[3:0];", "bright <= inidisp[3:0] + 4'd1;", "brightness off by one"),
     ('ppu_math', "inidisp[7] ? 15'd0 : backdrop", "backdrop", "forced blank ignored"),
-    ('ppu_top', ".raddr(8'd0)", ".raddr(8'd1)", "backdrop taken from CGRAM word 1"),
+    ('ppu_top', ".cg_raddr(8'd0)", ".cg_raddr(8'd1)", "backdrop taken from CGRAM word 1"),
     ('ppu_cgram', "cgadd <= wdata;\n      half <= 1'b0;", "cgadd <= wdata;", "$2121 keeps the half word"),
-    ('ppu_cgram', "cgadd <= cgadd + 8'd1;", "cgadd <= cgadd;", "CGRAM address does not advance"),
+    ('ppu_cgram', "else cgadd <= cgadd + 8'd1;", "else cgadd <= cgadd;", "CGRAM address does not advance"),
+    ('ppu_cgram', "wire commit = wr_data && half && !rst;", "wire commit = wr_data && !rst;",
+     "CGRAM written without the byte latch"),
+    ('ppu_regs', ".load((w_vaddr || r_vstep) && blank)", ".load(r_vstep && blank)", "no VRAM prefetch"),
+    ('ppu_regs', "2'd1: vaddr = {vsel[14:8], vsel[4:0], vsel[7:5]};",
+     "2'd1: vaddr = {vsel[14:8], vsel[5:0], vsel[7:6]};", "wrong VRAM remap in mode 1"),
+    ('ppu_regs', ".we_l(w_vlow && blank)", ".we_l(w_vlow)", "VRAM write accepted in the active display"),
+    ('ppu_regs', "            ophct_byte <= 1'b0;\n            opvct_byte <= 1'b0;\n", "",
+     "$213F keeps the counter flip-flops"),
+    ('ppu_regs', "if (oam_restart) oam_addr", "if (1'b0) oam_addr", "no OAM reload at the vertical blank"),
+    ('ppu_regs', "bg1hofs <= {wdata[1:0], bgofs_latch[7:3], bghofs_latch[2:0]};",
+     "bg1hofs <= {wdata[1:0], bgofs_latch};", "horizontal scroll without its own latch"),
+    ('ppu_regs', "wire [23:0] product = uprod - fix_a - fix_b;", "wire [23:0] product = uprod;",
+     "product without the signs"),
+    ('ppu_oam', "if (we_high) high[addr[4:0]] <= wdata[7:0];", "if (we_high) high[addr[4:0]] <= wdata[15:8];",
+     "wrong byte in the high sprite table"),
     ('ppu_math', "(hdot >= 9'd22) && (hdot <= 9'd277)", "(hdot >= 9'd23) && (hdot <= 9'd278)",
      "picture one dot late"),
 ]
@@ -135,7 +150,8 @@ def run_ppu():
     def passes(files, timing_first=False):
         """The scenes and the benches; the test that finds a fault soonest runs first."""
         scenes = lambda: not ppu_run.run(files, quiet=True, work=os.path.join(work, 'ppu'), all_patterns=False)
-        tests = [scenes] + [(lambda b=b: bench_passes(files, b)) for b in PPU_BENCHES]
+        registers = lambda: not ppu_regs_run.run(files, quiet=True, work=os.path.join(work, 'regs'))
+        tests = [registers, scenes] + [(lambda b=b: bench_passes(files, b)) for b in PPU_BENCHES]
         if timing_first:
             tests.reverse()
         return all(test() for test in tests)       # all() stops at the first failure

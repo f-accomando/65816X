@@ -15,7 +15,7 @@
 | `make cpu-public SST=<folder>` | CPU against the public vectors, score in `build/cpu_public_score.txt` | iverilog, public vectors |
 | `make cpu-int` | interrupts: directed tests of the core (`tb/tb_cpu_int.v`) and of the system NMI (`tb/tb_snes_nmi.v`) | iverilog |
 | `make cpu-mutation` | inserts faults in the core; fails if the vectors and the interrupt tests miss even one | iverilog |
-| `make ppu-unit` | video timing against a second description in `tb/tb_ppu_timing.v`: NTSC and PAL, interlace, overscan, 3 patterns of `mce`; part of `make unit` | iverilog |
+| `make ppu-unit` | video timing against a second description in `tb/tb_ppu_timing.v`: NTSC and PAL, interlace, overscan, 3 patterns of `mce`. Then 30,000 random register accesses against `sim/ppu_ref.py` (`sim/ppu_regs_run.py`, 3 fixed seeds). Part of `make unit` | iverilog |
 | `make ppu` | scenes of `tests/ppu/`: the PPU against the reference model `sim/ppu_ref.py`, pixel by pixel; pictures in `build/ppu/` | iverilog |
 | `make ppu-update` | same as above, and writes the CRC lists of the scenes from the model | iverilog |
 | `make ppu-mutation` | inserts faults in the PPU; fails if its benches miss even one | iverilog |
@@ -71,32 +71,32 @@ Trap: with `iverilog -g2012`, the word `ref` is reserved. Do not use it as an in
 
 Check the device numbers in the script against the Lattice datasheet.
 
-Today variant A **does not fit** (126 blocks of 108: placeholder ROM and WRAM in BRAM). The CI checks
+Today variant A **does not fit** (128 blocks of 108: placeholder ROM and WRAM in BRAM). The CI checks
 only B. Add A to the CI when the memory is on SDRAM (roadmap phase F4).
 
 ## 5. Results measured on 2026-11-28
 
-In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, after step P2 of the PPU.
+In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, after step P3 of the PPU.
 Older results are in the git history of this file.
 
 | Check | Result |
 |---|---|
-| `make test` | 102/102 (the program ended in 2141 cycles) |
+| `make test` | 106/106 |
 | `make mutation` | 19 of 19 faults found |
-| `make iverilog` | 102/102 |
-| `make unit` | 0 differences: 28,123 accesses to the WRAM port and 20,000 operations of the `WDM` unit; the video timing passes |
+| `make iverilog` | 106/106 |
+| `make unit` | 0 differences: 28,123 accesses to the WRAM port and 20,000 operations of the `WDM` unit; the video timing passes; the PPU registers: 0 differences in 30,000 accesses |
 | `make cpu` | 256 of 256 opcodes; 102,400 of 102,400 vectors |
 | `make cpu-int` | the core test and the system NMI test pass; `WDM MUL` 2 cycles, `WDM DIV` 11 cycles; the NMI after 306,962 clocks |
 | `make cpu-mutation` | 32 of 32 faults found |
 | `make ppu` | 5 scenes, 0 pixel differences; the first scene also with 2 other patterns of `mce` |
-| `make ppu-mutation` | 12 of 12 faults found |
-| `make synth-ppu` | PPU alone: 440 equivalent LUT4, 33 `DP16KD`, no multiplier |
+| `make ppu-mutation` | 21 of 21 faults found |
+| `make synth-ppu` | PPU alone: 838 equivalent LUT4, 34 `DP16KD`, 1 multiplier |
 | `$div` and `$mod` cells before mapping | none |
-| equivalent LUT4 | 5711 (7% of the 85F, 13% of the 45F) |
-| `DP16KD` | 126 (61% of the 85F, 117% of the 45F); yosys puts the decode table in one block |
-| `MULT18X18D` | 1 |
-| `TRELLIS_FF` | 793 |
-| `TRELLIS_DPR16X4` | 12 |
+| equivalent LUT4 | 5703 (7% of the 85F, 13% of the 45F) |
+| `DP16KD` | 128 (62% of the 85F, 119% of the 45F); yosys puts the decode table in one block |
+| `MULT18X18D` | 2 |
+| `TRELLIS_FF` | 909 |
+| `TRELLIS_DPR16X4` | 16 |
 
 ### Public vectors
 

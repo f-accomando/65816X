@@ -16,8 +16,8 @@ wram 0020 8E   # T5 divisore
 wram 0021 06
 wram 001A 11   # T7 VRAM via DMA e rilettura
 wram 001B 22
-wram 001C 33
-wram 001D 44
+wram 001C 11
+wram 001D 22
 wram 000A 40   # T8 WDM MUL
 wram 000B 23
 wram 000C 01
@@ -100,6 +100,10 @@ wram 0067 34   # T21 WDM in emulazione
 wram 0068 55
 wram 0069 55
 wram 006A 12
+wram 006B 33   # T7: il prefetch rende la prima parola due volte
+wram 006C 44
+wram 006D 11   # T22 scrittura in VRAM durante l'immagine
+wram 006E 22
 vram_l 0000 11 # T7 DMA verso VRAM
 vram_h 0000 22
 vram_l 0001 33

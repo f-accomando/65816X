@@ -11,7 +11,8 @@ import vsim
 PROGRAM = os.path.join(ROOT, 'tests', 'test_program.asm')
 EXPECT = os.path.join(ROOT, 'tests', 'test_program.expect')
 # nome della memoria nel file .expect -> percorso gerarchico sotto snes_plus_top
-MEMS = {'wram': 'u_wram.mem', 'vram_l': 'u_ppu.vram_l', 'vram_h': 'u_ppu.vram_h'}
+MEMS = {'wram': 'u_wram.mem', 'vram_l': 'u_ppu.u_regs.u_vram.vram_l',
+        'vram_h': 'u_ppu.u_regs.u_vram.vram_h'}
 MAX_CYCLES = 200000
 
 def rtl_files():

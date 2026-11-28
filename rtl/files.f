@@ -11,6 +11,9 @@ rtl/cpu/c816_core.v
 rtl/s_cpu_5a22.v
 rtl/ppu/ppu_timing.v
 rtl/ppu/ppu_cgram.v
+rtl/ppu/ppu_vram.v
+rtl/ppu/ppu_oam.v
+rtl/ppu/ppu_regs.v
 rtl/ppu/ppu_math.v
 rtl/ppu/ppu_top.v
 rtl/apu_stub.v

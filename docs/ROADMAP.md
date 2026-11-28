@@ -26,7 +26,7 @@ clock cycles) stays in F3. The measurement of the maximum frequency waits for F1
 ## Next steps
 
 1. Owner decisions on the extensions (C7b) and on the PPU plan.
-2. PPU, step P3 of [design/ppu-plan.md](design/ppu-plan.md): the registers and the memory ports.
+2. PPU, step P4 of [design/ppu-plan.md](design/ppu-plan.md): background modes 0 and 1.
 
 ## To decide: host port
 

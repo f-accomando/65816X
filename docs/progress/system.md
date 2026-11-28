@@ -13,8 +13,10 @@ The phases are in [ROADMAP.md](../ROADMAP.md). The open questions are in [HANDOF
 - **Assembler**: `sim/asm.py` knows only part of the instructions and addressing modes of the core.
 - **IRQ timers**: the H and V timers of the 5A22 (`$4207-$420A`) and their IRQ.
 - **F1b**: minimal board top, pins, nextpnr in the CI. It depends on the choice of the board.
-- **PPU**: do step P3 of [ppu-plan.md](../design/ppu-plan.md): all write registers, the memory ports,
-  and their access rules. The owner has not answered the questions Q1-Q10 yet.
+- **PPU**: do step P4 of [ppu-plan.md](../design/ppu-plan.md): background modes 0 and 1, main and sub
+  screens. The owner has not answered the questions Q1-Q10 yet.
+- **PPU registers**: check some behaviours on a chip or with a third document. These are a second
+  latch of `$2137`, the reload of the sprite address, and accesses outside a blank period (step P16).
 - **Brightness**: find the formula of the output for each value. Today the pictures use N / 15.
 - **Video timing**: check the long dots, the NMI position, and the field value after reset. Use a
   chip or a third document.

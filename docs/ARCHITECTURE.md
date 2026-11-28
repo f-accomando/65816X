@@ -40,7 +40,7 @@ The reference model for `make unit` is `tb/wram_ref.v`.
 | Address | Content |
 |---|---|
 | `$0000-$1FFF` | mirror of the first 8 KB of the WRAM |
-| `$2100-$213F` | PPU: `$2100`, VRAM (`$2115-$2119`, `$2139-$213A`), colour memory (`$2121-$2122`) |
+| `$2100-$213F` | PPU registers: writes `$2100-$2133`, reads `$2134-$213F` (see "PPU registers") |
 | `$2140-$217F` | APU ports (mirrored every 4 bytes) |
 | `$2180-$2183` | WRAM port (data and 17-bit address with auto-increment) |
 | `$4200-$421F` | 5A22 registers: NMITIMEN, mul/div, `$420B` MDMAEN, `$4210/$4212` status |
@@ -137,8 +137,26 @@ value, as on the real chip. A division by 0 gives the quotient `$FFFF` and the d
 | Vertical blank | from line 225 (240 with overscan) to the end of the frame |
 | Horizontal blank | from dot 274 to the end of dot 0 |
 
-The system uses NTSC without interlace and without overscan. The registers `$2133` and `$213F` do not
-exist yet. The sources of the values are in [design/ppu-plan.md](design/ppu-plan.md), section 1.5.
+The system uses NTSC without interlace and without overscan. `$2133` is stored but does not act yet. The sources of the values are in [design/ppu-plan.md](design/ppu-plan.md), section 1.5.
+
+## PPU registers
+
+`rtl/ppu/ppu_regs.v` holds all registers of `$2100-$213F`. Most of them get their effect with the later
+steps of [design/ppu-plan.md](design/ppu-plan.md). A blank period is the forced blank or the vertical blank.
+
+| Registers | Behaviour |
+|---|---|
+| `$2102-$2104`, `$2138` | sprite memory: 10-bit byte address; the low table takes words, the high table bytes; reload from `$2102/$2103` at the start of the vertical blank without forced blank |
+| `$210D-$2114` | scroll values, 10 bits, with two shared latches; `$210D/$210E` also load the Mode 7 scroll |
+| `$211B-$2120` | Mode 7 values, two writes each, with their own latch |
+| `$2115-$2119`, `$2139-$213A` | video memory: step 1, 32, or 128, three address remaps, prefetch of reads; outside a blank period a write is lost and the buffer keeps its value |
+| `$2121-$2122`, `$213B` | colour memory: two bytes for each word, one flip-flop for writes and reads |
+| `$2134-$2136` | signed product of M7A (16 bits) and the last byte of `$211C` |
+| `$2137`, `$213C-$213D` | latch of the dot and line counters; two reads for each counter |
+| `$213E-$213F` | versions 1 and 3, field, latch flag, region; `$213F` resets the counter flip-flops |
+
+The PPU keeps two data latches of its open bus. A read of some write-only addresses returns one of
+them. Bit 7 of `$4201` lets the counters latch. The system ties it to 1.
 
 ## Pixel path
 
@@ -162,12 +180,15 @@ The PPU draws only the backdrop today: word 0 of the colour memory.
 - The multiplier and the divider of the 5A22 stop while the DMA holds the CPU. Their partial
   values were not compared with the real chip.
 - DMA: no HDMA. The DMA moves 1 byte every 2 cycles.
-- The VRAM read does not model the prefetch of the original.
 - Here, a DMA from WRAM to `$2180` copies the data. On the real SNES it does not work (fix in phase F7).
 - The PPU draws only the backdrop colour: no background layers and no sprites. The APU is a
   placeholder.
-- A colour memory write is accepted at any time. The real chip needs a blank period.
-- The colour memory has no read (`$213B`) yet.
+- A colour memory write is accepted at any time. The real chip writes to another address in the
+  active display.
+- A sprite memory write in the active display is lost. The real chip writes to another address.
+- A read of `$2137` and of most write-only addresses returns 0. The real chip returns the open bus
+  of the processor.
+- `$213E` gives 0 for the range and time flags until the sprites exist.
 - On the real chip, a change of `$2100` inside a line can lag or fade. The design does not do that.
 - The NMI comes at the start of dot 0 of the first line of the vertical blank. One source puts it
   half a dot later.

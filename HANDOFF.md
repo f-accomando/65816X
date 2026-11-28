@@ -30,16 +30,16 @@ The Verilog skeleton follows the **multi-chip structure of the original SNES** (
 | SPC700 + DSP | `rtl/apu_stub.v` | 4 ports with echo, signature `$AA/$BB` |
 | WRAM | `rtl/wram.v` | 128 KB, mirrors, port `$2180-$2183` |
 | Cartridge | `rtl/cart_rom.v` | LoROM 64 KB (placeholder for the SDRAM) |
-| Extensions | `rtl/ext_regs.v` | `$5F00` ID (`$58`), `$5F01` mode (2 = extended, enables `WDM`), `$5F02` speed |
+| Extensions | `rtl/ext_regs.v` | `$5F00` ID (`$58`), `$5F01` mode (2 = extended, enables `WDM`), `$5F02` speed, `$5F03` extension version |
 | Top | `rtl/snes_plus_top.v` | connects all modules |
 
 Verification done (measured, `make check`):
-- `make test` and `make iverilog`: 63 checks.
-- `make mutation`: 14 of 14 faults found.
+- `make test` and `make iverilog`: 98 checks.
+- `make mutation`: 18 of 18 faults found.
 - `make unit`: no differences.
 - `make cpu`: all 256 opcodes, cycle by cycle. `make cpu-int`: the interrupt tests pass. The public vectors run locally with `make cpu-public`.
 - `make cpu-mutation`: 32 of 32 faults found.
-- yosys synthesis: 126 BRAM blocks; about 5,400 LUT with Yosys 0.52.
+- yosys synthesis: 126 BRAM blocks; about 5,800 LUT with Yosys 0.52.
 - The CI on GitHub passes.
 
 **Never run with verilator or nextpnr, or on a board.** Details are in `docs/VERIFICATION.md`.
@@ -224,13 +224,15 @@ of the SNES mode.
 8. Which ULX3S do you have (45F or 85F, how much SDRAM)? It blocks the board tests of F4.
 9. Permission to download the 65816 test vectors (SingleStepTests) in the CI, without a copy in the repository?
    The user permitted a local download on 2026-11-27 (folder `65816-test-vectors`, next to the repository).
+10. Do you approve the encoding of R0-R7 and DOT3 (`docs/design/cpu-extensions.md`, section 3)?
+11. The questions Q1-Q10 of the PPU plan (`docs/design/ppu-plan.md`, section 5).
 
 Question 1 blocks F4; questions 2 and 3 block F8 and F10; question 4 blocks the import of third-party files.
 
 ## 10. Suggested next step
 
-The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. First step: C7 in
-`docs/progress/cpu.md`.
+The work rules are in `CLAUDE.md`, and the open work is in `docs/progress/`. The CPU waits for the decisions of
+`docs/design/cpu-extensions.md`. The next part is the PPU: `docs/design/ppu-plan.md`, step P1.
 Criteria for each step:
 - `make check` passes.
 - Each new function has a check and at least one fault in `sim/mutation_check.py`.

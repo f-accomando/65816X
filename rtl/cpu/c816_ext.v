@@ -1,8 +1,11 @@
 // c816_ext.v - the WDM extensions of the c816 core (docs/design/cpu-core.md, section 5.2).
 // go = 1 runs the operation sub in this clock. The core sets go only with ext_en = 1.
-// Sub-opcodes: 1 MUL, 2 DIV, 3 MAC, 4 MACRD, 5 MACCLR. The operations assume 16-bit A and X.
-// The divider is sequential: start loads A and X, one quotient bit follows at each clock, and
-// busy is 1 for 16 clocks. The core repeats the second cycle of WDM DIV until busy is 0.
+// Sub-opcodes: 1 MUL, 2 DIV, 3 MAC, 4 MACRD, 5 MACCLR, 6 MULS, 7 DIVS, 8 MACS, 9 MACLD.
+// The operations assume 16-bit A, X, and Y. MULS, DIVS, and MACS take signed numbers.
+// One unsigned multiplier serves both kinds: a negative operand corrects the high half.
+// The divider is sequential and works on magnitudes: start loads A, one quotient bit follows at
+// each clock, and busy is 1 for 16 clocks. The core repeats the second cycle of WDM DIV and DIVS
+// until busy is 0. DIVS rounds toward 0; the remainder has the sign of A.
 module c816_ext (
   input clk,
   input rst,
@@ -11,6 +14,7 @@ module c816_ext (
   input [7:0] sub,
   input [15:0] a,
   input [15:0] x,
+  input [15:0] y,
   output reg we_a,
   output reg we_y,
   output reg [15:0] a_out,
@@ -24,12 +28,23 @@ module c816_ext (
 );
   reg [31:0] acc;
   wire [31:0] prod = {16'h0000, a} * {16'h0000, x};
+  wire mul_signed = (sub == 8'h06) || (sub == 8'h08);
+  wire [15:0] fix_a = (mul_signed && a[15]) ? x : 16'h0000;
+  wire [15:0] fix_x = (mul_signed && x[15]) ? a : 16'h0000;
+  wire [31:0] result = {prod[31:16] - fix_a - fix_x, prod[15:0]};
 
   // restoring division, one bit for each clock
   reg [15:0] quo, rem;
   reg [4:0] left;
+  wire div_signed = (sub == 8'h07);
+  wire [15:0] mag_a = (div_signed && a[15]) ? (16'h0000 - a) : a;
+  wire [15:0] mag_x = (div_signed && x[15]) ? (16'h0000 - x) : x;
+  wire [15:0] quo_s = (div_signed && (a[15] != x[15])) ? (16'h0000 - quo) : quo;
+  wire [15:0] rem_s = (div_signed && a[15]) ? (16'h0000 - rem) : rem;
+  // the only signed quotient that does not fit: -32768 / -1
+  wire div_over = div_signed && (a == 16'h8000) && (x == 16'hFFFF);
   wire [16:0] trial = {rem, quo[15]};
-  wire [16:0] diff = trial - {1'b0, x};
+  wire [16:0] diff = trial - {1'b0, mag_x};
   wire fits = !diff[16];
   assign busy = (left != 5'd0);
 
@@ -39,7 +54,7 @@ module c816_ext (
       rem <= 16'h0000;
       left <= 5'd0;
     end else if (start) begin
-      quo <= a;
+      quo <= mag_a;
       rem <= 16'h0000;
       left <= 5'd16;
     end else if (left != 5'd0) begin
@@ -61,19 +76,19 @@ module c816_ext (
     f_v = 1'b0;
     if (go) begin
       case (sub)
-        8'h01: begin   // MUL: Y:A = A * X
-          we_a = 1'b1; a_out = prod[15:0];
-          we_y = 1'b1; y_out = prod[31:16];
-          f_we = 1'b1; f_n = prod[31]; f_z = (prod == 32'd0);
+        8'h01, 8'h06: begin   // MUL, MULS: Y:A = A * X
+          we_a = 1'b1; a_out = result[15:0];
+          we_y = 1'b1; y_out = result[31:16];
+          f_we = 1'b1; f_n = result[31]; f_z = (result == 32'd0);
         end
-        8'h02: begin   // DIV: A = A / X, Y = remainder; X = 0 gives A = $FFFF, Y = A, V = 1
+        8'h02, 8'h07: begin   // DIV, DIVS: A = A / X, Y = remainder; X = 0 gives A = $FFFF, Y = A, V = 1
           we_a = 1'b1;
           we_y = 1'b1;
           fv_we = 1'b1;
           if (x == 16'h0000) begin
             a_out = 16'hFFFF; y_out = a; f_v = 1'b1;
           end else begin
-            a_out = quo; y_out = rem;
+            a_out = quo_s; y_out = rem_s; f_v = div_over;
           end
         end
         8'h04: begin   // MACRD: A = low half, Y = high half of the total
@@ -88,8 +103,9 @@ module c816_ext (
   always @(posedge clk) begin
     if (rst) acc <= 32'd0;
     else if (go) begin
-      if (sub == 8'h03) acc <= acc + prod;        // MAC
-      if (sub == 8'h05) acc <= 32'd0;             // MACCLR
+      if (sub == 8'h03 || sub == 8'h08) acc <= acc + result;   // MAC, MACS
+      if (sub == 8'h05) acc <= 32'd0;                          // MACCLR
+      if (sub == 8'h09) acc <= {y, a};                         // MACLD
     end
   end
 endmodule

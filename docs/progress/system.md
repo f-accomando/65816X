@@ -8,11 +8,13 @@ The phases are in [ROADMAP.md](../ROADMAP.md). The open questions are in [HANDOF
 - **CI**: GitHub warns that `actions/checkout@v4` and `actions/upload-artifact@v4` use Node.js 20,
   which is deprecated. Move to versions that use Node.js 24.
 - **Synthesis**: find why Yosys 0.33 (CI) counts many more equivalent LUT4 than Yosys 0.52
-  (13307 against 5876 after step C5)
+  (7277 against 5411 after step C6)
   (see [VERIFICATION.md](../VERIFICATION.md), section 5).
 - **Assembler**: `sim/asm.py` knows only part of the instructions and addressing modes of the core.
 - **IRQ timers**: the H and V timers of the 5A22 (`$4207-$420A`) and their IRQ.
 - **F1b**: minimal board top, pins, nextpnr in the CI. It depends on the choice of the board.
+- **PPU**: the owner answers the questions Q1-Q10 of [ppu-plan.md](../design/ppu-plan.md). Then do
+  step P1, the timing generator.
 - From F3: see the roadmap.
 
 ## Rules (do not break)

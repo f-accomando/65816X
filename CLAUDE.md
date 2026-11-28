@@ -18,7 +18,9 @@ Read files in small slices (`grep`, or `offset` and `limit`). The current state 
 | Check commands, synthesis budget, measured results | `docs/VERIFICATION.md` |
 | Variants A and B, resource estimates | `docs/VARIANTS.md` |
 | User manual: text, build, rules | `manuals/README.md` |
-| Design of the new CPU core, work orders | `docs/design/cpu-core.md` |
+| Design of the CPU core, work orders | `docs/design/cpu-core.md` |
+| CPU extensions: what exists, proposals | `docs/design/cpu-extensions.md` |
+| PPU and PPU+: steps, choices, open questions | `docs/design/ppu-plan.md` |
 
 ## 2. Rules
 

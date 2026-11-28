@@ -45,7 +45,7 @@ The reference model for `make unit` is `tb/wram_ref.v`.
 | `$2180-$2183` | WRAM port (data and 17-bit address with auto-increment) |
 | `$4200-$421F` | 5A22 registers: NMITIMEN, mul/div, `$420B` MDMAEN, `$4210/$4212` status |
 | `$4300-$437F` | DMA registers for each channel (`$43x0-$43x6`) |
-| `$5F00-$5FFF` | **SNES+ extensions**: `$5F00` ID (`$58`), `$5F01` mode (0 SNES, 1 accelerated, 2 extended), `$5F02` speed |
+| `$5F00-$5FFF` | **SNES+ extensions**: `$5F00` ID (`$58`), `$5F01` mode (0 SNES, 1 accelerated, 2 extended), `$5F02` speed, `$5F03` version of the CPU extensions (`$02`) |
 | `$8000-$FFFF` | LoROM ROM |
 
 Banks `$7E-$7F`: the full WRAM. Banks `$40-$7D` and `$C0-$FF`: ROM (only `$8000-$FFFF`).
@@ -99,9 +99,14 @@ This is the behavior of the real chip. The extensions assume 16-bit A and X.
 | `$03` | MAC | `ACC32 += A * X` |
 | `$04` | MACRD | `A = ACC[15:0]`, `Y = ACC[31:16]` |
 | `$05` | MACCLR | `ACC32 = 0` |
+| `$06` | MULS | `Y:A = A * X` (signed) |
+| `$07` | DIVS | signed `A / X`, toward 0; `Y` = remainder; V=1 for `X=0` and for -32768 / -1 |
+| `$08` | MACS | `ACC32 += A * X` (signed product) |
+| `$09` | MACLD | `ACC32 = Y:A` |
 
-`DIV` takes 11 CPU cycles, because a sequential divider gives one bit at each FPGA clock. The
-other sub-opcodes take 2 cycles.
+`DIV` and `DIVS` take 11 CPU cycles, because a sequential divider gives one bit at each FPGA clock.
+The other sub-opcodes take 2 cycles. The rules and the proposals for more operations are in
+[design/cpu-extensions.md](design/cpu-extensions.md).
 
 Planned and not yet done: DOT3, CROSS3, ROT, BLIT, FILL, 32-bit registers R0-R7.
 

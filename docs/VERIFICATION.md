@@ -7,7 +7,7 @@
 | `make test` | full system with the Python simulator `sim/vsim.py` | Python 3 |
 | `make mutation` | inserts faults in the RTL; fails if the tests miss even one | Python 3 |
 | `make iverilog` | full system with Icarus Verilog, same values as `make test` | iverilog |
-| `make unit` | test for each module against a reference model (today: WRAM, 100,000 random cycles) | iverilog |
+| `make unit` | test for each module against a reference model (today: the WRAM with 100,000 random cycles, and the `WDM` unit with 20,000 operations) | iverilog |
 | `make cpu` | CPU only: one instruction for each vector, score in `build/cpu_score.txt`, pass list `tests/cpu_pass.txt`. It checks the cycle count and each bus cycle when the vectors give them. | iverilog |
 | `make cpu-update` | same as above, and writes `tests/cpu_pass.txt` again | iverilog |
 
@@ -70,20 +70,20 @@ only B. Add A to the CI when the memory is on SDRAM (roadmap phase F4).
 
 ## 5. Results measured on 2026-11-28
 
-In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, after step C6.
+In WSL (Ubuntu 26.04), with Icarus Verilog 12.0 and Yosys 0.52, after step C7a.
 Older results are in the git history of this file.
 
 | Check | Result |
 |---|---|
-| `make test` | 63/63 (the program ended in 1523 cycles) |
-| `make mutation` | 14 of 14 faults found |
-| `make iverilog` | 63/63 |
-| `make unit` | 0 differences, 28,123 accesses to the WRAM port |
+| `make test` | 98/98 (the program ended in 2059 cycles) |
+| `make mutation` | 18 of 18 faults found |
+| `make iverilog` | 98/98 |
+| `make unit` | 0 differences: 28,123 accesses to the WRAM port and 20,000 operations of the `WDM` unit |
 | `make cpu` | 256 of 256 opcodes; 102,400 of 102,400 vectors |
 | `make cpu-int` | the core test and the system NMI test pass; `WDM MUL` 2 cycles, `WDM DIV` 11 cycles |
 | `make cpu-mutation` | 32 of 32 faults found |
 | `$div` and `$mod` cells before mapping | none |
-| equivalent LUT4 | 5411 (6% of the 85F, 12% of the 45F) |
+| equivalent LUT4 | 5761 (7% of the 85F, 13% of the 45F) |
 | `DP16KD` | 126 (61% of the 85F, 117% of the 45F); yosys puts the decode table in one block |
 | `MULT18X18D` | 1 |
 | `TRELLIS_FF` | 789 |
@@ -96,7 +96,7 @@ All vectors, with the cycle and bus checks.
 | Run | Result |
 |---|---|
 | `make ref-public` (reference model, after step C5) | 0 of 5,080,400 vectors differ, cycles included |
-| `make cpu-public SST_FLAGS="--bus"` (after step C6) | **256 of 256 opcodes**; 5,080,400 of 5,080,400 vectors; 0 cycle differences; 40 minutes |
+| `make cpu-public SST_FLAGS="--bus"` (after step C7a) | **256 of 256 opcodes**; 5,080,400 of 5,080,400 vectors; 0 cycle differences; 42 minutes |
 
 The comparisons found three errors during the development. All are fixed.
 
@@ -107,12 +107,14 @@ The comparisons found three errors during the development. All are fixed.
 ### CI on GitHub
 
 The CI runs on `ubuntu-24.04` with Icarus Verilog 12.0 and Yosys 0.33. The simulation and CPU
-results are equal to the local results. The synthesis counts differ: after step C5, Yosys 0.33
-counts 13307 equivalent LUT4 against 5876 for Yosys 0.52. The cause is not investigated.
+results are equal to the local results. The synthesis counts differ: after step C6, Yosys 0.33
+counts 7277 equivalent LUT4 against 5411 for Yosys 0.52. Before step C6, with combinational
+dividers, the counts were 13307 and 5876. The cause of the difference is not investigated.
 Quote each LUT count with the yosys version.
 
 ## 6. Not verified
 
 - Interrupt timing against a real chip, the reset sequence, and `ABORT`.
 - Placement and maximum frequency (nextpnr is not installed).
+- The partial values of the 5A22 multiplier and divider against a real chip.
 - Operation on a real board.

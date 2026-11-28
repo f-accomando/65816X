@@ -61,6 +61,41 @@ wram 003F 11
 wram 0040 3F   # T16 prodotto parziale
 wram 0041 F7   # T16 prodotto finito
 wram 0042 08
+wram 0044 FA   # T18 MULS -2 * 3
+wram 0045 FF
+wram 0046 FF
+wram 0047 FF
+wram 0048 DD   # T18 MULS 5 * -7
+wram 0049 FF
+wram 004A FF
+wram 004B FF
+wram 004C 00   # T18 MULS -16 * -16
+wram 004D 01
+wram 004E 00
+wram 004F 00
+wram 0050 F2   # T19 DIVS -100 / 7
+wram 0051 FF
+wram 0052 FE
+wram 0053 FF
+wram 0054 F2   # T19 DIVS 100 / -7
+wram 0055 FF
+wram 0056 02
+wram 0057 00
+wram 0058 00   # T19 DIVS -32768 / -1
+wram 0059 80
+wram 005A 00
+wram 005B 00
+wram 005C 04   # T19 DIVS 9 / 2
+wram 005D 00
+wram 005E F6   # T20 MACS
+wram 005F FF
+wram 0060 FF
+wram 0061 FF
+wram 0062 3E   # T20 MACLD
+wram 0063 23
+wram 0064 01
+wram 0065 00
+wram 0066 02   # T20 versione estensioni
 vram_l 0000 11 # T7 DMA verso VRAM
 vram_h 0000 22
 vram_l 0001 33

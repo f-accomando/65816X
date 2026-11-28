@@ -13,6 +13,9 @@ The list of what must continue to pass is in `tests/cpu_pass.txt`.
   check the cycles in the CI.
 - Interrupts (`make cpu-int`): reset, NMI, IRQ, BRK, COP, RTI, WAI, STP, and the NMI of the system.
   The same test counts the cycles of `WDM MUL` (2) and `WDM DIV` (11).
+- Signed extensions (C7a): `MULS`, `DIVS`, `MACS`, `MACLD`, and the version register `$5F03`.
+  `make unit` checks the unit with 20,000 operations
+  ([cpu-extensions.md](../design/cpu-extensions.md)).
 - `make cpu-mutation`: 32 of 32 faults found.
 - `WDM` extensions: the system test checks them (MUL, DIV, MAC, MACRD, and the two modes without effect).
   `WDM DIV` uses a sequential divider.
@@ -31,7 +34,10 @@ The list of what must continue to pass is in `tests/cpu_pass.txt`.
 To close a step, make `make check` pass.
 
 - **Maximum frequency**: not measured. It needs nextpnr, which is not installed (F1b).
-- **C7** extensions: more `WDM`, prefetch, optional 32-bit mode (an owner decision).
+- **C7b** more extensions: R0-R7, DOT3, CROSS3, then MUL32 and DIV32. The owner approves the
+  encoding first ([cpu-extensions.md](../design/cpu-extensions.md), section 3).
+- **Prefetch**: after the real memory (F4).
+- **32-bit mode**: an owner decision (HANDOFF, question 2).
 
 ## Rules (do not break)
 

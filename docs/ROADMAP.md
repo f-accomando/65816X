@@ -18,14 +18,15 @@ criterion and make `make check` pass.
 
 ## Current order: CPU first
 
-For now, develop only the CPU, in the step C7 of [progress/cpu.md](progress/cpu.md).
-Steps C1-C6 are done: they covered phase F1 (sequential dividers), phase F2, and the part of F3
-about internal cycles. C7 is the CPU part of F8. The SNES bus timing (6, 8, 12 clock cycles) stays
-in F3. The measurement of the maximum frequency waits for F1b.
+The CPU steps C1-C6 and C7a are done. They covered phase F1 (sequential dividers), phase F2, the
+part of F3 about internal cycles, and the first signed extensions of F8. The rest of C7 waits for
+the owner ([design/cpu-extensions.md](design/cpu-extensions.md)). The SNES bus timing (6, 8, 12
+clock cycles) stays in F3. The measurement of the maximum frequency waits for F1b.
 
 ## Next steps
 
-1. C7: extensions of the CPU.
+1. Owner decisions on the extensions (C7b) and on the PPU plan.
+2. PPU, step P1 of [design/ppu-plan.md](design/ppu-plan.md): the timing generator.
 
 ## To decide: host port
 

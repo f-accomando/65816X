@@ -1,5 +1,6 @@
 // ext_regs.v - registri delle estensioni SNES+ in $5F00-$5FFF (zona libera sull'SNES).
-// $5F00 ID (legge $58), $5F01 modo (0=SNES, 1=accelerato, 2=enhanced), $5F02 velocita'.
+// $5F00 ID (legge $58), $5F01 modo (0=SNES, 1=accelerato, 2=enhanced), $5F02 velocita',
+// $5F03 versione delle estensioni della CPU (sola lettura: 2 = sotto-opcode 1-9).
 module ext_regs (
   input clk,
   input rst,
@@ -22,6 +23,7 @@ module ext_regs (
       8'h00: rb = 8'h58;
       8'h01: rb = mode;
       8'h02: rb = speed;
+      8'h03: rb = 8'h02;
       default: rb = 8'h00;
     endcase
   end

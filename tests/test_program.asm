@@ -179,6 +179,81 @@ loop:   CLC
         TYA
         STA $7E003E         ; 11 11
 
+; T18: moltiplicazione con segno (i due segni, uno per volta e insieme)
+        REP #$30
+        LDA #$FFFE
+        LDX #$0003
+        WDM $06             ; -2 * 3 = $FFFFFFFA
+        STA $7E0044         ; FA FF
+        TYA
+        STA $7E0046         ; FF FF
+        LDA #$0005
+        LDX #$FFF9
+        WDM $06             ; 5 * -7 = $FFFFFFDD
+        STA $7E0048         ; DD FF
+        TYA
+        STA $7E004A         ; FF FF
+        LDA #$FFF0
+        LDX #$FFF0
+        WDM $06             ; -16 * -16 = $00000100
+        STA $7E004C         ; 00 01
+        TYA
+        STA $7E004E         ; 00 00
+
+; T19: divisione con segno; V = 1 solo per -32768 / -1 e per lo zero
+        LDA #$FF9C
+        LDX #$0007
+        WDM $07             ; -100 / 7 = -14, resto -2
+        STA $7E0050         ; F2 FF
+        TYA
+        STA $7E0052         ; FE FF
+        LDA #$0064
+        LDX #$FFF9
+        WDM $07             ; 100 / -7 = -14, resto 2
+        STA $7E0054         ; F2 FF
+        TYA
+        STA $7E0056         ; 02 00
+        LDA #$8000
+        LDX #$FFFF
+        WDM $07             ; -32768 / -1: A = $8000, V = 1
+        BVS ovf
+        LDA #$0000
+ovf:    STA $7E0058         ; 00 80
+        TYA
+        STA $7E005A         ; 00 00
+        LDA #$0009
+        LDX #$0002
+        WDM $07             ; 9 / 2: V = 0
+        BVC nov
+        LDA #$FFFF
+nov:    STA $7E005C         ; 04 00
+
+; T20: somma di prodotti con segno e caricamento del totale
+        WDM $05
+        LDA #$FFFF
+        LDX #$0005
+        WDM $08
+        WDM $08             ; -5 - 5 = $FFFFFFF6
+        WDM $04
+        STA $7E005E         ; F6 FF
+        TYA
+        STA $7E0060         ; FF FF
+        LDY #$0001
+        LDA #$2340
+        WDM $09             ; totale = $00012340
+        LDA #$0002
+        LDX #$FFFF
+        WDM $08             ; totale - 2 = $0001233E
+        LDA #$0000
+        TAY
+        WDM $04
+        STA $7E0062         ; 3E 23
+        TYA
+        STA $7E0064         ; 01 00
+        SEP #$20
+        LDA $5F03
+        STA $7E0066         ; 02
+
 ; T9: registri enhanced, porte APU, pila
         SEP #$20
         LDA $5F00

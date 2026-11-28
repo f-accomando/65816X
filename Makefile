@@ -49,6 +49,8 @@ unit:
 	mkdir -p build
 	$(IVERILOG) -g2012 -o build/tb_wram.vvp rtl/wram.v tb/wram_ref.v tb/tb_wram.v
 	$(VVP) -n build/tb_wram.vvp
+	$(IVERILOG) -g2012 -s tb_c816_ext -o build/tb_c816_ext.vvp rtl/cpu/c816_ext.v tb/tb_c816_ext.v
+	$(VVP) -n build/tb_c816_ext.vvp
 
 # Banco di prova della sola CPU: pagella in build/cpu_score.txt (vedi docs/VERIFICATION.md)
 build/cpu_vectors.txt: sim/cpu_vectors.py sim/cpu_ref.py

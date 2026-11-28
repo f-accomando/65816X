@@ -25,7 +25,7 @@ the current skeleton are in [VERIFICATION.md](VERIFICATION.md).
   (instructions, data, DMA, peripherals).
 - MUL, DIV, MAC, T&L, DOT3, CROSS3, ROT; 2 advanced DMA engines.
 - PPU+ at 2 px/clk: bilinear, perspective, alpha, fog, toon table, 2-3 stage combiner,
-  bloom, DXT1 decoder; Z-buffer for each tile in BRAM; 320x240 at 30 fps.
+  bloom, DXT1 decoder; Z-buffer for each tile in BRAM; 3D at 256x224 and 30 fps.
 - Audio: 16 voices at 44.1 kHz with reverb, plus the original DSP at 32 kHz.
 - No SuperFX/DSP-1/Cx4 (load them as an alternative bitstream), no FPU, and no RISC-V.
 - Estimate: ~73k LUT (87%), BRAM ~87% (see the numbers below).
@@ -52,9 +52,9 @@ additions are estimates.
 | **Total** | **94 / 108 (87%)** | **181 / 208 (87%)** |
 
 In A, the original SNES memories alone (130 blocks) exceed the capacity: the WRAM must be in SDRAM.
-The ROM is always in SDRAM. Today (measured) the skeleton uses 128 blocks: WRAM 64, VRAM 32, 29
-for the placeholder ROM, 1 for the decode table of the processor, and 2 for the colour and sprite
-memories.
+The ROM is always in SDRAM. Today (measured) the skeleton uses 128 blocks: WRAM 64, VRAM 32. Then 29 are
+for the placeholder ROM, and 1 for the decode table of the processor. The colour and sprite
+memories take 2 blocks.
 
 ## Bottlenecks
 
@@ -62,7 +62,7 @@ memories.
 |---|---|---|
 | Dead cycles and 3.58 MHz clock | prefetch, fewer dead cycles, 50-80 MHz clock | timing-sensitive games stay in SNES mode |
 | Shared 8-bit bus | 4 separate buses | the SDRAM stays shared |
-| SDRAM bandwidth (~330 MB/s) | Z and color for each tile in BRAM, DXT1, 320x240 | scenes with many textures |
+| SDRAM bandwidth (~330 MB/s) | Z and color for each tile in BRAM, DXT1, 3D at 256x224 | scenes with many textures |
 | MUL/DIV in software | parallel units, T&L | - |
 | Animation, AI, collisions | second core as a worker, DOT3/CROSS3 | real limit: ~20-30k triangles for each frame |
 | DMA stops the CPU | dedicated DMA bus, command lists | contention on the SDRAM |

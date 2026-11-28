@@ -1,15 +1,15 @@
 {
  "65816x": {
-  "content": "59df87ab5fad",
+  "content": "0d79d7670e96",
   "sources": {
    "Makefile": "409367034cd5",
    "README.md": "015d7b7662ea",
    "docs/ARCHITECTURE.md": "b2ff23d8cd6a",
    "docs/ROADMAP.md": "1d8753e634de",
-   "docs/VARIANTS.md": "a67bc2b3871e",
+   "docs/VARIANTS.md": "7945c42a49dd",
    "docs/VERIFICATION.md": "2197819585c3",
    "docs/progress/cpu.md": "012cbe6a037a",
-   "docs/progress/system.md": "07019214d9a5",
+   "docs/progress/system.md": "d061810f258a",
    "manuals/themes/paper.toml": "a338e8ca8a85",
    "manuals/tools/mkmanual.py": "750011865c3c",
    "rtl": "c1b7e9c0f4e0",

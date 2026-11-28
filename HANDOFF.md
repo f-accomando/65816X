@@ -74,6 +74,8 @@ project did not fit in either FPGA.
 7. **Look**: "Wind Waker" sharpness (clean polygons and textures, without the blur of the N64) without GameCube emulation.
 8. **CPU core** (2026-11-27): 2 FPGA clocks for each CPU cycle. The design in `docs/design/cpu-core.md`
    is approved, with the proposals of its section 9.3. The user also approved the deletion of the old core.
+9. **3D resolution** (2026-11-28): the base 3D layer is 256x224, 239 lines with overscan. The PPU+
+   formats keep width and height configurable. Thus variant B can try 512x448 later.
 
 ## 4. Proposals of the user (from ChatGPT chats) and results
 
@@ -127,7 +129,7 @@ B excludes SuperFX/DSP-1/Cx4 (load them as an alternative bitstream), FPU, and R
 7. Framebuffer (SDRAM, double buffer)
 8. Compositor with the legacy layers
 
-The blitter is the rasterizer on a quad (this doubles the sprites). Planned 3D resolution: 320x240 at 30 fps,
+The blitter is the rasterizer on a quad (this doubles the sprites). 3D resolution: 256x224 (user decision 9) at 30 fps,
 about 20-30k triangles for each frame. Cel-shaded look: toon table (~1k LUT), 2-3 stage combiner (~2-4k), second texture
 (~2k), bloom (~1-2k), DXT1 (~1k): +5-10k LUT in total. The real limit is the CPU (animation, AI, collisions), not the rasterizer.
 

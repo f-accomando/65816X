@@ -335,7 +335,9 @@ Each step closes with `make check` passing. Each step adds its mutants to the li
 
 - PPU+ acts only with `$5F01 = 2` (signal `ext_enhanced`). In modes 0 and 1, the PPU+ registers do not answer the bus, and PPU+ sends no SDRAM request.
 - With PPU+ synthesized, every part 1 scene gives the same CRCs in SNES mode. A mutant that removes the gate must fail a test.
-- Resolution: SNES resolutions only (decision 6). The 3D layer is 256x224 (239 with overscan). B can add 512x224 (question Q1).
+- Resolution: SNES resolutions only (decision 6). The 3D layer is 256x224 (239 with overscan). B can add 512x224.
+- Decision of the owner (Q1, 2026-11-28): the base 3D layer is 256x224. Variant B can try 512x448 later.
+- At 512x448 the SDRAM needs about 170-220 MB/s (estimate). The 3D layer then joins in the video output stage.
 - Look: point sampling, toon ramps, and outlines give the "Wind Waker" sharpness (decision 7). Filtering is an option, not the default (Q7).
 - Legacy DMA and the legacy PPU stay identical. The advanced DMA is a separate engine.
 
@@ -431,7 +433,7 @@ Scene: 25,000 triangles per frame, 30 fps, 256x224, overdraw 3.
 | Shading | Gouraud intensity, toon table, outline | + 2-3 stage combiner, alpha, fog, bloom |
 | Band | 256 x 8 | 256 x 16 (two banks for 2 px/clk) |
 | Advanced DMA | 1 engine | 2 engines |
-| 3D layer | 256x224 | 256x224, optional 512x224 (Q1) |
+| 3D layer | 256x224 | 256x224, optional 512x224 |
 | OBJ doubling | yes | yes |
 
 ## 2.7 BRAM and multipliers [E]
@@ -456,10 +458,10 @@ Scene: 25,000 triangles per frame, 30 fps, 256x224, overdraw 3.
 ## 2.8 Steps
 
 ### X0. Formats and command set (design note)
-- Content: fixed-point formats (vertex 12.4, Z 16 bit, texture coordinates, gradients), fill rule (top-left), command words, registers `$5F40-$5F7F`, framebuffer layout.
+- Content: fixed-point formats (vertex 12.4, Z 16 bit, texture coordinates, gradients), fill rule (top-left), command words, registers `$5F40-$5F7F`, framebuffer layout. The width and the height of the 3D layer are parameters.
 - Files: `docs/design/ppup-formats.md`.
 - Done when: the owner approves the note. Each later step cites its section.
-- Depends on: Q1, HANDOFF question 1. Risk: medium. Agent: expensive, N=4 (a wrong format costs rework in all steps).
+- Depends on: HANDOFF question 1. Risk: medium. Agent: expensive, N=4 (a wrong format costs rework in all steps).
 
 ### X1. Memory port and arbiter
 - Content: `mp_*` interface, `mp_arb.v`, `tb/sdram_model.v` (own code: latency, refresh, row misses).
@@ -597,7 +599,7 @@ Measure part 1 with `make synth-ppu` after each step. Quote each LUT count with 
 
 | # | Question | Alternative 1 | Alternative 2 | Recommendation |
 |---|---|---|---|---|
-| Q1 | 3D layer resolution. HANDOFF section 5 says 320x240, but decision 6 keeps SNES resolutions | 256x224 (+512x224 in B) | 320x240 | **256x224**: 1:1 with the legacy layers |
+| Q1 | 3D layer resolution (answered on 2026-11-28) | 256x224 (+512x224 in B) | 320x240 | **Decided: 256x224** |
 | Q2 | HDMI output mode | 640x480, 2x2 | 1280x720, 3x3 (742 Mbit/s per lane: to check on ECP5) | **640x480** |
 | Q3 | Frame rate | frame lock at 60.09/50.02 Hz, no SDRAM | SDRAM frame buffer at 60.00/50.00 Hz, one repeated frame about every 10 s | **Frame lock**; fallback if the monitor refuses |
 | Q4 | Accuracy target | dot-sequential (section 1.4) | exact fetch slots | **Dot-sequential** |

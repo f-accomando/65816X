@@ -1,7 +1,10 @@
 // c816_addr.v - address unit of the c816 core (docs/design/cpu-core.md, section 3.3). Combinational.
 // asel: 0 PC, 1 PCD, 2 EA, 3 EA1, 4 DUMI (indexed, before the high byte is fixed), 5 S, 6 S1,
 //       7 VEC, 8 VEC1, 9-10 pointer of (dp) and (dp),Y, 11-12 pointer of (dp,X),
-//       13-15 pointer of [dp], 16-17 pointer of (sr,S),Y.
+//       13-15 pointer of [dp], 16-17 pointer of (sr,S),Y, 18-19 stack of a wide instruction
+//       (S and S + 1 without the page 1 rule), 20-22 pointer of a jump in bank 0, 23-24 jump
+//       table of (abs,X) in the program bank, 25-26 source and destination of a block move,
+//       27 last data byte (EA, or EA + 1 with 16 bits).
 // ea:   1 absolute, 2 absolute,X, 3 long, 4 absolute,Y, 5 long,X, 6 long,Y, 7 direct page,
 //       8 direct page,X, 9 direct page,Y, 10 stack relative.
 // Direct page and stack addresses are in bank 0. In emulation mode, the stack stays in page 1,
@@ -17,6 +20,7 @@ module c816_addr (
   input [15:0] y,
   input [15:0] d,
   input e,
+  input w8,
   input [7:0] al,
   input [7:0] ah,
   input [7:0] ba,
@@ -26,6 +30,7 @@ module c816_addr (
   output xcarry,
   output br_cross,
   output [15:0] br_target,
+  output [15:0] rel16,
   output [15:0] pc_m1
 );
   assign pc_m1 = pc - 16'd1;
@@ -42,6 +47,14 @@ module c816_addr (
 
   wire [7:0] s_low1 = s[7:0] + 8'd1;
   wire [15:0] s1 = s + 16'd1;
+
+  // 16-bit relative offset (BRL, PER) and the absolute address of an instruction
+  wire [15:0] abs16 = {ah, al};
+  assign rel16 = pc + abs16;
+  wire [15:0] abs1 = abs16 + 16'd1;
+  wire [15:0] abs2 = abs16 + 16'd2;
+  wire [15:0] absx = abs16 + x;
+  wire [15:0] absx1 = absx + 16'd1;
 
   // direct page: OF is the offset byte of the instruction
   wire wrap = e && (d[7:0] == 8'h00);
@@ -111,6 +124,16 @@ module c816_addr (
       5'd15: addr = {8'h00, lp2};
       5'd16: addr = {8'h00, sr0};
       5'd17: addr = {8'h00, sr1};
+      5'd18: addr = {8'h00, s};
+      5'd19: addr = {8'h00, s1};
+      5'd20: addr = {8'h00, abs16};
+      5'd21: addr = {8'h00, abs1};
+      5'd22: addr = {8'h00, abs2};
+      5'd23: addr = {pbr, absx};
+      5'd24: addr = {pbr, absx1};
+      5'd25: addr = {of, x};
+      5'd26: addr = {ba, y};
+      5'd27: addr = w8 ? eff : eff1;
       default: addr = {pbr, pc};
     endcase
   end

@@ -25,6 +25,16 @@
     end
   endtask
 
+  // the instruction is over at the next opcode fetch. A block move fetches its own opcode again
+  // after each byte: it is over when the program counter has left it
+  function done_now;
+    input integer cycles;
+    begin
+      done_now = cycles > 0 && sync === 1'b1 &&
+                 !((opcode[7:0] == 8'h54 || opcode[7:0] == 8'h44) && dut.u_regs.pc === ini[0][15:0]);
+    end
+  endfunction
+
   // called at a negative edge; returns just after a positive edge
   reg ce, s_rd, s_wr;
   reg [7:0] s_wdata;
@@ -38,7 +48,7 @@
       bus_bad = 1'b0;
       illegal = 1'b0;
       #1;
-      while (!timeout && !(count > 0 && sync === 1'b1)) begin
+      while (!timeout && !done_now(count)) begin
         ce = cyc_end;
         if (ce !== 1'b1) begin
           // phase 0: keep the strobes for the check at the end of the cycle
@@ -61,7 +71,7 @@
         if (ce === 1'b1) count = count + 1;
         clocks = clocks + 1;
         if (clocks >= MAXCLK) timeout = 1'b1;
-        if (!timeout && !(count > 0 && sync === 1'b1)) begin
+        if (!timeout && !done_now(count)) begin
           @(negedge clk); #1;
         end
       end

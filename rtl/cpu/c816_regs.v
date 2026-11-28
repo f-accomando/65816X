@@ -1,14 +1,16 @@
 // c816_regs.v - registers of the c816 core (docs/design/cpu-core.md, section 3.1).
 // The width and emulation rules apply to the next value at every clock, after all write ports:
 //   E = 1: P.M = P.X = 1 and S[15:8] = $01;  P.X = 1: X[15:8] = Y[15:8] = 0.
-// Priority when two ports write one register: wr_en, then ext_we_*, then s_inc / s_dec.
+// Priority when two ports write one register: mv_we, wr_en, then ext_we_*, then s_inc / s_dec.
+// Instructions of the 65816 that leave page 1 on the stack set s_wide (16-bit stack steps) and
+// s_open (keep S[15:8] until the last clock of the instruction).
 // An 8-bit write (wr_w16 = 0) changes only bits 7:0 of the register.
 // f_we has the mask order N V Z C (bit 3 = N, bit 0 = C). f_we has priority over p_we.
 module c816_regs (
   input clk,
   input rst,
   input wr_en,
-  input [2:0] wr_sel,
+  input [3:0] wr_sel,
   input [15:0] wr_val,
   input wr_w16,
   input ext_we_a,
@@ -30,12 +32,19 @@ module c816_regs (
   input [7:0] pbr_val,
   input s_inc,
   input s_dec,
+  input s_wide,
+  input s_open,
+  input mv_we,
+  input [15:0] mv_a,
+  input [15:0] mv_x,
+  input [15:0] mv_y,
+  input [7:0] mv_dbr,
   output reg [15:0] a, x, y, s, d, pc,
   output reg [7:0] pbr, dbr, p,
   output reg e
 );
   reg [15:0] a_n, x_n, y_n, s_n, d_n;
-  reg [7:0] p_n;
+  reg [7:0] p_n, dbr_n;
   reg e_n;
   wire [15:0] wlo_a = {a[15:8], wr_val[7:0]};
   wire [15:0] wlo_x = {x[15:8], wr_val[7:0]};
@@ -51,20 +60,28 @@ module c816_regs (
     d_n = d;
     p_n = p;
     e_n = e;
-    // stack pointer: in emulation mode only S[7:0] changes
-    if (s_inc) s_n = e ? {s[15:8], s[7:0] + 8'd1} : s + 16'd1;
-    if (s_dec) s_n = e ? {s[15:8], s[7:0] - 8'd1} : s - 16'd1;
+    dbr_n = dbr;
+    // stack pointer: in emulation mode only S[7:0] changes, except in a wide instruction
+    if (s_inc) s_n = (e && !s_wide) ? {s[15:8], s[7:0] + 8'd1} : s + 16'd1;
+    if (s_dec) s_n = (e && !s_wide) ? {s[15:8], s[7:0] - 8'd1} : s - 16'd1;
     if (ext_we_a) a_n = ext_a;
     if (ext_we_y) y_n = ext_y;
     if (wr_en) begin
       case (wr_sel)
-        3'd1: a_n = wr_w16 ? wr_val : wlo_a;
-        3'd2: x_n = wr_w16 ? wr_val : wlo_x;
-        3'd3: y_n = wr_w16 ? wr_val : wlo_y;
-        3'd4: s_n = wr_w16 ? wr_val : wlo_s;
-        3'd5: d_n = wr_w16 ? wr_val : wlo_d;
+        4'd1: a_n = wr_w16 ? wr_val : wlo_a;
+        4'd2: x_n = wr_w16 ? wr_val : wlo_x;
+        4'd3: y_n = wr_w16 ? wr_val : wlo_y;
+        4'd4: s_n = wr_w16 ? wr_val : wlo_s;
+        4'd5: d_n = wr_w16 ? wr_val : wlo_d;
+        4'd7: dbr_n = wr_val[7:0];
         default: ;
       endcase
+    end
+    if (mv_we) begin
+      a_n = mv_a;
+      x_n = mv_x;
+      y_n = mv_y;
+      dbr_n = mv_dbr;
     end
     if (p_we) p_n = p_val;
     if (f_we[3]) p_n[7] = f_n;
@@ -76,7 +93,7 @@ module c816_regs (
     if (e_n) begin
       p_n[5] = 1'b1;
       p_n[4] = 1'b1;
-      s_n[15:8] = 8'h01;
+      if (!s_open) s_n[15:8] = 8'h01;
     end
     if (p_n[4]) begin
       x_n[15:8] = 8'h00;
@@ -104,6 +121,7 @@ module c816_regs (
       d <= d_n;
       p <= p_n;
       e <= e_n;
+      dbr <= dbr_n;
       if (pc_we) pc <= pc_val;
       if (pbr_we) pbr <= pbr_val;
     end

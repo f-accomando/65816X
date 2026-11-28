@@ -38,7 +38,7 @@ The CI (`.github/workflows/ci.yml`) runs the same commands on each pull request 
 
 Source: [SingleStepTests/65816](https://github.com/SingleStepTests/65816), MIT license, commit `307c63f`.
 Each opcode has 10,000 vectors for native mode and 10,000 for emulation mode (`MVN` and `MVP` have 200). Keep the files outside
-the repository, in `<folder>/v1/`. The 354 files of the 177 opcodes of today take 1.8 GB.
+the repository, in `<folder>/v1/`. The 512 files of all opcodes take 2.6 GB.
 `sim/cpu_sst.py` converts them. `SST_FLAGS` accepts `--limit N`, `--d0`, `--page1`, and `--bus`.
 `--bus` adds the bus cycles of each vector, for a check cycle by cycle.
 Only the adapter file `tb/cpu_adapt_c816.vh` reads the internal registers of the core.
@@ -78,12 +78,12 @@ The system uses the new core `c816`.
 | `make mutation` | 11 of 11 faults found |
 | `make iverilog` | 56/56 |
 | `make unit` | 0 differences, 28,123 accesses to the WRAM port |
-| `make cpu` | 177 of 256 opcodes; 70,800 of 70,800 vectors |
-| `make cpu-mutation` | 15 of 15 faults found |
-| equivalent LUT4 | 4568 (5% of the 85F, 10% of the 45F) |
+| `make cpu` | 251 of 256 opcodes; 100,400 of 100,400 vectors |
+| `make cpu-mutation` | 22 of 22 faults found |
+| equivalent LUT4 | 5938 (7% of the 85F, 14% of the 45F) |
 | `DP16KD` | 126 (61% of the 85F, 117% of the 45F); yosys puts the decode table in one block |
 | `MULT18X18D` | 2 |
-| `TRELLIS_FF` | 690 |
+| `TRELLIS_FF` | 714 |
 | `TRELLIS_DPR16X4` | 12 |
 
 With the old core, the system took 1321 cycles for the test program, 4393 equivalent LUT4, and 726 FF.
@@ -137,6 +137,19 @@ Run on 2026-11-28, all vectors of the 177 opcodes, with the cycle and bus checks
 
 In the full run, only the 15 forms of `ADC` and of `SBC` fail, only in A and P, because decimal mode
 is missing.
+
+### Public vectors after step C4 (all instructions except interrupts)
+
+Run on 2026-11-28, all vectors of the 251 opcodes, with the cycle and bus checks.
+
+| Run | Result |
+|---|---|
+| `make ref-public` | 0 of 4,680,310 vectors differ, cycles included; 300,090 decimal vectors skipped |
+| `make cpu-public SST_FLAGS="--bus"` | **221 of 256 opcodes**; 4,717,725 of 4,980,400 vectors; 0 cycle differences |
+| `make cpu-public SST_FLAGS="--limit 300 --bus --d0"` | 251 of 256 opcodes; 75,080 of 75,080 vectors |
+
+In the full run, only the 15 forms of `ADC` and of `SBC` fail, because decimal mode is missing.
+A vector of `MVN` or `MVP` covers a whole block move, with up to about 7,000 cycles.
 
 ### CI on GitHub
 

@@ -27,9 +27,9 @@ module c816_seq (
   output wr,
   output sync
 );
-  // bus codes: 0 IO, 1 OPF, 2 PRG, 3 DAT, 4 DRD, 5 DWR
+  // bus codes: 0 IO, 1 OPF, 2 PRG, 3 DAT, 4 DRD, 5 DWR, 6 MOD (a write only in emulation mode)
   wire reads = (bus == 3'd1) || (bus == 3'd2) || (bus == 3'd4) || ((bus == 3'd3) && !is_store);
-  wire writes = (bus == 3'd5) || ((bus == 3'd3) && is_store);
+  wire writes = (bus == 3'd5) || ((bus == 3'd3) && is_store) || ((bus == 3'd6) && e);
 
   // last codes: 0 NO, 1 ALW, 2 W8, 3 NTK, 4 NEC
   wire is_last = (last == 3'd1) || ((last == 3'd2) && w8) || ((last == 3'd3) && !taken) ||

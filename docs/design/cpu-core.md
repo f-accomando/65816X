@@ -573,3 +573,26 @@ Rules that the public vectors confirm:
 - (sr,S),Y has an internal cycle with the address of the high byte of the pointer.
 - The internal cycles of direct page and stack relative instructions drive the address of the offset byte.
 
+## 12. Step C4: remaining instructions (done 2026-11-28)
+
+| Part | Addition |
+|---|---|
+| `bus` | `MOD` (6): the modify cycle of a read-modify-write; a write without VDA in emulation mode |
+| `asel` | `SW S1W` stack of a wide instruction; `AB0 AB1 AB2` jump pointer in bank 0; `PX0 PX1` table of (abs,X); `MVS MVD` block move; `EAL` last data byte |
+| `wsel` (now 4 bits) | `ALUL ALUH DL PBR AL AH PCL PCH PERL PERH` |
+| `pcop` (now 4 bits) | `REL16 RTL DPTR DPTRL REWIND` |
+| `hold` | `WIDE`: the stack of the instruction leaves page 1 until its last cycle |
+| `op` | `ASL LSR ROL ROR TSB TRB BIT BITI XBA PLP MVN MVP` |
+| `src`, `dst` (now 4 bits) | `P DBR PBR` |
+| `seq` (now 6 bits) | 18 new sequences; 42 in total |
+| Ports | `c816_regs` has `s_wide`, `s_open`, and the block move inputs; `c816_addr` has `w8` and `rel16` |
+
+A read-modify-write on memory takes its ALU input from the data latches: the decode row has no
+source register. A block move fetches its opcode again after each byte, until A is `$FFFF`.
+
+Rules that the public vectors confirm:
+
+- In emulation mode, the modify cycle writes the old byte, with VDA and VPA at 0.
+- `PEA`, `PEI`, `PER`, `PHD`, `PLD`, `PLB`, `JSL`, `RTL`, and `JSR (abs,X)` leave page 1 in
+  emulation mode. S is in page 1 again at the end of the instruction.
+- The jump table of (abs,X) is read in the program bank, with VDA.

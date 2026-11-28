@@ -6,9 +6,10 @@
 // registers: it defines load_state, state_diff, and run_instruction.
 `timescale 1ns/1ns
 module tb_cpu;
-  localparam MAXRAM = 256;
-  localparam MAXCYC = 64;
-  localparam MAXCLK = 400;
+  // a block move vector (MVN, MVP) covers the whole move: thousands of cycles
+  localparam MAXRAM = 4096;
+  localparam MAXCYC = 8192;
+  localparam MAXCLK = 40000;
   // bits of the mask, in the order of FIELDS in sim/cpu_score.py
   localparam F_PC = 0, F_S = 1, F_P = 2, F_A = 3, F_X = 4, F_Y = 5, F_DBR = 6, F_D = 7,
              F_PBR = 8, F_E = 9, F_RAM = 10, F_STRAY = 11, F_TIME = 12, F_CYC = 13,
@@ -27,6 +28,7 @@ module tb_cpu;
   reg [7:0] mem [0:16777215];
   reg [23:0] written [0:MAXRAM-1];
   integer nwritten;
+  reg expected [0:16777215];      // 1 while the address is in the final list of the vector
   reg running;
   always @(posedge clk) begin
     din <= rd ? mem[addr] : 8'hxx;
@@ -55,7 +57,6 @@ module tb_cpu;
 
   integer vec, out, code, i, j, tests;
   reg [15:0] diff;
-  reg found;
   reg [1023:0] vecname, outname;
 
   task need;
@@ -125,12 +126,10 @@ module tb_cpu;
       diff[F_ILL] = illegal;
       for (i = 0; i < nf; i = i + 1)
         if (mem[fa[i][23:0]] !== fv[i][7:0]) diff[F_RAM] = 1'b1;
-      for (j = 0; j < nwritten; j = j + 1) begin
-        found = 1'b0;
-        for (i = 0; i < nf; i = i + 1)
-          if (fa[i][23:0] == written[j]) found = 1'b1;
-        if (!found) diff[F_STRAY] = 1'b1;
-      end
+      for (i = 0; i < nf; i = i + 1) expected[fa[i][23:0]] = 1'b1;
+      for (j = 0; j < nwritten; j = j + 1)
+        if (expected[written[j]] !== 1'b1) diff[F_STRAY] = 1'b1;
+      for (i = 0; i < nf; i = i + 1) expected[fa[i][23:0]] = 1'bx;
       $fdisplay(out, "%02h %0d %h %0d %0d", opcode[7:0], ini[9][0], diff, count, expcyc);
 
       for (i = 0; i < nr; i = i + 1) mem[ra[i][23:0]] = 8'hxx;

@@ -50,6 +50,34 @@ OPCODES.update({
     0xEA: ('nop', None), 0x42: ('wdm', None),
 })
 
+# C4: lettura-modifica-scrittura
+for base, name in ((0x00, 'asl'), (0x20, 'rol'), (0x40, 'lsr'), (0x60, 'ror')):
+    OPCODES.update({base + 0x06: (name, 'dp'), base + 0x0A: (name, 'acc'), base + 0x0E: (name, 'abs'),
+                    base + 0x16: (name, 'dpx'), base + 0x1E: (name, 'absx')})
+OPCODES.update({
+    0xC6: ('dec', 'dp'), 0xCE: ('dec', 'abs'), 0xD6: ('dec', 'dpx'), 0xDE: ('dec', 'absx'),
+    0xE6: ('inc', 'dp'), 0xEE: ('inc', 'abs'), 0xF6: ('inc', 'dpx'), 0xFE: ('inc', 'absx'),
+    0x04: ('tsb', 'dp'), 0x0C: ('tsb', 'abs'), 0x14: ('trb', 'dp'), 0x1C: ('trb', 'abs'),
+    0x24: ('bit', 'dp'), 0x2C: ('bit', 'abs'), 0x34: ('bit', 'dpx'), 0x3C: ('bit', 'absx'),
+    0x89: ('bit', 'imm'),
+    # trasferimenti e flag
+    0x1B: ('tcs', None), 0x3B: ('tsc', None), 0x5B: ('tcd', None), 0x7B: ('tdc', None),
+    0x9A: ('txs', None), 0xBA: ('tsx', None), 0x9B: ('index_copy', ('y', 'x')),
+    0xBB: ('index_copy', ('x', 'y')), 0xEB: ('xba', None),
+    0xB8: ('flag', (V, False)), 0xD8: ('flag', (D, False)), 0xF8: ('flag', (D, True)),
+    # salti
+    0x50: ('branch', (V, False)), 0x70: ('branch', (V, True)), 0x82: ('brl', None),
+    0x6C: ('jmp_ind', None), 0xDC: ('jml_ind', None), 0x7C: ('jmp_indx', None),
+    0xFC: ('jsr_indx', None), 0x22: ('jsl', None), 0x6B: ('rtl', None),
+    # pila
+    0x08: ('php', None), 0x28: ('plp', None), 0x8B: ('phb', None), 0xAB: ('plb', None),
+    0x4B: ('phk', None), 0x0B: ('phd', None), 0x2B: ('pld', None),
+    0xDA: ('phi', 'x'), 0xFA: ('pli', 'x'), 0x5A: ('phi', 'y'), 0x7A: ('pli', 'y'),
+    0xF4: ('pea', None), 0xD4: ('pei', None), 0x62: ('per', None),
+    # spostamenti di blocchi
+    0x54: ('block', 1), 0x44: ('block', -1),
+})
+
 
 class Cpu:
     """Stato dei registri piu' una memoria riempita a richiesta.
@@ -234,6 +262,15 @@ class Cpu:
         self.move_sp(1)
         return self.read(self.s)
 
+    # istruzioni nuove del 65816: la pila non resta nella pagina 1 durante l'istruzione
+    def push_new(self, value):
+        self.write(self.s, value)
+        self.s = (self.s - 1) & 0xFFFF
+
+    def pull_new(self):
+        self.s = (self.s + 1) & 0xFFFF
+        return self.read(self.s)
+
     def width_rules(self):
         if self.e:
             self.p |= M | X
@@ -248,7 +285,267 @@ class Cpu:
         op = self.fetch(1, 3)
         name, arg = OPCODES[op]
         getattr(self, 'op_' + name)(arg)
+        if self.e:  # alla fine S torna comunque nella pagina 1
+            self.s = 0x0100 | (self.s & 0xFF)
         return op
+
+    # ---- lettura-modifica-scrittura ----
+    def modify(self, mode, func):
+        """func(valore, larghezza8) restituisce il nuovo valore e aggiorna i flag"""
+        w8 = self.m8()
+        mask = 0xFF if w8 else 0xFFFF
+        if mode == 'acc':
+            self.io(self.code_address())
+            result = func(self.a & mask, w8) & mask
+            self.a = (self.a & ~mask & 0xFFFF) | result
+            return
+        ea, bank0 = self.effective(mode, True)
+        value = self.read(ea)
+        last = ea
+        if not w8:
+            last = self.second(ea, bank0)
+            value |= self.read(last) << 8
+        if self.e:   # in emulazione il ciclo di modifica riscrive il valore letto, senza VDA
+            self.cycles.append((4, ea, value & 0xFF))
+        else:
+            self.io(last)
+        result = func(value, w8) & mask
+        if not w8:
+            self.write(last, result >> 8)
+        self.write(ea, result)
+
+    def shift(self, mode, left, rotate):
+        def func(value, w8):
+            top = 7 if w8 else 15
+            carry_in = (self.p & C) if rotate else 0
+            if left:
+                carry_out = value >> top & 1
+                result = ((value << 1) | carry_in) & ((2 << top) - 1)
+            else:
+                carry_out = value & 1
+                result = (value >> 1) | (carry_in << top)
+            self.setf(C, carry_out)
+            self.nz(result, w8)
+            return result
+        self.modify(mode, func)
+
+    def op_asl(self, mode):
+        self.shift(mode, True, False)
+
+    def op_rol(self, mode):
+        self.shift(mode, True, True)
+
+    def op_lsr(self, mode):
+        self.shift(mode, False, False)
+
+    def op_ror(self, mode):
+        self.shift(mode, False, True)
+
+    def add_one(self, mode, delta):
+        def func(value, w8):
+            result = (value + delta) & (0xFF if w8 else 0xFFFF)
+            self.nz(result, w8)
+            return result
+        self.modify(mode, func)
+
+    def op_inc(self, mode):
+        self.add_one(mode, 1)
+
+    def op_dec(self, mode):
+        self.add_one(mode, -1)
+
+    def test_bits(self, mode, setting):
+        def func(value, w8):
+            a = self.a & (0xFF if w8 else 0xFFFF)
+            self.setf(Z, (a & value) == 0)
+            return (value | a) if setting else (value & ~a)
+        self.modify(mode, func)
+
+    def op_tsb(self, mode):
+        self.test_bits(mode, True)
+
+    def op_trb(self, mode):
+        self.test_bits(mode, False)
+
+    def op_bit(self, mode):
+        w8 = self.m8()
+        value = self.operand(mode, w8)
+        self.setf(Z, (self.a & value & (0xFF if w8 else 0xFFFF)) == 0)
+        if mode != 'imm':
+            self.setf(N, value & (0x80 if w8 else 0x8000))
+            self.setf(V, value & (0x40 if w8 else 0x4000))
+
+    # ---- trasferimenti ----
+    def nz16(self, value):
+        self.nz(value, False)
+
+    def op_tcs(self, _):
+        self.io(self.code_address())
+        self.s = self.a
+
+    def op_tsc(self, _):
+        self.io(self.code_address())
+        self.a = self.s
+        self.nz16(self.a)
+
+    def op_tcd(self, _):
+        self.io(self.code_address())
+        self.d = self.a
+        self.nz16(self.d)
+
+    def op_tdc(self, _):
+        self.io(self.code_address())
+        self.a = self.d
+        self.nz16(self.a)
+
+    def op_txs(self, _):
+        self.io(self.code_address())
+        self.s = self.x
+
+    def op_tsx(self, _):
+        self.io(self.code_address())
+        self.set_index('x', self.s)
+
+    def op_index_copy(self, arg):
+        self.io(self.code_address())
+        self.set_index(arg[0], getattr(self, arg[1]))
+
+    def op_xba(self, _):
+        self.io(self.code_address())
+        self.io(self.code_address())
+        self.a = ((self.a << 8) | (self.a >> 8)) & 0xFFFF
+        self.nz(self.a, True)
+
+    # ---- pila ----
+    def push_value(self, value, w8, new=False):
+        self.io(self.code_address())
+        put = self.push_new if new else self.push
+        if not w8:
+            put(value >> 8)
+        put(value & 0xFF)
+
+    def pull_value(self, w8, new=False):
+        self.io(self.code_address())
+        self.io(self.code_address())
+        get = self.pull_new if new else self.pull
+        value = get()
+        if not w8:
+            value |= get() << 8
+        return value
+
+    def op_php(self, _):
+        self.push_value(self.p, True)
+
+    def op_plp(self, _):
+        self.p = self.pull_value(True)
+        self.width_rules()
+
+    def op_phb(self, _):
+        self.push_value(self.dbr, True, True)
+
+    def op_plb(self, _):
+        self.dbr = self.pull_value(True, True)
+        self.nz(self.dbr, True)
+
+    def op_phk(self, _):
+        self.push_value(self.pbr, True, True)
+
+    def op_phd(self, _):
+        self.push_value(self.d, False, True)
+
+    def op_pld(self, _):
+        self.d = self.pull_value(False, True)
+        self.nz16(self.d)
+
+    def op_phi(self, reg):
+        self.push_value(getattr(self, reg), self.x8())
+
+    def op_pli(self, reg):
+        self.set_index(reg, self.pull_value(self.x8()))
+
+    def push_word(self, value):
+        self.push_new(value >> 8)
+        self.push_new(value & 0xFF)
+
+    def op_pea(self, _):
+        self.push_word(self.fetch(2))
+
+    def op_pei(self, _):
+        offset = self.direct_offset()
+        self.push_word(self.pointer((self.d + offset) & 0xFFFF, 2))
+
+    def op_per(self, _):
+        offset = self.fetch(2)
+        self.io(self.code_address(1))
+        self.push_word((self.pc + offset) & 0xFFFF)
+
+    # ---- salti ----
+    def op_brl(self, _):
+        offset = self.fetch(2)
+        self.io(self.code_address(1))
+        self.pc = (self.pc + offset) & 0xFFFF
+
+    def op_jmp_ind(self, _):
+        self.pc = self.pointer(self.fetch(2), 2)
+
+    def op_jml_ind(self, _):
+        target = self.pointer(self.fetch(2), 3)
+        self.pc, self.pbr = target & 0xFFFF, target >> 16
+
+    def table_target(self, base):
+        address = (base + self.x) & 0xFFFF
+        lo = self.read((self.pbr << 16) | address)
+        hi = self.read((self.pbr << 16) | ((address + 1) & 0xFFFF))
+        return lo | hi << 8
+
+    def op_jmp_indx(self, _):
+        base = self.fetch(2)
+        self.io(self.code_address(1))
+        self.pc = self.table_target(base)
+
+    def op_jsr_indx(self, _):
+        lo = self.fetch()
+        self.push_word(self.pc)
+        base = lo | self.fetch() << 8
+        self.io(self.code_address(1))
+        self.pc = self.table_target(base)
+
+    def op_jsl(self, _):
+        target = self.fetch(2)
+        self.push_new(self.pbr)
+        self.io((self.s + 1) & 0xFFFF)
+        bank = self.fetch()
+        self.push_word((self.pc - 1) & 0xFFFF)
+        self.pc, self.pbr = target, bank
+
+    def op_rtl(self, _):
+        self.io(self.code_address())
+        self.io(self.code_address())
+        lo = self.pull_new()
+        hi = self.pull_new()
+        self.pbr = self.pull_new()
+        self.pc = (((hi << 8) | lo) + 1) & 0xFFFF
+
+    # ---- blocchi: il chip sposta un byte per volta e torna sull'istruzione finche' A non diventa
+    # $FFFF; un passo del modello (come un vettore pubblico) copre tutto lo spostamento
+    def op_block(self, delta):
+        while True:
+            target = self.fetch()
+            source = self.fetch()
+            self.dbr = target
+            value = self.read((source << 16) | self.x)
+            address = (target << 16) | self.y
+            self.write(address, value)
+            self.io(address)
+            self.io(address)
+            mask = 0xFF if self.x8() else 0xFFFF
+            self.x = (self.x + delta) & mask
+            self.y = (self.y + delta) & mask
+            self.a = (self.a - 1) & 0xFFFF
+            if self.a == 0xFFFF:
+                return
+            self.pc = (self.pc - 3) & 0xFFFF
+            self.fetch(1, 3)  # di nuovo l'opcode
 
     def op_lda(self, mode):
         self.set_a(self.operand(mode, self.m8()))

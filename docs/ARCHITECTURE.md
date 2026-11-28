@@ -62,13 +62,15 @@ In emulation mode, the high byte of S stays at 01.
 | Group | Opcodes |
 |---|---|
 | Load, store, arithmetic, logic | `LDA`, `STA` (no immediate), `ADC`, `SBC`, `CMP`, `AND`, `ORA`, `EOR` with all addressing modes: immediate, absolute, absolute,X, absolute,Y, long, long,X, direct page, direct page,X, (dp), (dp,X), (dp),Y, [dp], [dp],Y, sr,S, (sr,S),Y |
-| Index and zero | `LDX`, `LDY`, `STX`, `STY`, `STZ`, `CPX`, `CPY` with all their addressing modes |
-| Increment | `INC A`, `DEC A`, `INX/DEX/INY/DEY` |
-| Transfers | `TAX TXA TAY TYA` |
-| Flags and mode | `CLC SEC SEI CLI XCE REP SEP` |
-| Jumps | `BRA BNE BEQ BCC BCS BPL BMI`, `JMP abs`, `JML long`, `JSR abs`, `RTS` |
-| Stack | `PHA PLA` |
-| Other | `NOP`; each opcode that is not in this table runs as a NOP and sets `dbg_illegal` |
+| Index and zero | `LDX`, `LDY`, `STX`, `STY`, `STZ`, `CPX`, `CPY` |
+| Read-modify-write | `ASL`, `LSR`, `ROL`, `ROR`, `INC`, `DEC` (accumulator and memory), `TSB`, `TRB`, `BIT` |
+| Increment of index | `INX/DEX/INY/DEY` |
+| Transfers | `TAX TXA TAY TYA TXY TYX TSX TXS TCS TSC TCD TDC XBA` |
+| Flags and mode | `CLC SEC SEI CLI CLV CLD SED XCE REP SEP` |
+| Jumps | `BRA BRL BNE BEQ BCC BCS BPL BMI BVC BVS`, `JMP`, `JML`, `JSR`, `JSL`, `RTS`, `RTL` |
+| Stack | `PHA PLA PHX PLX PHY PLY PHP PLP PHB PLB PHK PHD PLD PEA PEI PER` |
+| Block move | `MVN`, `MVP` |
+| Other | `NOP`, `WDM`; `BRK`, `COP`, `RTI`, `WAI`, `STP` run as a NOP and set `dbg_illegal` |
 
 ### Enhanced extensions through `WDM #sub`
 
@@ -90,8 +92,8 @@ Planned and not yet done: DOT3, CROSS3, ROT, BLIT, FILL, 32-bit registers R0-R7.
 ## Known limits
 
 - No interrupts (NMI, IRQ, BRK, COP) and no decimal arithmetic (the D flag exists).
-- Many instructions are missing (shifts, BIT, memory increment, MVN/MVP, PHX/PLX, V branches...).
-- The cycle counts match the real chip for the 177 opcodes. The 6/8/12 master clocks of the original bus are not emulated.
+- `BRK`, `COP`, `RTI`, `WAI`, and `STP` are missing.
+- The cycle counts match the real chip for the 251 opcodes. The 6/8/12 master clocks of the original bus are not emulated.
 - The reset sequence reads only the vector. The real chip takes more cycles.
 - The 5A22 multiplies and divides instantly. WDM DIV uses a combinational divider. Replace it with a sequential divider.
 - DMA: no HDMA. The DMA moves 1 byte every 2 cycles.

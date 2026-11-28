@@ -7,7 +7,8 @@ The phases are in [ROADMAP.md](../ROADMAP.md). The open questions are in [HANDOF
 
 - **CI**: GitHub warns that `actions/checkout@v4` and `actions/upload-artifact@v4` use Node.js 20,
   which is deprecated. Move to versions that use Node.js 24.
-- **Synthesis**: find why Yosys 0.33 (CI) counts 11245 equivalent LUT4 and Yosys 0.52 counts 4219
+- **Synthesis**: find why Yosys 0.33 (CI) counts many more equivalent LUT4 than Yosys 0.52
+  (11245 against 4219 after step C2)
   (see [VERIFICATION.md](../VERIFICATION.md), section 5).
 - **Assembler**: `sim/asm.py` knows only part of the instructions and addressing modes of the core.
 - **F1**: sequential divider in the 5A22, with the latency of the original.

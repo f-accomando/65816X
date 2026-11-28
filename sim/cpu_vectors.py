@@ -48,9 +48,18 @@ def initial_state(rng, e):
 
 def make_case(rng, opcode, e):
     start = initial_state(rng, e)
+    if opcode in (0x44, 0x54):  # spostamenti di blocchi: pochi byte per vettore
+        start['a'] = rng.randrange(8)
     first = (start['pbr'] << 16) | start['pc']
 
+    # caso limite: indirizzi in cima a un banco (operandi $FF con D = $FF00 o X alto)
+    corner = rng.random() < 0.05
+    if corner:
+        start['d'] = 0xFF00
+
     def new_byte(kind):
+        if corner and kind == 'code':
+            return 0xFF
         return pick(rng, EDGES8, 8)
 
     cpu = cpu_ref.Cpu(start, new_byte)

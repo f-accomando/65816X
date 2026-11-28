@@ -123,6 +123,124 @@
     6 DAT EA   DL  -   -   RLO  W8   -    -    -
     7 DAT EA1  DH  -   -   RHI  ALW  -    -    -
 
+# read-modify-write: read low (and high), modify cycle (a write of the old byte in emulation
+# mode), write high, write low
+[seq RMWDP]
+    1 PRG PC   OF  INC -   -    -    DL0  -    -
+    2 IO  PCD  -   -   -   -    -    -    -    -
+    3 DRD EA   DL  -   -   -    -    W8   -    -
+    4 DRD EA1  DH  -   -   -    -    -    -    -
+    5 MOD EAL  -   -   -   DL   -    W8   -    -
+    6 DWR EA1  -   -   -   ALUH -    -    -    -
+    7 DWR EA   -   -   -   ALUL ALW  -    -    -
+[seq RMWDPX]
+    1 PRG PC   OF  INC -   -    -    DL0  -    -
+    2 IO  PCD  -   -   -   -    -    -    -    -
+    3 IO  PCD  -   -   -   -    -    -    -    -
+    4 DRD EA   DL  -   -   -    -    W8   -    -
+    5 DRD EA1  DH  -   -   -    -    -    -    -
+    6 MOD EAL  -   -   -   DL   -    W8   -    -
+    7 DWR EA1  -   -   -   ALUH -    -    -    -
+    8 DWR EA   -   -   -   ALUL ALW  -    -    -
+[seq RMWABS]
+    1 PRG PC   AL  INC -   -    -    -    -    -
+    2 PRG PC   AH  INC -   -    -    -    -    -
+    3 DRD EA   DL  -   -   -    -    W8   -    -
+    4 DRD EA1  DH  -   -   -    -    -    -    -
+    5 MOD EAL  -   -   -   DL   -    W8   -    -
+    6 DWR EA1  -   -   -   ALUH -    -    -    -
+    7 DWR EA   -   -   -   ALUL ALW  -    -    -
+[seq RMWABSX]
+    1 PRG PC   AL  INC -   -    -    -    -    -
+    2 PRG PC   AH  INC -   -    -    -    -    -
+    3 IO  DUMI -   -   -   -    -    -    -    -
+    4 DRD EA   DL  -   -   -    -    W8   -    -
+    5 DRD EA1  DH  -   -   -    -    -    -    -
+    6 MOD EAL  -   -   -   DL   -    W8   -    -
+    7 DWR EA1  -   -   -   ALUH -    -    -    -
+    8 DWR EA   -   -   -   ALUL ALW  -    -    -
+[seq XBA]
+    1 IO  PC   -   -   -   -    -    -    -    -
+    2 IO  PC   -   -   -   -    ALW  -    -    -
+# instructions of the 65816 on the stack: S does not stay in page 1 until the last cycle
+[seq PUSHW]                     # PHD
+    1 IO  PC   -   -   -   -    -    -    -    WIDE
+    2 DWR SW   -   -   DEC RHI  -    -    -    WIDE
+    3 DWR SW   -   -   DEC RLO  ALW  -    -    WIDE
+[seq PULLW]                     # PLD, PLB
+    1 IO  PC   -   -   -   -    -    -    -    WIDE
+    2 IO  PC   -   -   -   -    -    -    -    WIDE
+    3 DRD S1W  DL  -   INC -    W8   -    -    WIDE
+    4 DRD S1W  DH  -   INC -    ALW  -    -    WIDE
+[seq PEA]
+    1 PRG PC   AL  INC -   -    -    -    -    WIDE
+    2 PRG PC   AH  INC -   -    -    -    -    WIDE
+    3 DWR SW   -   -   DEC AH   -    -    -    WIDE
+    4 DWR SW   -   -   DEC AL   ALW  -    -    WIDE
+[seq PEI]
+    1 PRG PC   OF  INC -   -    -    DL0  -    WIDE
+    2 IO  PCD  -   -   -   -    -    -    -    WIDE
+    3 DRD LP0  AL  -   -   -    -    -    -    WIDE
+    4 DRD LP1  AH  -   -   -    -    -    -    WIDE
+    5 DWR SW   -   -   DEC AH   -    -    -    WIDE
+    6 DWR SW   -   -   DEC AL   ALW  -    -    WIDE
+[seq PER]
+    1 PRG PC   AL  INC -   -    -    -    -    WIDE
+    2 PRG PC   AH  INC -   -    -    -    -    WIDE
+    3 IO  PCD  -   -   -   -    -    -    -    WIDE
+    4 DWR SW   -   -   DEC PERH -    -    -    WIDE
+    5 DWR SW   -   -   DEC PERL ALW  -    -    WIDE
+[seq BRL]
+    1 PRG PC   AL  INC -   -    -    -    -    -
+    2 PRG PC   AH  INC -   -    -    -    -    -
+    3 IO  PCD  -   -   -   -    ALW  -    REL16 -
+[seq JMPI]                      # JMP (abs)
+    1 PRG PC   AL  INC -   -    -    -    -    -
+    2 PRG PC   AH  INC -   -    -    -    -    -
+    3 DRD AB0  DL  -   -   -    -    -    -    -
+    4 DRD AB1  DH  -   -   -    ALW  -    DPTR -
+[seq JMPIL]                     # JML [abs]
+    1 PRG PC   AL  INC -   -    -    -    -    -
+    2 PRG PC   AH  INC -   -    -    -    -    -
+    3 DRD AB0  DL  -   -   -    -    -    -    -
+    4 DRD AB1  DH  -   -   -    -    -    -    -
+    5 DRD AB2  BA  -   -   -    ALW  -    DPTRL -
+[seq JMPIX]                     # JMP (abs,X)
+    1 PRG PC   AL  INC -   -    -    -    -    -
+    2 PRG PC   AH  INC -   -    -    -    -    -
+    3 IO  PCD  -   -   -   -    -    -    -    -
+    4 DRD PX0  DL  -   -   -    -    -    -    -
+    5 DRD PX1  DH  -   -   -    ALW  -    DPTR -
+[seq JSRIX]                     # JSR (abs,X): the pushed value is the address of the last byte
+    1 PRG PC   AL  INC -   -    -    -    -    WIDE
+    2 DWR SW   -   -   DEC PCH  -    -    -    WIDE
+    3 DWR SW   -   -   DEC PCL  -    -    -    WIDE
+    4 PRG PC   AH  INC -   -    -    -    -    WIDE
+    5 IO  PCD  -   -   -   -    -    -    -    WIDE
+    6 DRD PX0  DL  -   -   -    -    -    -    WIDE
+    7 DRD PX1  DH  -   -   -    ALW  -    DPTR WIDE
+[seq JSL]
+    1 PRG PC   AL  INC -   -    -    -    -    WIDE
+    2 PRG PC   AH  INC -   -    -    -    -    WIDE
+    3 DWR SW   -   -   DEC PBR  -    -    -    WIDE
+    4 IO  S1W  -   -   -   -    -    -    -    WIDE
+    5 PRG PC   BA  INC -   -    -    -    -    WIDE
+    6 DWR SW   -   -   DEC PCDH -    -    -    WIDE
+    7 DWR SW   -   -   DEC PCDL ALW  -    LONG WIDE
+[seq RTL]
+    1 IO  PC   -   -   -   -    -    -    -    WIDE
+    2 IO  PC   -   -   -   -    -    -    -    WIDE
+    3 DRD S1W  AL  -   INC -    -    -    -    WIDE
+    4 DRD S1W  AH  -   INC -    -    -    -    WIDE
+    5 DRD S1W  BA  -   INC -    ALW  -    RTL  WIDE
+[seq MVN]                       # MVN and MVP: one byte for each pass
+    1 PRG PC   BA  INC -   -    -    -    -    -
+    2 PRG PC   OF  INC -   -    -    -    -    -
+    3 DRD MVS  DL  -   -   -    -    -    -    -
+    4 DWR MVD  -   -   -   DL   -    -    -    -
+    5 IO  MVD  -   -   -   -    -    -    -    -
+    6 IO  MVD  -   -   -   -    ALW  -    REWIND -
+
 [ops]
 # opc mnem seq   op  ea   w   src dst arg
 018 CLC  IMP   FLG  -    -   -   -   0
@@ -304,3 +422,78 @@
 0F9 SBC  ABSX   SBC  ABSY  M   A   A   0
 0FD SBC  ABSX   SBC  ABSX  M   A   A   0
 0FF SBC  LONG   SBC  LONGX M   A   A   0
+# step C4: remaining instructions
+00A ASL  IMP     ASL  -     M   A   A   0
+006 ASL  RMWDP   ASL  DP    M   -   -   0
+00E ASL  RMWABS  ASL  ABS   M   -   -   0
+016 ASL  RMWDPX  ASL  DPX   M   -   -   0
+01E ASL  RMWABSX ASL  ABSX  M   -   -   0
+02A ROL  IMP     ROL  -     M   A   A   0
+026 ROL  RMWDP   ROL  DP    M   -   -   0
+02E ROL  RMWABS  ROL  ABS   M   -   -   0
+036 ROL  RMWDPX  ROL  DPX   M   -   -   0
+03E ROL  RMWABSX ROL  ABSX  M   -   -   0
+04A LSR  IMP     LSR  -     M   A   A   0
+046 LSR  RMWDP   LSR  DP    M   -   -   0
+04E LSR  RMWABS  LSR  ABS   M   -   -   0
+056 LSR  RMWDPX  LSR  DPX   M   -   -   0
+05E LSR  RMWABSX LSR  ABSX  M   -   -   0
+06A ROR  IMP     ROR  -     M   A   A   0
+066 ROR  RMWDP   ROR  DP    M   -   -   0
+06E ROR  RMWABS  ROR  ABS   M   -   -   0
+076 ROR  RMWDPX  ROR  DPX   M   -   -   0
+07E ROR  RMWABSX ROR  ABSX  M   -   -   0
+0C6 DEC  RMWDP   DEC  DP    M   -   -   0
+0CE DEC  RMWABS  DEC  ABS   M   -   -   0
+0D6 DEC  RMWDPX  DEC  DPX   M   -   -   0
+0DE DEC  RMWABSX DEC  ABSX  M   -   -   0
+0E6 INC  RMWDP   INC  DP    M   -   -   0
+0EE INC  RMWABS  INC  ABS   M   -   -   0
+0F6 INC  RMWDPX  INC  DPX   M   -   -   0
+0FE INC  RMWABSX INC  ABSX  M   -   -   0
+004 TSB  RMWDP   TSB  DP    M   A   -   0
+00C TSB  RMWABS  TSB  ABS   M   A   -   0
+014 TRB  RMWDP   TRB  DP    M   A   -   0
+01C TRB  RMWABS  TRB  ABS   M   A   -   0
+024 BIT  DP      BIT  DP    M   A   -   0
+02C BIT  ABS     BIT  ABS   M   A   -   0
+034 BIT  DPX     BIT  DPX   M   A   -   0
+03C BIT  ABSX    BIT  ABSX  M   A   -   0
+089 BIT  IMM     BITI -     M   A   -   0
+01B TCS  IMP     TR   -     W16 A   S   0
+03B TSC  IMP     TR   -     W16 S   A   0
+05B TCD  IMP     TR   -     W16 A   D   0
+07B TDC  IMP     TR   -     W16 D   A   0
+09A TXS  IMP     TR   -     W16 X   S   0
+0BA TSX  IMP     TR   -     X   S   X   0
+09B TXY  IMP     TR   -     X   X   Y   0
+0BB TYX  IMP     TR   -     X   Y   X   0
+0EB XBA  XBA     XBA  -     B8  A   A   0
+0B8 CLV  IMP     FLG  -     -   -   -   6
+0D8 CLD  IMP     FLG  -     -   -   -   3
+0F8 SED  IMP     FLG  -     -   -   -   B
+050 BVC  BR      BR   -     -   -   -   6
+070 BVS  BR      BR   -     -   -   -   E
+082 BRL  BRL     NOP  -     -   -   -   0
+06C JMP  JMPI    NOP  -     -   -   -   0
+0DC JML  JMPIL   NOP  -     -   -   -   0
+07C JMP  JMPIX   NOP  -     -   -   -   0
+0FC JSR  JSRIX   NOP  -     -   -   -   0
+022 JSL  JSL     NOP  -     -   -   -   0
+06B RTL  RTL     NOP  -     -   -   -   0
+008 PHP  PUSH    NOP  -     B8  P   -   0
+028 PLP  PULL    PLP  -     B8  -   -   0
+08B PHB  PUSH    NOP  -     B8  DBR -   0
+0AB PLB  PULLW   LD   -     B8  -   DBR 0
+04B PHK  PUSH    NOP  -     B8  PBR -   0
+00B PHD  PUSHW   NOP  -     W16 D   -   0
+02B PLD  PULLW   LD   -     W16 -   D   0
+0DA PHX  PUSH    NOP  -     X   X   -   0
+0FA PLX  PULL    LD   -     X   -   X   0
+05A PHY  PUSH    NOP  -     X   Y   -   0
+07A PLY  PULL    LD   -     X   -   Y   0
+0F4 PEA  PEA     NOP  -     -   -   -   0
+0D4 PEI  PEI     NOP  -     -   -   -   0
+062 PER  PER     NOP  -     -   -   -   0
+054 MVN  MVN     MVN  -     -   -   -   0
+044 MVP  MVN     MVP  -     -   -   -   0

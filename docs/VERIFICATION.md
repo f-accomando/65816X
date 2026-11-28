@@ -8,17 +8,18 @@
 | `make mutation` | inserts faults in the RTL; fails if the tests miss even one | Python 3 |
 | `make iverilog` | full system with Icarus Verilog, same values as `make test` | iverilog |
 | `make unit` | test for each module against a reference model (today: WRAM, 100,000 random cycles) | iverilog |
-| `make cpu` | CPU only: one instruction for each vector, score in `build/cpu_score.txt`, pass list `tests/cpu_pass.txt`. It checks the cycle count and each bus cycle when the vectors give them. It then checks that an unimplemented opcode sets `dbg_illegal` | iverilog |
+| `make cpu` | CPU only: one instruction for each vector, score in `build/cpu_score.txt`, pass list `tests/cpu_pass.txt`. It checks the cycle count and each bus cycle when the vectors give them. | iverilog |
 | `make cpu-update` | same as above, and writes `tests/cpu_pass.txt` again | iverilog |
 
 | `make synth` | ECP5 synthesis and budget check (default `BUDGET=B`) | yosys |
 | `make ref-public SST=<folder>` | reference model against the public vectors | public vectors |
 | `make cpu-public SST=<folder>` | CPU against the public vectors, score in `build/cpu_public_score.txt` | iverilog, public vectors |
-| `make cpu-mutation` | inserts faults in the new core; fails if our own vectors miss even one | iverilog |
+| `make cpu-int` | interrupts: directed tests of the core (`tb/tb_cpu_int.v`) and of the system NMI (`tb/tb_snes_nmi.v`) | iverilog |
+| `make cpu-mutation` | inserts faults in the core; fails if the vectors and the interrupt tests miss even one | iverilog |
 | `make manual-check` | the manual matches its sources (see `manuals/README.md`) | Python 3 |
 | `make tables` | writes the generated tables of the new CPU core | Python 3 |
 | `make tables-check` | the generated tables match `rtl/cpu/c816_tables.txt` | Python 3 |
-| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `cpu-mutation`, `synth`, `manual-check` | iverilog, yosys |
+| `make check` | `tables-check`, `test`, `mutation`, `iverilog`, `unit`, `cpu`, `cpu-int`, `cpu-mutation`, `synth`, `manual-check` | iverilog, yosys |
 
 Keep `sim/vsim.py` while the RTL needs no parameters, `generate`, or `function`.
 Do not shape the RTL for the mini simulator: the design would get worse.
@@ -74,16 +75,17 @@ The system uses the new core `c816`.
 
 | Check | Result |
 |---|---|
-| `make test` | 56/56 (the program ended in 1295 cycles) |
+| `make test` | 56/56 (the program ended in 1305 cycles) |
 | `make mutation` | 11 of 11 faults found |
 | `make iverilog` | 56/56 |
 | `make unit` | 0 differences, 28,123 accesses to the WRAM port |
-| `make cpu` | 251 of 256 opcodes; 100,400 of 100,400 vectors |
-| `make cpu-mutation` | 22 of 22 faults found |
-| equivalent LUT4 | 5938 (7% of the 85F, 14% of the 45F) |
+| `make cpu` | 256 of 256 opcodes; 102,400 of 102,400 vectors |
+| `make cpu-int` | the core test and the system NMI test pass |
+| `make cpu-mutation` | 32 of 32 faults found |
+| equivalent LUT4 | 5876 (7% of the 85F, 13% of the 45F) |
 | `DP16KD` | 126 (61% of the 85F, 117% of the 45F); yosys puts the decode table in one block |
 | `MULT18X18D` | 2 |
-| `TRELLIS_FF` | 714 |
+| `TRELLIS_FF` | 718 |
 | `TRELLIS_DPR16X4` | 12 |
 
 With the old core, the system took 1321 cycles for the test program, 4393 equivalent LUT4, and 726 FF.
@@ -151,6 +153,18 @@ Run on 2026-11-28, all vectors of the 251 opcodes, with the cycle and bus checks
 In the full run, only the 15 forms of `ADC` and of `SBC` fail, because decimal mode is missing.
 A vector of `MVN` or `MVP` covers a whole block move, with up to about 7,000 cycles.
 
+### Public vectors after step C5 (all 256 opcodes)
+
+Run on 2026-11-28, all vectors, with the cycle and bus checks.
+
+| Run | Result |
+|---|---|
+| `make ref-public` | 0 of 5,080,400 vectors differ, cycles included |
+| `make cpu-public SST_FLAGS="--bus"` | **256 of 256 opcodes**; 5,080,400 of 5,080,400 vectors; 0 cycle differences |
+
+The interrupt test found one error in the core: a second IRQ right after the entry of the first one.
+The error is fixed.
+
 ### CI on GitHub
 
 These numbers are from the system with the old core. First run on 2026-11-27, commit `b7903f3`, `ubuntu-24.04`, Icarus Verilog 12.0 and Yosys 0.33:
@@ -175,8 +189,6 @@ With the core `c816` in the system (commit `99858f4`,
 
 ## 6. Not verified
 
-- `make cpu` compares the core with our own model, cycle by cycle. The public vectors confirm this
-  model only for the opcodes that it covers, without decimal mode.
-- Decimal mode.
+- Interrupt timing against a real chip, the reset sequence, and `ABORT`.
 - Placement and maximum frequency (nextpnr is not installed).
 - Operation on a real board.

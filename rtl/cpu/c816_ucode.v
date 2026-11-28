@@ -65,8 +65,13 @@ module c816_ucode (
         10'h0E2: begin last = 3'd0; end  // PULL 2
         10'h0E3: begin bus = 3'd4; asel = 5'd6; cap = 3'd4; sop = 2'd1; last = 3'd2; end  // PULL 3
         10'h0E4: begin bus = 3'd4; asel = 5'd6; cap = 3'd5; sop = 2'd1; end  // PULL 4
-        10'h0F1: begin bus = 3'd4; asel = 5'd7; cap = 3'd1; last = 3'd0; end  // RST 1
-        10'h0F2: begin bus = 3'd4; asel = 5'd8; cap = 3'd2; pcop = 4'd1; end  // RST 2
+        10'h0F1: begin last = 3'd0; end  // RST 1
+        10'h0F2: begin last = 3'd0; end  // RST 2
+        10'h0F3: begin bus = 3'd4; asel = 5'd5; sop = 2'd2; last = 3'd0; end  // RST 3
+        10'h0F4: begin bus = 3'd4; asel = 5'd5; sop = 2'd2; last = 3'd0; end  // RST 4
+        10'h0F5: begin bus = 3'd4; asel = 5'd5; sop = 2'd2; last = 3'd0; end  // RST 5
+        10'h0F6: begin bus = 3'd4; asel = 5'd7; cap = 3'd1; last = 3'd0; end  // RST 6
+        10'h0F7: begin bus = 3'd4; asel = 5'd8; cap = 3'd2; pcop = 4'd11; end  // RST 7
         10'h101: begin bus = 3'd2; cap = 3'd7; pcinc = 1'd1; last = 3'd0; skip = 3'd3; end  // DP 1
         10'h102: begin asel = 5'd1; last = 3'd0; end  // DP 2
         10'h103: begin bus = 3'd3; asel = 5'd2; cap = 3'd4; last = 3'd2; end  // DP 3
@@ -210,6 +215,32 @@ module c816_ucode (
         10'h294: begin bus = 3'd5; asel = 5'd26; wsel = 4'd6; last = 3'd0; end  // MVN 4
         10'h295: begin asel = 5'd26; last = 3'd0; end  // MVN 5
         10'h296: begin asel = 5'd26; pcop = 4'd10; end  // MVN 6
+        10'h2A1: begin bus = 3'd2; pcinc = 1'd1; last = 3'd0; skip = 3'd4; end  // BRK 1
+        10'h2A2: begin bus = 3'd5; asel = 5'd5; sop = 2'd2; wsel = 4'd7; last = 3'd0; end  // BRK 2
+        10'h2A3: begin bus = 3'd5; asel = 5'd5; sop = 2'd2; wsel = 4'd11; last = 3'd0; end  // BRK 3
+        10'h2A4: begin bus = 3'd5; asel = 5'd5; sop = 2'd2; wsel = 4'd10; last = 3'd0; end  // BRK 4
+        10'h2A5: begin bus = 3'd5; asel = 5'd5; sop = 2'd2; wsel = 4'd14; last = 3'd0; end  // BRK 5
+        10'h2A6: begin bus = 3'd4; asel = 5'd7; cap = 3'd1; last = 3'd0; end  // BRK 6
+        10'h2A7: begin bus = 3'd4; asel = 5'd8; cap = 3'd2; pcop = 4'd11; end  // BRK 7
+        10'h2B1: begin last = 3'd0; skip = 3'd4; end  // INT 1
+        10'h2B2: begin bus = 3'd5; asel = 5'd5; sop = 2'd2; wsel = 4'd7; last = 3'd0; end  // INT 2
+        10'h2B3: begin bus = 3'd5; asel = 5'd5; sop = 2'd2; wsel = 4'd11; last = 3'd0; end  // INT 3
+        10'h2B4: begin bus = 3'd5; asel = 5'd5; sop = 2'd2; wsel = 4'd10; last = 3'd0; end  // INT 4
+        10'h2B5: begin bus = 3'd5; asel = 5'd5; sop = 2'd2; wsel = 4'd14; last = 3'd0; end  // INT 5
+        10'h2B6: begin bus = 3'd4; asel = 5'd7; cap = 3'd1; last = 3'd0; end  // INT 6
+        10'h2B7: begin bus = 3'd4; asel = 5'd8; cap = 3'd2; pcop = 4'd11; end  // INT 7
+        10'h2C1: begin last = 3'd0; end  // RTI 1
+        10'h2C2: begin last = 3'd0; end  // RTI 2
+        10'h2C3: begin bus = 3'd4; asel = 5'd6; cap = 3'd4; sop = 2'd1; last = 3'd0; end  // RTI 3
+        10'h2C4: begin bus = 3'd4; asel = 5'd6; cap = 3'd1; sop = 2'd1; last = 3'd0; end  // RTI 4
+        10'h2C5: begin bus = 3'd4; asel = 5'd6; cap = 3'd2; sop = 2'd1; last = 3'd5; pcop = 4'd1; end  // RTI 5
+        10'h2C6: begin bus = 3'd4; asel = 5'd6; cap = 3'd3; sop = 2'd1; pcop = 4'd2; end  // RTI 6
+        10'h2D1: begin last = 3'd0; end  // WAI 1
+        10'h2D2: begin last = 3'd0; end  // WAI 2
+        10'h2D3: begin hold = 2'd2; end  // WAI 3
+        10'h2E1: begin last = 3'd0; end  // STP 1
+        10'h2E2: begin last = 3'd0; end  // STP 2
+        10'h2E3: begin hold = 2'd3; end  // STP 3
         default: ;
       endcase
     end

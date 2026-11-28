@@ -61,7 +61,7 @@ In emulation mode, the high byte of S stays at 01.
 
 | Group | Opcodes |
 |---|---|
-| Load, store, arithmetic, logic | `LDA`, `STA` (no immediate), `ADC`, `SBC`, `CMP`, `AND`, `ORA`, `EOR` with all addressing modes: immediate, absolute, absolute,X, absolute,Y, long, long,X, direct page, direct page,X, (dp), (dp,X), (dp),Y, [dp], [dp],Y, sr,S, (sr,S),Y |
+| Load, store, arithmetic, logic | `LDA`, `STA` (no immediate), `ADC`, `SBC` (binary and decimal), `CMP`, `AND`, `ORA`, `EOR` with all addressing modes: immediate, absolute, absolute,X, absolute,Y, long, long,X, direct page, direct page,X, (dp), (dp,X), (dp),Y, [dp], [dp],Y, sr,S, (sr,S),Y |
 | Index and zero | `LDX`, `LDY`, `STX`, `STY`, `STZ`, `CPX`, `CPY` |
 | Read-modify-write | `ASL`, `LSR`, `ROL`, `ROR`, `INC`, `DEC` (accumulator and memory), `TSB`, `TRB`, `BIT` |
 | Increment of index | `INX/DEX/INY/DEY` |
@@ -70,7 +70,20 @@ In emulation mode, the high byte of S stays at 01.
 | Jumps | `BRA BRL BNE BEQ BCC BCS BPL BMI BVC BVS`, `JMP`, `JML`, `JSR`, `JSL`, `RTS`, `RTL` |
 | Stack | `PHA PLA PHX PLX PHY PLY PHP PLP PHB PLB PHK PHD PLD PEA PEI PER` |
 | Block move | `MVN`, `MVP` |
-| Other | `NOP`, `WDM`; `BRK`, `COP`, `RTI`, `WAI`, `STP` run as a NOP and set `dbg_illegal` |
+| Interrupts | `BRK`, `COP`, `RTI`, `WAI`, `STP` |
+| Other | `NOP`, `WDM` |
+
+All 256 opcodes run, with the cycle counts of the real chip.
+
+### Interrupts
+
+- NMI is taken on its rising edge. IRQ is taken while it is 1 and the I flag is 0.
+- The core takes a request at the end of an instruction. The next opcode fetch becomes the first of
+  the 8 cycles of the interrupt (7 in emulation mode).
+- The first instruction of a handler always runs. `CLI`, `SEI`, and `PLP` act one instruction later.
+- `WAI` waits for a request. With I = 1, an IRQ ends the wait without an interrupt. `STP` waits for reset.
+- In the system, the vertical blank gives the NMI when `$4200` bit 7 is 1. The IRQ input is not
+  connected: the H and V timers do not exist.
 
 ### Enhanced extensions through `WDM #sub`
 
@@ -91,10 +104,10 @@ Planned and not yet done: DOT3, CROSS3, ROT, BLIT, FILL, 32-bit registers R0-R7.
 
 ## Known limits
 
-- No interrupts (NMI, IRQ, BRK, COP) and no decimal arithmetic (the D flag exists).
-- `BRK`, `COP`, `RTI`, `WAI`, and `STP` are missing.
-- The cycle counts match the real chip for the 251 opcodes. The 6/8/12 master clocks of the original bus are not emulated.
-- The reset sequence reads only the vector. The real chip takes more cycles.
+- No `ABORT`. No IRQ from the system: the H and V timers of the 5A22 do not exist.
+- Interrupt sampling and the wake up of `WAI` can differ from the real chip by a cycle.
+- The cycle counts match the real chip for all opcodes. The 6/8/12 master clocks of the original bus are not emulated.
+- The reset sequence (7 cycles) follows the data sheet and was not compared with a chip.
 - The 5A22 multiplies and divides instantly. WDM DIV uses a combinational divider. Replace it with a sequential divider.
 - DMA: no HDMA. The DMA moves 1 byte every 2 cycles.
 - The VRAM read does not model the prefetch of the original.

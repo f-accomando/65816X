@@ -596,3 +596,20 @@ Rules that the public vectors confirm:
 - `PEA`, `PEI`, `PER`, `PHD`, `PLD`, `PLB`, `JSL`, `RTL`, and `JSR (abs,X)` leave page 1 in
   emulation mode. S is in page 1 again at the end of the instruction.
 - The jump table of (abs,X) is read in the program bank, with VDA.
+
+## 13. Step C5: decimal mode and interrupts (done 2026-11-28)
+
+| Part | Addition |
+|---|---|
+| ALU | digit by digit adjust of `ADC` and `SBC` when D = 1; V comes from the sum before the last digit is corrected |
+| `ir` | pseudo-opcodes `$101` NMI and `$102` IRQ; `$100` reset |
+| Sampling | at `commit`: `take_nmi`, `take_irq`; nothing is taken at the end of an interrupt sequence |
+| `last`, `skip` | `EMU`: end or skip in emulation mode |
+| `pcop` | `VECT`: load PC from the vector, PBR = 0 |
+| `wsel` | `PSW`: P; in emulation mode, NMI and IRQ push it with bit 4 at 0 |
+| `hold` | `WAI` repeats the step until a request; `STP` repeats it until reset |
+| `op` | `BRK` (31): set I, clear D |
+| Sequences | `BRK INT RTI WAI STP`, and a new `RST` of 7 cycles |
+
+The public vectors confirm decimal mode, `BRK`, `COP`, `RTI`, and the first cycles of `WAI` and
+`STP`. The directed tests `tb/tb_cpu_int.v` and `tb/tb_snes_nmi.v` check NMI, IRQ, and reset.

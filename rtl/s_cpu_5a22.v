@@ -28,7 +28,7 @@ module s_cpu_5a22 (
   // the core stops at the next CPU cycle while halt = 1, also inside an instruction
   wire c_vda, c_vpa, c_sync, c_cyc_end;
   c816_core u_core (
-    .clk(clk), .rst(rst), .halt(halt), .bus_wait(1'b0), .ext_en(ext_en), .nmi(1'b0), .irq(1'b0),
+    .clk(clk), .rst(rst), .halt(halt), .bus_wait(1'b0), .ext_en(ext_en), .nmi(nmi_flag && nmitimen[7]), .irq(1'b0),
     .din(bus_rdata), .addr(c_addr), .rd(c_rd), .wr(c_wr), .wdata(c_wdata),
     .vda(c_vda), .vpa(c_vpa), .sync(c_sync), .cyc_end(c_cyc_end), .dbg_illegal(dbg_illegal),
     .dbg_pc(dbg_pc), .dbg_a(dbg_a), .dbg_x(dbg_x), .dbg_y(dbg_y)

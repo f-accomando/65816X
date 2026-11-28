@@ -24,8 +24,6 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cpu_ref
 
-# the reference model has no decimal ADC and SBC
-DECIMAL = tuple(op for op, (name, _) in cpu_ref.OPCODES.items() if name in ('adc', 'sbc'))
 
 
 def files(folder):
@@ -50,6 +48,8 @@ def bus_list(cycles):
     row = [len(cycles)]
     for addr, value, flags in cycles:
         kind = (flags[0] == 'd') | (flags[1] == 'p') << 1 | (flags[3] == 'w') << 2
+        if addr is None:            # WAI and STP: the chip waits, the address is not valid
+            kind, addr = 8, 0
         row += [kind, addr, 0x100 if value is None else value]
     return row
 
@@ -106,7 +106,8 @@ def check_one(t):
         bad.append('memory')
     if set(cpu.mem) - set(expected):
         bad.append('extra_write')
-    cycles = [((f[0] == 'd') | (f[1] == 'p') << 1 | (f[3] == 'w') << 2, a, v) for a, v, f in t['cycles']]
+    cycles = [((f[0] == 'd') | (f[1] == 'p') << 1 | (f[3] == 'w') << 2 | (8 if a is None else 0), a, v)
+              for a, v, f in t['cycles']]
     if len(cpu.cycles) != len(cycles):
         bad.append('cycle_count')
     elif cpu.cycles != cycles:
@@ -115,16 +116,13 @@ def check_one(t):
 
 
 def check_ref(folder, limit):
-    total = wrong = skipped = 0
+    total = wrong = 0
     report = []
     for opcode, mode, path in files(folder):
         fields = collections.Counter()
         count = bad = 0
         first = None
         for t in load(path, limit):
-            if opcode in DECIMAL and t['initial']['p'] & cpu_ref.D:
-                skipped += 1
-                continue
             count += 1
             diff = check_one(t)
             if diff:
@@ -136,7 +134,7 @@ def check_ref(folder, limit):
         if bad:
             report.append("  $%02X %s  %d/%d  %s  (first: %s)" % (
                 opcode, mode, bad, count, ", ".join("%s %d" % kv for kv in fields.most_common()), first))
-    print("reference model: %d of %d vectors differ; %d decimal vectors skipped" % (wrong, total, skipped))
+    print("reference model: %d of %d vectors differ" % (wrong, total))
     for line in report:
         print(line)
     return 1 if wrong else 0

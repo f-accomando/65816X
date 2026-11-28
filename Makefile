@@ -8,7 +8,7 @@ BUDGET ?= B
 
 RTL := $(filter %.v,$(shell cat rtl/files.f))
 
-.PHONY: test mutation cpu-mutation rom iverilog unit cpu cpu-illegal cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
+.PHONY: test mutation cpu-mutation cpu-int rom iverilog unit cpu cpu-run cpu-update cpu-public ref-public tables tables-check synth manual manual-check check clean
 
 # Collaudo con il mini simulatore Python (nessuna dipendenza esterna)
 test:
@@ -18,8 +18,17 @@ test:
 mutation:
 	$(PY) sim/mutation_check.py
 
+# Interrupts: reset, NMI, IRQ, BRK, RTI, WAI, STP in the core, and the NMI of the system
+# (directed tests; the public vectors do not cover the interrupt inputs)
+cpu-int: rom.hex
+	mkdir -p build
+	$(IVERILOG) -g2012 -s tb_cpu_int -o build/tb_cpu_int.vvp $(RTL) tb/tb_cpu_int.v
+	$(VVP) -n build/tb_cpu_int.vvp
+	$(IVERILOG) -g2012 -s tb_snes_nmi -o build/tb_snes_nmi.vvp $(RTL) tb/tb_snes_nmi.v
+	$(VVP) -n build/tb_snes_nmi.vvp
+
 # Faults in the new core: the CPU test bench must find each one (needs iverilog)
-cpu-mutation:
+cpu-mutation: rom.hex
 	$(PY) sim/mutation_check.py --cpu
 
 # Assembla il programma di collaudo in rom.hex (letto da cart_rom.v con $$readmemh)
@@ -57,14 +66,8 @@ $(CPU_VVP): $(RTL) rtl/files.f tb/tb_cpu.v tb/cpu_adapt_c816.vh
 cpu-run: build/cpu_vectors.txt $(CPU_VVP)
 	$(VVP) -n $(CPU_VVP) +vec=build/cpu_vectors.txt +out=$(CPU_RES)
 
-cpu: cpu-run cpu-illegal
+cpu: cpu-run
 	$(PY) sim/cpu_score.py $(CPU_RES) $(CPU_SCORE) --passlist $(CPU_PASS)
-
-# An opcode without a table row must set dbg_illegal (opcode $02, COP, until its step)
-cpu-illegal: $(CPU_VVP)
-	$(PY) sim/cpu_vectors.py --illegal build/illegal_vectors.txt
-	$(VVP) -n $(CPU_VVP) +vec=build/illegal_vectors.txt +out=build/illegal_results.txt
-	$(PY) sim/cpu_score.py build/illegal_results.txt build/illegal_score.txt --expect-illegal
 
 # riscrive l'elenco di cio' che passa: guardare la differenza prima di tenerla
 cpu-update: cpu-run
@@ -106,7 +109,7 @@ manual-check:
 	$(PY) manuals/tools/manuals.py check
 
 # Tutto quello che esegue la CI
-check: tables-check test mutation iverilog unit cpu cpu-mutation synth manual-check
+check: tables-check test mutation iverilog unit cpu cpu-int cpu-mutation synth manual-check
 
 clean:
 	rm -rf build rom.hex

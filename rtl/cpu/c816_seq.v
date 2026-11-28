@@ -17,6 +17,8 @@ module c816_seq (
   input is_store,
   input e,
   input dlz,
+  input [1:0] hold,
+  input wake,
   output reg [3:0] t,
   output reg ph,
   output reg illegal,
@@ -31,12 +33,15 @@ module c816_seq (
   wire reads = (bus == 3'd1) || (bus == 3'd2) || (bus == 3'd4) || ((bus == 3'd3) && !is_store);
   wire writes = (bus == 3'd5) || ((bus == 3'd3) && is_store) || ((bus == 3'd6) && e);
 
-  // last codes: 0 NO, 1 ALW, 2 W8, 3 NTK, 4 NEC
-  wire is_last = (last == 3'd1) || ((last == 3'd2) && w8) || ((last == 3'd3) && !taken) ||
-                 ((last == 3'd4) && !(e && br_cross));
-  // skip codes: 0 NO, 1 XNC, 2 W8, 3 DL0 (dlz = 1: D[7:0] is 0)
+  // hold codes: 0 none, 1 wide stack, 2 WAI (repeat the step until wake), 3 STP (repeat for ever)
+  wire stall = ((hold == 2'd2) && !wake) || (hold == 2'd3);
+
+  // last codes: 0 NO, 1 ALW, 2 W8, 3 NTK, 4 NEC, 5 EMU
+  wire is_last = !stall && ((last == 3'd1) || ((last == 3'd2) && w8) || ((last == 3'd3) && !taken) ||
+                 ((last == 3'd4) && !(e && br_cross)) || ((last == 3'd5) && e));
+  // skip codes: 0 NO, 1 XNC, 2 W8, 3 DL0 (dlz = 1: D[7:0] is 0), 4 EMU
   assign skip1 = ((skip == 3'd1) && !is_store && !xcarry) || ((skip == 3'd2) && w8) ||
-                 ((skip == 3'd3) && dlz);
+                 ((skip == 3'd3) && dlz) || ((skip == 3'd4) && e);
 
   assign rd = !ph && !halt && reads;
   assign wr = !ph && !halt && writes;
@@ -55,6 +60,7 @@ module c816_seq (
       ph <= 1'b0;
       if ((t == 4'd1) && !imp) illegal <= 1'b1;
       if (is_last) t <= 4'd0;
+      else if (stall) t <= t;
       else if (skip1) t <= t + 4'd2;
       else t <= t + 4'd1;
     end

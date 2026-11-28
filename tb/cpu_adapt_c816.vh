@@ -22,6 +22,9 @@
       dut.u_regs.e = ini[9][0];
       dut.u_seq.t = 4'd0; dut.u_seq.ph = 1'b0; dut.u_seq.illegal = 1'b0;
       dut.u_ext.acc = 32'd0;
+      // stale values in the latches: no instruction may depend on what an earlier one left there
+      dut.al = 8'h5A; dut.ah = 8'hA5; dut.ba = 8'h3C; dut.dl = 8'hC3; dut.dh = 8'h96; dut.of = 8'h69;
+      dut.nmi_pend = 1'b0; dut.take_nmi = 1'b0; dut.take_irq = 1'b0;
     end
   endtask
 
@@ -30,8 +33,12 @@
   function done_now;
     input integer cycles;
     begin
-      done_now = cycles > 0 && sync === 1'b1 &&
-                 !((opcode[7:0] == 8'h54 || opcode[7:0] == 8'h44) && dut.u_regs.pc === ini[0][15:0]);
+      // WAI and STP wait for an interrupt or a reset: they end after the cycles of the vector
+      if (opcode[7:0] == 8'hCB || opcode[7:0] == 8'hDB)
+        done_now = cycles >= expcyc && expcyc != 0;
+      else
+        done_now = cycles > 0 && sync === 1'b1 &&
+                   !((opcode[7:0] == 8'h54 || opcode[7:0] == 8'h44) && dut.u_regs.pc === ini[0][15:0]);
     end
   endfunction
 
@@ -56,7 +63,8 @@
         end else if (nc > 0) begin
           if (k >= nc) bus_bad = 1'b1;
           else begin
-            if (vda !== ck[k][0] || vpa !== ck[k][1] || addr !== ca[k][23:0]) bus_bad = 1'b1;
+            // kind bit 3: a waiting cycle, whose address is not defined
+            if (vda !== ck[k][0] || vpa !== ck[k][1] || (!ck[k][3] && addr !== ca[k][23:0])) bus_bad = 1'b1;
             if (ck[k][2]) begin
               if (s_wr !== 1'b1 || s_rd !== 1'b0 || s_wdata !== cv[k][7:0]) bus_bad = 1'b1;
             end else if (ck[k][1:0] != 2'd0) begin

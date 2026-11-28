@@ -63,9 +63,14 @@
     2 IO  PC   -   -   -   -    -    -    -    -
     3 DRD S1   DL  -   INC -    W8   -    -    -
     4 DRD S1   DH  -   INC -    ALW  -    -    -
-[seq RST]                       # pseudo-op 100: simplified reset (C5 makes it exact)
-    1 DRD VEC  AL  -   -   -    -    -    -    -
-    2 DRD VEC1 AH  -   -   -    ALW  -    ABS  -
+[seq RST]                       # pseudo-op 100: reset, three stack reads without writes
+    1 IO  PC   -   -   -   -    -    -    -    -
+    2 IO  PC   -   -   -   -    -    -    -    -
+    3 DRD S    -   -   DEC -    -    -    -    -
+    4 DRD S    -   -   DEC -    -    -    -    -
+    5 DRD S    -   -   DEC -    -    -    -    -
+    6 DRD VEC  AL  -   -   -    -    -    -    -
+    7 DRD VEC1 AH  -   -   -    ALW  -    VECT -
 
 [seq DP]                        # direct page: 3 to 5, one more cycle if D[7:0] != 0
     1 PRG PC   OF  INC -   -    -    DL0  -    -
@@ -240,6 +245,40 @@
     4 DWR MVD  -   -   -   DL   -    -    -    -
     5 IO  MVD  -   -   -   -    -    -    -    -
     6 IO  MVD  -   -   -   -    ALW  -    REWIND -
+
+# interrupts: BRK and COP read a signature byte; NMI and IRQ do not move the program counter.
+# The program bank is pushed only in native mode.
+[seq BRK]
+    1 PRG PC   -   INC -   -    -    EMU  -    -
+    2 DWR S    -   -   DEC PBR  -    -    -    -
+    3 DWR S    -   -   DEC PCH  -    -    -    -
+    4 DWR S    -   -   DEC PCL  -    -    -    -
+    5 DWR S    -   -   DEC PSW  -    -    -    -
+    6 DRD VEC  AL  -   -   -    -    -    -    -
+    7 DRD VEC1 AH  -   -   -    ALW  -    VECT -
+[seq INT]
+    1 IO  PC   -   -   -   -    -    EMU  -    -
+    2 DWR S    -   -   DEC PBR  -    -    -    -
+    3 DWR S    -   -   DEC PCH  -    -    -    -
+    4 DWR S    -   -   DEC PCL  -    -    -    -
+    5 DWR S    -   -   DEC PSW  -    -    -    -
+    6 DRD VEC  AL  -   -   -    -    -    -    -
+    7 DRD VEC1 AH  -   -   -    ALW  -    VECT -
+[seq RTI]                       # emulation mode ends at step 5
+    1 IO  PC   -   -   -   -    -    -    -    -
+    2 IO  PC   -   -   -   -    -    -    -    -
+    3 DRD S1   DL  -   INC -    -    -    -    -
+    4 DRD S1   AL  -   INC -    -    -    -    -
+    5 DRD S1   AH  -   INC -    EMU  -    ABS  -
+    6 DRD S1   BA  -   INC -    ALW  -    LONG -
+[seq WAI]                       # the third step repeats until an interrupt request
+    1 IO  PC   -   -   -   -    -    -    -    -
+    2 IO  PC   -   -   -   -    -    -    -    -
+    3 IO  PC   -   -   -   -    ALW  -    -    WAI
+[seq STP]                       # the third step repeats until reset
+    1 IO  PC   -   -   -   -    -    -    -    -
+    2 IO  PC   -   -   -   -    -    -    -    -
+    3 IO  PC   -   -   -   -    ALW  -    -    STP
 
 [ops]
 # opc mnem seq   op  ea   w   src dst arg
@@ -497,3 +536,11 @@
 062 PER  PER     NOP  -     -   -   -   0
 054 MVN  MVN     MVN  -     -   -   -   0
 044 MVP  MVN     MVP  -     -   -   -   0
+# step C5: interrupts and waits
+000 BRK  BRK     BRK  -     -   -   -   0
+002 COP  BRK     BRK  -     -   -   -   0
+040 RTI  RTI     PLP  -     -   -   -   0
+0CB WAI  WAI     NOP  -     -   -   -   0
+0DB STP  STP     NOP  -     -   -   -   0
+101 NMI  INT     BRK  -     -   -   -   0
+102 IRQ  INT     BRK  -     -   -   -   0

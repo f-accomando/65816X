@@ -38,7 +38,7 @@ CPU_MUTANTS = [
     ('c816_core', ".xcarry(xcarry || !r_p[4])", ".xcarry(1'b1)", "absolute,X dummy cycle never skipped"),
     ('c816_core', "wire load_br = (pcop == 4'd4) || ((pcop == 4'd3) && commit);",
      "wire load_br = (pcop == 4'd4) || (pcop == 4'd3);", "taken branch loads PC one cycle early"),
-    ('c816_seq', "((skip == 3'd3) && dlz);", "((skip == 3'd3) && 1'b0);",
+    ('c816_seq', "((skip == 3'd3) && dlz)", "((skip == 3'd3) && 1'b0)",
      "direct page: extra cycle also when D is aligned"),
     ('c816_addr', "wire wrap = e && (d[7:0] == 8'h00);", "wire wrap = 1'b0;",
      "direct page does not stay in the page in emulation mode"),
@@ -64,6 +64,22 @@ CPU_MUTANTS = [
      "wire f_v = is_wdm ? ext_f_v : alu_v;", "BIT does not take V from memory"),
     ('c816_addr', "5'd23: addr = {pbr, absx};", "5'd23: addr = {8'h00, absx};",
      "(abs,X) jump table read from bank 0"),
+    ('c816_alu', "wire k0 = sub ? q0[4] : (q0 > 5'd9);", "wire k0 = q0[4];", "decimal ADC without digit adjust"),
+    ('c816_alu', "v = (sa == sb) && (sa != (dm ? dsign : (w16 ? r[15] : r[7])));",
+     "v = (sa == sb) && (sa != (w16 ? r[15] : r[7]));", "decimal V taken after the last correction"),
+    ('c816_core', "take_irq <= irq && !irq_mask && !is_int_seq;", "take_irq <= irq && !is_int_seq;",
+     "IRQ ignores the I flag"),
+    ('c816_core', "take_irq <= irq && !irq_mask && !is_int_seq;", "take_irq <= irq && !irq_mask;",
+     "a second IRQ is taken before the handler runs"),
+    ('c816_core', "wire [7:0] pbr_next = (pcop == 4'd11) ? 8'h00 : ba_by;", "wire [7:0] pbr_next = ba_by;",
+     "interrupt keeps the program bank"),
+    ('c816_core', "4'd14: wbyte = (r_e && hw_int) ? (r_p & 8'hEF) : r_p;", "4'd14: wbyte = r_p;",
+     "emulation IRQ pushes the B flag"),
+    ('c816_core', "else if (cyc_end && fetch_int && take_nmi) nmi_pend <= 1'b0;", "",
+     "NMI stays pending after it is taken"),
+    ('c816_core', "wire wake = nmi_pend || irq;", "wire wake = nmi_pend;", "WAI does not end on IRQ"),
+    ('c816_seq', "|| (hold == 2'd3);", "|| 1'b0;", "STP does not stop"),
+    ('s_cpu_5a22', ".nmi(nmi_flag && nmitimen[7])", ".nmi(1'b0)", "the vertical blank does not reach the NMI"),
 ]
 CPU_CASES = 20   # vectors for each opcode and mode
 
@@ -81,6 +97,23 @@ def cpu_bench(sources, work, vectors):
         return sum(1 for line in f if line.split()[2].strip('0') != '')
 
 
+def interrupt_bench(sources, work):
+    """Compile and run the two interrupt benches with these sources; return True if both pass."""
+    root = run_tests.ROOT
+    for bench in ('tb_cpu_int', 'tb_snes_nmi'):
+        vvp = os.path.join(work, bench + '.vvp')
+        subprocess.run([os.environ.get('IVERILOG', 'iverilog'), '-g2012', '-s', bench, '-o', vvp]
+                       + sources + [os.path.join(root, 'tb', bench + '.v')], check=True)
+        try:
+            done = subprocess.run([os.environ.get('VVP', 'vvp'), '-n', vvp], stdout=subprocess.DEVNULL,
+                                  timeout=60, cwd=root)
+        except subprocess.TimeoutExpired:
+            return False
+        if done.returncode != 0:
+            return False
+    return True
+
+
 def run_cpu():
     root = run_tests.ROOT
     work = os.path.join(root, 'build', 'mut')
@@ -90,8 +123,8 @@ def run_cpu():
                    check=True, stdout=subprocess.DEVNULL)
     sources = [os.path.join(root, p) for p in run_tests.RTL]
     clean = cpu_bench(sources, work, vectors)
-    if clean:
-        print("ERROR: %d vectors fail without any fault" % clean)
+    if clean or not interrupt_bench(sources, work):
+        print("ERROR: a test fails without any fault (%d vectors)" % clean)
         return 1
     missed = 0
     for module, old, new, text in CPU_MUTANTS:
@@ -102,9 +135,13 @@ def run_cpu():
         copy = os.path.join(work, module + '.v')
         with open(copy, 'w') as f:
             f.write(source.replace(old, new, 1))
-        failed = cpu_bench([copy if p == paths[0] else p for p in sources], work, vectors)
+        faulty = [copy if p == paths[0] else p for p in sources]
+        failed = cpu_bench(faulty, work, vectors)
+        how = "%d vectors" % failed
+        if not failed and not interrupt_bench(faulty, work):
+            failed, how = 1, "interrupt test"
         missed += failed == 0
-        print("%-8s %s (%d vectors)" % ('FOUND' if failed else 'MISSED', text, failed))
+        print("%-8s %s (%s)" % ('FOUND' if failed else 'MISSED', text, how))
     print("new core: %d faults of %d missed" % (missed, len(CPU_MUTANTS)))
     return 1 if missed else 0
 

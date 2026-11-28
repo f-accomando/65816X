@@ -6,31 +6,30 @@ The list of what must continue to pass is in `tests/cpu_pass.txt`.
 
 ## Status
 
-- 251 of 256 opcodes implemented, cycle by cycle. One CPU cycle is 2 FPGA clocks.
-- Own vectors (`make cpu`): 251 opcodes pass, 100,400 of 100,400 vectors, with all cycles.
-- Public vectors, unchanged: **221 opcodes pass**; 4,717,725 of 4,980,400 vectors; 0 cycle differences.
-  The 30 opcodes that fail are the 15 forms of `ADC` and of `SBC`, only with D = 1.
-- The reference model agrees with all 4,680,310 public vectors of its 251 opcodes that are not decimal
-  `ADC` or `SBC`, cycle by cycle. Our own vectors thus check the cycles in the CI.
-- `make cpu-mutation`: 22 of 22 faults found.
+- **All 256 opcodes** of the 65C816, cycle by cycle. One CPU cycle is 2 FPGA clocks.
+- Public vectors, unchanged: **256 opcodes pass**; 5,080,400 of 5,080,400 vectors; 0 cycle differences.
+- Own vectors (`make cpu`): 102,400 of 102,400 vectors, with all cycles.
+- The reference model agrees with all 5,080,400 public vectors, cycle by cycle. Our own vectors thus
+  check the cycles in the CI.
+- Interrupts (`make cpu-int`): reset, NMI, IRQ, BRK, COP, RTI, WAI, STP, and the NMI of the system.
+- `make cpu-mutation`: 32 of 32 faults found.
 - `WDM` extensions: the system test checks them (MUL, DIV, MAC, MACRD, and the two modes without effect).
-- Missing opcodes: `BRK`, `COP`, `RTI`, `WAI`, `STP`.
-- Differences from the real chip:
+- Differences from the real chip (the public vectors do not cover them):
 
 | Part | Difference |
 |---|---|
-| `ADC`, `SBC` | no decimal arithmetic (step C5) |
-| the 5 missing opcodes | they run as a NOP of 2 cycles and set `dbg_illegal` |
-| interrupts | NMI and IRQ do not exist (step C5) |
-| reset | two reads of the vector only; the real sequence is longer (step C5) |
+| interrupt timing | the core samples NMI and IRQ at the end of the last cycle; the real chip samples one cycle earlier |
+| `WAI` | the core goes on one cycle after the request; the real chip needs more cycles |
+| reset | modeled from the data sheet (7 cycles); not compared with a chip |
+| `ABORT` | not implemented |
+| memory speed | every cycle takes 2 FPGA clocks; the SNES 6, 8, and 12 master clocks are not emulated (F3) |
 
 ## Open work
 
-To close a step, make its opcodes pass the test bench and make `make check` pass.
+To close a step, make `make check` pass.
 
-- **C5** interrupts (NMI, IRQ, ABORT is optional, BRK, COP, RTI, WAI, STP) and decimal mode: **256 of 256**.
-- **C6** speed: multi-cycle divider (`WDM DIV`), measurement of the maximum frequency.
-- **C7** extensions: more `WDM`, prefetch, optional 32-bit mode.
+- **C6** speed: multi-cycle divider (`WDM DIV`), measurement of the maximum frequency (needs nextpnr).
+- **C7** extensions: more `WDM`, prefetch, optional 32-bit mode (an owner decision).
 
 ## Rules (do not break)
 
@@ -39,6 +38,8 @@ To close a step, make its opcodes pass the test bench and make `make check` pass
 - Run one sequence step for each cycle of the real chip. Check the cycles with the public vectors
   and `SST_FLAGS=--bus` after a change to the sequences.
 - Change the sequences and the decode only in `rtl/cpu/c816_tables.txt`. Then run `make tables`.
+- Keep all 256 opcodes passing the public vectors. Run `make cpu-public SST_FLAGS=--bus` after a
+  change to the core.
 - Keep each opcode in `tests/cpu_pass.txt` passing. After progress, run `make cpu-update` and
   check the difference of the file.
 - Keep the public vectors outside the repository. Use the unchanged vectors as the official score.

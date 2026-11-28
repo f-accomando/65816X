@@ -7,7 +7,7 @@ on:
 jobs:
   verifica:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - name: Installa iverilog, yosys e reportlab
@@ -38,6 +38,8 @@ jobs:
           name: pagella-cpu
           path: build/cpu_score.txt
           if-no-files-found: ignore
+      - name: make cpu-int (interrupts)
+        run: make cpu-int
       - name: make cpu-mutation (faults in the new core)
         run: make cpu-mutation
 

@@ -11,7 +11,6 @@ Formato di una riga (tutti i numeri in esadecimale):
   byte 100 = nessuno).
 cicli = 0 vuol dire "non noto".
 
-Limite voluto: il flag D parte sempre a 0.
 """
 import os
 import random
@@ -33,7 +32,7 @@ def pick(rng, edges, bits):
 def initial_state(rng, e):
     st = {
         'pc': pick(rng, EDGES16, 16), 's': pick(rng, EDGES16, 16),
-        'p': rng.getrandbits(8) & ~cpu_ref.D,
+        'p': rng.getrandbits(8),
         'a': pick(rng, EDGES16, 16), 'x': pick(rng, EDGES16, 16), 'y': pick(rng, EDGES16, 16),
         'dbr': pick(rng, EDGES8, 8), 'd': pick(rng, EDGES16, 16), 'pbr': pick(rng, EDGES8, 8), 'e': e,
     }
@@ -65,6 +64,12 @@ def make_case(rng, opcode, e):
     cpu = cpu_ref.Cpu(start, new_byte)
     cpu.mem[first] = cpu.initial[first] = opcode
     cpu.step()
+    if opcode in (0x44, 0x54):
+        # uno spostamento che scrive sopra la propria istruzione cambia il programma in corsa:
+        # il modello non lo segue, quindi il caso si scarta e se ne genera un altro
+        code = {(start['pbr'] << 16) | ((start['pc'] + i) & 0xFFFF) for i in range(3)}
+        if any(kind & 4 and addr in code for kind, addr, _ in cpu.cycles):
+            return make_case(rng, opcode, e)
     return start, cpu
 
 
@@ -80,26 +85,11 @@ def line(opcode, start, cpu):
             out += [addr, mem[addr]]
     out.append(len(cpu.cycles))
     for kind, addr, value in cpu.cycles:
-        out += [kind, addr, 0x100 if value is None else value]
-    return ' '.join('%x' % v for v in out)
-
-
-def illegal_line():
-    """One vector with opcode $02, which the core does not implement yet."""
-    start = {'pc': 0x1000, 's': 0x01FF, 'p': 0x34, 'a': 0, 'x': 0, 'y': 0,
-             'dbr': 0, 'd': 0, 'pbr': 0, 'e': 1}
-    final = dict(start, pc=0x1001)
-    out = [0x02] + [start[r] for r in cpu_ref.REGS] + [final[r] for r in cpu_ref.REGS]
-    out += [0, 1, 0x1000, 0x02, 1, 0x1000, 0x02, 0]
+        out += [kind, 0 if addr is None else addr, 0x100 if value is None else value]
     return ' '.join('%x' % v for v in out)
 
 
 def main(argv):
-    if len(argv) == 3 and argv[1] == '--illegal':
-        os.makedirs(os.path.dirname(os.path.abspath(argv[2])), exist_ok=True)
-        with open(argv[2], 'w', newline='\n') as out:
-            out.write(illegal_line() + '\n')
-        return 0
     if len(argv) < 2:
         raise SystemExit(__doc__)
     cases = int(argv[2]) if len(argv) > 2 else CASES

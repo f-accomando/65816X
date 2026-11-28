@@ -3,7 +3,9 @@
 // for din. The core captures din at the clock that ends phase 1 (cyc_end).
 // Latches: IR (9 bits, bit 8 = pseudo-opcode), AL, AH, BA, DL, DH, OF (direct page or stack
 // offset). Execute happens at commit.
-// nmi and irq are reserved and have no effect yet. WDM runs the extensions only with ext_en = 1.
+// Interrupts: nmi is taken on its rising edge, irq while it is 1 and P.I = 0. Both are sampled
+// at the end of an instruction; the next opcode fetch then loads a pseudo-opcode ($101 NMI,
+// $102 IRQ) and does not move the program counter. WDM runs the extensions only with ext_en = 1.
 module c816_core (
   input clk,
   input rst,
@@ -72,6 +74,15 @@ module c816_core (
   wire commit;
   wire skip1;
 
+  // ---- interrupts ----
+  reg nmi_q, nmi_pend, take_nmi, take_irq;
+  wire fetch_int = (t == 4'd0) && (take_nmi || take_irq);
+  wire hw_int = ir[8];                 // pseudo-opcodes: reset, NMI, IRQ
+  wire wake = nmi_pend || irq;         // WAI ends also with IRQ masked
+  wire [7:0] vec_e = (ir == 9'h101) ? 8'hFA : (ir == 9'h002) ? 8'hF4 : (ir == 9'h100) ? 8'hFC : 8'hFE;
+  wire [7:0] vec_n = (ir == 9'h101) ? 8'hEA : (ir == 9'h102) ? 8'hEE : (ir == 9'h002) ? 8'hE4 : 8'hE6;
+  wire [7:0] vec = (r_e || (ir == 9'h100)) ? vec_e : vec_n;
+
   // ---- width, condition, bus kind ----
   // w codes: 0 M, 1 X, 2 B8, 3 W16
   wire w8 = (w == 3'd0) ? r_p[5] : (w == 3'd1) ? r_p[4] : (w != 3'd3);
@@ -98,21 +109,22 @@ module c816_core (
   wire [15:0] br_target;
   wire [15:0] rel16;
   wire [15:0] pc_m1;
-  wire load_abs = (pcop == 4'd1) || (pcop == 4'd2);
+  wire load_abs = (pcop == 4'd1) || (pcop == 4'd2) || (pcop == 4'd11);
   wire load_br = (pcop == 4'd4) || ((pcop == 4'd3) && commit);
   wire load_ret = (pcop == 4'd5) || (pcop == 4'd7);
   wire load_rel = (pcop == 4'd6);
   wire load_ptr = (pcop == 4'd8) || (pcop == 4'd9);
   wire load_back = (pcop == 4'd10) && (r_a != 16'd0);
   wire pc_load = load_abs || load_br || load_ret || load_rel || load_ptr || load_back;
-  wire pc_we = cyc_end && (pcinc || pc_load);
+  wire pc_we = cyc_end && ((pcinc && !fetch_int) || pc_load);
   wire [15:0] pc_next = load_abs ? {ah_by, al_by} :
                         load_br ? br_target :
                         load_ret ? ({ah, al} + 16'd1) :
                         load_rel ? rel16 :
                         load_ptr ? {dh_by, dl_by} :
                         load_back ? (r_pc - 16'd3) : r_pc + 16'd1;
-  wire pbr_we = cyc_end && ((pcop == 4'd2) || (pcop == 4'd7) || (pcop == 4'd9));
+  wire pbr_we = cyc_end && ((pcop == 4'd2) || (pcop == 4'd7) || (pcop == 4'd9) || (pcop == 4'd11));
+  wire [7:0] pbr_next = (pcop == 4'd11) ? 8'h00 : ba_by;     // vectors are in bank 0
 
   // ---- extensions ----
   wire is_wdm = (op == 5'd18);
@@ -157,7 +169,7 @@ module c816_core (
   // ---- execute (at commit) ----
   // op codes: 1 LD, 2 ST, 3 TR, 4 ADC, 5 SBC, 6 CMP, 7 AND, 8 ORA, 9 EOR, 10 INC, 11 DEC,
   // 12 FLG, 13 REP, 14 SEP, 15 XCE, 16 BR, 17 BRA, 18 WDM, 19 ASL, 20 LSR, 21 ROL, 22 ROR,
-  // 23 TSB, 24 TRB, 25 BIT, 26 BITI, 27 XBA, 28 PLP, 29 MVN, 30 MVP
+  // 23 TSB, 24 TRB, 25 BIT, 26 BITI, 27 XBA, 28 PLP (also RTI), 29 MVN, 30 MVP, 31 BRK
   wire [7:0] bitm = 8'd1 << arg[2:0];
   wire is_xce = (op == 5'd15);
   wire is_xba = (op == 5'd27);
@@ -201,6 +213,7 @@ module c816_core (
       5'd26: begin alu_op = 4'd5; f_we = 4'b0010; end     // BIT immediate: only Z
       5'd27: begin wr_en = 1'b1; f_we = 4'b1010; end      // XBA
       5'd28: begin p_we = 1'b1; p_val = dl_by; end
+      5'd31: begin p_we = 1'b1; p_val = (r_p | 8'h04) & 8'hF7; end   // set I, clear D
       default: ;
     endcase
   end
@@ -237,7 +250,7 @@ module c816_core (
     .ext_we_a(ext_we_a), .ext_we_y(ext_we_y), .ext_a(ext_a), .ext_y(ext_y),
     .f_we(f_mask), .f_n(f_n), .f_v(f_v), .f_z(f_z), .f_c(f_c),
     .p_we(commit && p_we), .p_val(p_val), .e_we(commit && e_we), .e_val(r_p[0]),
-    .pc_we(pc_we), .pc_val(pc_next), .pbr_we(pbr_we), .pbr_val(ba_by),
+    .pc_we(pc_we), .pc_val(pc_next), .pbr_we(pbr_we), .pbr_val(pbr_next),
     .s_inc(cyc_end && (sop == 2'd1)), .s_dec(cyc_end && (sop == 2'd2)),
     .s_wide(s_wide), .s_open(s_open),
     .mv_we(mv_we), .mv_a(mv_a), .mv_x(mv_x), .mv_y(mv_y), .mv_dbr(ba),
@@ -248,7 +261,7 @@ module c816_core (
   // ---- address unit ----
   c816_addr u_addr (
     .asel(asel), .ea(ea), .pc(r_pc), .pbr(r_pbr), .dbr(r_dbr), .s(r_s), .x(r_x), .y(r_y),
-    .d(r_d), .e(r_e), .w8(w8), .al(al), .ah(ah), .ba(ba), .of(of), .vec(8'hFC),
+    .d(r_d), .e(r_e), .w8(w8), .al(al), .ah(ah), .ba(ba), .of(of), .vec(vec),
     .addr(addr), .xcarry(xcarry), .br_cross(br_cross), .br_target(br_target), .rel16(rel16),
     .pc_m1(pc_m1)
   );
@@ -259,6 +272,7 @@ module c816_core (
     .clk(clk), .rst(rst), .halt(halt), .bus_wait(bus_wait), .bus(bus), .last(last),
     .skip(skip), .imp(imp), .w8(w8), .taken(taken), .br_cross(br_cross),
     .xcarry(xcarry || !r_p[4]), .is_store(is_store), .e(r_e), .dlz(r_d[7:0] == 8'h00),
+    .hold(hold), .wake(wake),
     .t(t), .ph(ph), .illegal(illegal), .cyc_end(cyc_end), .commit(commit), .skip1(skip1),
     .rd(rd), .wr(wr), .sync(sync)
   );
@@ -280,16 +294,43 @@ module c816_core (
         3'd3: ba <= din;
         3'd4: dl <= din;
         3'd5: dh <= din;
-        3'd6: ir <= {1'b0, din};
+        3'd6: ir <= take_nmi && fetch_int ? 9'h101 : fetch_int ? 9'h102 : {1'b0, din};
         3'd7: of <= din;
         default: ;
       endcase
     end
   end
 
+  // ---- interrupt requests ----
+  wire is_int_seq = (op == 5'd31);
+  wire irq_mask = (ir == 9'h040) ? dl_by[2] : r_p[2];
+  always @(posedge clk) begin
+    if (rst) begin
+      nmi_q <= 1'b0;
+      nmi_pend <= 1'b0;
+      take_nmi <= 1'b0;
+      take_irq <= 1'b0;
+    end else begin
+      nmi_q <= nmi;
+      if (nmi && !nmi_q) nmi_pend <= 1'b1;
+      else if (cyc_end && fetch_int && take_nmi) nmi_pend <= 1'b0;
+      if (commit) begin
+        // The flags that the instruction found decide (CLI, SEI, and PLP act one instruction
+        // later); RTI acts at once. An interrupt or BRK sequence takes no second request: the
+        // first instruction of the handler always runs.
+        take_nmi <= nmi_pend && !is_int_seq;
+        take_irq <= irq && !irq_mask && !is_int_seq;
+      end else if (cyc_end && (t == 4'd0)) begin
+        take_nmi <= 1'b0;
+        take_irq <= 1'b0;
+      end
+    end
+  end
+
   // ---- written byte ----
   // wsel: 0 low byte of src, 1 high byte of src, 2-3 PC - 1, 4-5 ALU result, 6 DL, 7 PBR,
-  // 8 AL, 9 AH, 10-11 PC, 12-13 PC + {AH, AL}
+  // 8 AL, 9 AH, 10-11 PC, 12-13 PC + {AH, AL}, 14 P (in emulation mode, NMI and IRQ push it
+  // with bit 4 at 0)
   reg [7:0] wbyte;
   always @* begin
     case (wsel)
@@ -306,6 +347,7 @@ module c816_core (
       4'd11: wbyte = r_pc[15:8];
       4'd12: wbyte = rel16[7:0];
       4'd13: wbyte = rel16[15:8];
+      4'd14: wbyte = (r_e && hw_int) ? (r_p & 8'hEF) : r_p;
       default: wbyte = src_v[7:0];
     endcase
   end

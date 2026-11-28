@@ -2,9 +2,10 @@
 
 Scritto dal comportamento documentato del processore, non dal Verilog: serve a generare i vettori
 del banco di prova (sim/cpu_vectors.py). Copre solo gli opcode in OPCODES. WDM ($42) si comporta
-come sul chip vero: salta due byte. ADC e SBC sono modellati solo in binario (flag D = 0).
+come sul chip vero: salta due byte.
 Registra ogni ciclo di bus in self.cycles come (tipo, indirizzo, byte): tipo bit 0 = VDA,
-bit 1 = VPA, bit 2 = scrittura; byte = None nei cicli interni.
+bit 1 = VPA, bit 2 = scrittura, bit 3 = attesa (indirizzo non valido); byte = None nei cicli
+interni.
 """
 
 N, V, M, X, D, I, Z, C = 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01
@@ -76,6 +77,12 @@ OPCODES.update({
     0xF4: ('pea', None), 0xD4: ('pei', None), 0x62: ('per', None),
     # spostamenti di blocchi
     0x54: ('block', 1), 0x44: ('block', -1),
+})
+
+# C5: interrupt via software e attesa
+OPCODES.update({
+    0x00: ('interrupt', (0xFFE6, 0xFFFE)), 0x02: ('interrupt', (0xFFE4, 0xFFF4)),
+    0x40: ('rti', None), 0xCB: ('wait', None), 0xDB: ('wait', None),
 })
 
 
@@ -479,6 +486,37 @@ class Cpu:
         self.io(self.code_address(1))
         self.push_word((self.pc + offset) & 0xFFFF)
 
+    # ---- interrupt ----
+    def op_interrupt(self, vectors):
+        self.fetch()                                     # byte di firma
+        if not self.e:
+            self.push(self.pbr)
+        self.push(self.pc >> 8)
+        self.push(self.pc)
+        self.push(self.p)
+        self.p = (self.p | I) & ~D & 0xFF
+        self.pbr = 0
+        vector = vectors[1 if self.e else 0]
+        lo = self.read(vector)
+        self.pc = lo | self.read(vector + 1) << 8
+
+    def op_rti(self, _):
+        self.io(self.code_address())
+        self.io(self.code_address())
+        self.p = self.pull()
+        self.width_rules()
+        lo = self.pull()
+        hi = self.pull()
+        self.pc = hi << 8 | lo
+        if not self.e:
+            self.pbr = self.pull()
+
+    def op_wait(self, _):
+        """WAI e STP: due cicli interni, poi il chip aspetta (senza indirizzo valido)"""
+        self.io(self.code_address())
+        self.io(self.code_address())
+        self.cycles.append((8, None, None))
+
     # ---- salti ----
     def op_brl(self, _):
         offset = self.fetch(2)
@@ -566,8 +604,6 @@ class Cpu:
         self.store(mode, self.y, self.x8())
 
     def add(self, value):
-        if self.p & D:
-            raise ValueError('modo decimale non modellato')
         w8 = self.m8()
         mask, sign = (0xFF, 0x80) if w8 else (0xFFFF, 0x8000)
         a = self.a & mask
@@ -576,12 +612,45 @@ class Cpu:
         self.setf(V, ~(a ^ value) & (a ^ r) & sign)
         self.set_a(r & mask)
 
+    def decimal(self, value, subtract):
+        """ADC e SBC in decimale, cifra per cifra; per SBC value e' gia' complementato.
+        V viene dalla somma prima dell'ultima correzione, come sul 65816."""
+        w8 = self.m8()
+        mask, sign = (0xFF, 0x80) if w8 else (0xFFFF, 0x8000)
+        a = self.a & mask
+        digits = 2 if w8 else 4
+        r = 0
+        carry = self.p & C
+        for i in range(digits):
+            shift = 4 * i
+            digit = 0xF << shift
+            limit = (1 << (shift + 4)) - 1        # 000F, 00FF, 0FFF, FFFF
+            r = (a & digit) + (value & digit) + (carry << shift) + (r & ((1 << shift) - 1))
+            if i == digits - 1:
+                self.setf(V, ~(a ^ value) & (a ^ r) & sign)
+            if subtract:
+                if r <= limit:
+                    r -= 6 << shift
+            elif r > (0xA << shift) - 1:          # 0009, 009F, 09FF, 9FFF
+                r += 6 << shift
+            carry = 1 if r > limit else 0
+        self.setf(C, carry)
+        self.set_a(r & mask)
+
     def op_adc(self, mode):
-        self.add(self.operand(mode, self.m8()))
+        value = self.operand(mode, self.m8())
+        if self.p & D:
+            self.decimal(value, False)
+        else:
+            self.add(value)
 
     def op_sbc(self, mode):
         mask = 0xFF if self.m8() else 0xFFFF
-        self.add(self.operand(mode, self.m8()) ^ mask)
+        value = self.operand(mode, self.m8()) ^ mask
+        if self.p & D:
+            self.decimal(value, True)
+        else:
+            self.add(value)
 
     def compare(self, reg, mode, w8):
         value = self.operand(mode, w8)

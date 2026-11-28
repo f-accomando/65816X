@@ -15,7 +15,9 @@ module c816_decode (
   always @* begin
     seq = 6'd0; op = 5'd0; ea = 4'd0; w = 3'd0; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b0;
     case (ir)
+      9'h000: begin seq = 6'd42; op = 5'd31; ea = 4'd0; w = 3'd2; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // BRK
       9'h001: begin seq = 6'd19; op = 5'd8; ea = 4'd1; w = 3'd0; src = 4'd1; dst = 4'd1; arg = 4'd0; imp = 1'b1; end  // ORA
+      9'h002: begin seq = 6'd42; op = 5'd31; ea = 4'd0; w = 3'd2; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // COP
       9'h003: begin seq = 6'd22; op = 5'd8; ea = 4'd10; w = 3'd0; src = 4'd1; dst = 4'd1; arg = 4'd0; imp = 1'b1; end  // ORA
       9'h004: begin seq = 6'd24; op = 5'd23; ea = 4'd7; w = 3'd0; src = 4'd1; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // TSB
       9'h005: begin seq = 6'd16; op = 5'd8; ea = 4'd7; w = 3'd0; src = 4'd1; dst = 4'd1; arg = 4'd0; imp = 1'b1; end  // ORA
@@ -77,6 +79,7 @@ module c816_decode (
       9'h03D: begin seq = 6'd6; op = 5'd7; ea = 4'd2; w = 3'd0; src = 4'd1; dst = 4'd1; arg = 4'd0; imp = 1'b1; end  // AND
       9'h03E: begin seq = 6'd27; op = 5'd21; ea = 4'd2; w = 3'd0; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // ROL
       9'h03F: begin seq = 6'd7; op = 5'd7; ea = 4'd5; w = 3'd0; src = 4'd1; dst = 4'd1; arg = 4'd0; imp = 1'b1; end  // AND
+      9'h040: begin seq = 6'd44; op = 5'd28; ea = 4'd0; w = 3'd2; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // RTI
       9'h041: begin seq = 6'd19; op = 5'd9; ea = 4'd1; w = 3'd0; src = 4'd1; dst = 4'd1; arg = 4'd0; imp = 1'b1; end  // EOR
       9'h042: begin seq = 6'd1; op = 5'd18; ea = 4'd0; w = 3'd3; src = 4'd1; dst = 4'd1; arg = 4'd0; imp = 1'b1; end  // WDM
       9'h043: begin seq = 6'd22; op = 5'd9; ea = 4'd10; w = 3'd0; src = 4'd1; dst = 4'd1; arg = 4'd0; imp = 1'b1; end  // EOR
@@ -215,6 +218,7 @@ module c816_decode (
       9'h0C8: begin seq = 6'd0; op = 5'd10; ea = 4'd0; w = 3'd1; src = 4'd3; dst = 4'd3; arg = 4'd0; imp = 1'b1; end  // INY
       9'h0C9: begin seq = 6'd3; op = 5'd6; ea = 4'd0; w = 3'd0; src = 4'd1; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // CMP
       9'h0CA: begin seq = 6'd0; op = 5'd11; ea = 4'd0; w = 3'd1; src = 4'd2; dst = 4'd2; arg = 4'd0; imp = 1'b1; end  // DEX
+      9'h0CB: begin seq = 6'd45; op = 5'd0; ea = 4'd0; w = 3'd2; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // WAI
       9'h0CC: begin seq = 6'd5; op = 5'd6; ea = 4'd1; w = 3'd1; src = 4'd3; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // CPY
       9'h0CD: begin seq = 6'd5; op = 5'd6; ea = 4'd1; w = 3'd0; src = 4'd1; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // CMP
       9'h0CE: begin seq = 6'd26; op = 5'd11; ea = 4'd1; w = 3'd0; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // DEC
@@ -230,6 +234,7 @@ module c816_decode (
       9'h0D8: begin seq = 6'd0; op = 5'd12; ea = 4'd0; w = 3'd2; src = 4'd0; dst = 4'd0; arg = 4'd3; imp = 1'b1; end  // CLD
       9'h0D9: begin seq = 6'd6; op = 5'd6; ea = 4'd4; w = 3'd0; src = 4'd1; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // CMP
       9'h0DA: begin seq = 6'd13; op = 5'd0; ea = 4'd0; w = 3'd1; src = 4'd2; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // PHX
+      9'h0DB: begin seq = 6'd46; op = 5'd0; ea = 4'd0; w = 3'd2; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // STP
       9'h0DC: begin seq = 6'd36; op = 5'd0; ea = 4'd0; w = 3'd2; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // JML
       9'h0DD: begin seq = 6'd6; op = 5'd6; ea = 4'd2; w = 3'd0; src = 4'd1; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // CMP
       9'h0DE: begin seq = 6'd27; op = 5'd11; ea = 4'd2; w = 3'd0; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // DEC
@@ -267,6 +272,8 @@ module c816_decode (
       9'h0FE: begin seq = 6'd27; op = 5'd10; ea = 4'd2; w = 3'd0; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // INC
       9'h0FF: begin seq = 6'd7; op = 5'd5; ea = 4'd5; w = 3'd0; src = 4'd1; dst = 4'd1; arg = 4'd0; imp = 1'b1; end  // SBC
       9'h100: begin seq = 6'd15; op = 5'd0; ea = 4'd0; w = 3'd2; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // RST
+      9'h101: begin seq = 6'd43; op = 5'd31; ea = 4'd0; w = 3'd2; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // NMI
+      9'h102: begin seq = 6'd43; op = 5'd31; ea = 4'd0; w = 3'd2; src = 4'd0; dst = 4'd0; arg = 4'd0; imp = 1'b1; end  // IRQ
       default: ;
     endcase
   end

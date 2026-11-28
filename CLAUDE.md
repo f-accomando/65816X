@@ -40,7 +40,9 @@ Read files in small slices (`grep`, or `offset` and `limit`). The current state 
 
 **Language of the documents.** Write every `.md` file that directs the project in English, with ASD-STE100. These files are `CLAUDE.md`, `README.md`, `HANDOFF.md`, and all files in `docs/`. Write the manual in the same style.
 
-**Manual.** Keep the user manual true. Update `manuals/content/en/65816x.md` in the same change that changes what a user sees or does. Then run `make manual`.
+**Manual.** Keep the user manuals true. They are `manuals/content/en/65816x.md` and `manuals/content/en/ppu.md`. Update them in the same change that changes what a user sees or does. Then run `make manual`.
+Keep each manual in one file, as long as its content needs. Size limits are for the `.md` files that direct the project.
+Update the PPU manual with each step of the PPU: registers, state, and examples.
 Keep the chapter "Technical specifications" true: mark each missing part with "[to be developed]".
 For each extended or accelerated function that original games can use, add an example to the manual.
 Show how to call it. Show the original code and then the modified code.

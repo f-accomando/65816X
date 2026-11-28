@@ -18,3 +18,18 @@ sources = [
   "manuals/tools/mkmanual.py",
   "manuals/themes/paper.toml",
 ]
+
+[[manual]]
+id = "ppu"
+order = 2
+sources = [
+  "docs/design/ppu-plan.md",
+  "docs/ARCHITECTURE.md",
+  "docs/VERIFICATION.md",
+  "rtl/ppu",
+  "sim/ppu_ref.py",
+  "sim/ppu_scenes.py",
+  "tests/ppu",
+  "manuals/tools/mkmanual.py",
+  "manuals/themes/paper.toml",
+]

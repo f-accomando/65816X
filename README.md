@@ -46,6 +46,8 @@ make check       # everything that the CI runs
 - [docs/design/cpu-core.md](docs/design/cpu-core.md): design of the CPU core.
 - [docs/design/cpu-extensions.md](docs/design/cpu-extensions.md): the CPU extensions and the proposals for more.
 - [docs/design/ppu-plan.md](docs/design/ppu-plan.md): plan of the original PPU and of the enhanced PPU+.
+- [manuals/pdf/65816x.pdf](manuals/pdf/65816x.pdf): the manual of the project.
+- [manuals/pdf/ppu.pdf](manuals/pdf/ppu.pdf): the manual of the video part.
 - [CLAUDE.md](CLAUDE.md): work rules for Claude Code sessions.
 - [docs/progress/cpu.md](docs/progress/cpu.md) and [docs/progress/system.md](docs/progress/system.md): status, open work, and rules of each area.
 - [HANDOFF.md](HANDOFF.md): for the next session: user decisions, proposals and results, ideas not yet in the code, open questions, next steps.

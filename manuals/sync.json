@@ -1,9 +1,9 @@
 {
  "65816x": {
-  "content": "2d3e937039b0",
+  "content": "1a5687a48da2",
   "sources": {
    "Makefile": "8bade625cf23",
-   "README.md": "59c921a16296",
+   "README.md": "ea10cc49a718",
    "docs/ARCHITECTURE.md": "b2ff23d8cd6a",
    "docs/ROADMAP.md": "75768fffb633",
    "docs/VARIANTS.md": "1e88f8b1ddfb",
@@ -14,6 +14,20 @@
    "manuals/tools/mkmanual.py": "750011865c3c",
    "rtl": "c1b7e9c0f4e0",
    "sim/asm.py": "7c73bd4abed2"
+  }
+ },
+ "ppu": {
+  "content": "6996a2733904",
+  "sources": {
+   "docs/ARCHITECTURE.md": "b2ff23d8cd6a",
+   "docs/VERIFICATION.md": "a332f8297181",
+   "docs/design/ppu-plan.md": "ae2513988ae6",
+   "manuals/themes/paper.toml": "a338e8ca8a85",
+   "manuals/tools/mkmanual.py": "750011865c3c",
+   "rtl/ppu": "e8e9d79d6e40",
+   "sim/ppu_ref.py": "35ed599e1fc5",
+   "sim/ppu_scenes.py": "d725de9c4ee1",
+   "tests/ppu": "411658225d16"
   }
  }
 }

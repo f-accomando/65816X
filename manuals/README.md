@@ -1,12 +1,17 @@
 # The manual
 
-The manual is for the **people who use 65816X**. It is in English, written with ASD-STE100.
-The finished file is [pdf/65816x.pdf](pdf/65816x.pdf).
+The manuals are for the **people who use 65816X**. They are in English, written with ASD-STE100.
+Each manual is one file.
+
+| Manual | Content |
+|---|---|
+| [pdf/65816x.pdf](pdf/65816x.pdf) | the whole project |
+| [pdf/ppu.pdf](pdf/ppu.pdf) | the video part: timing, memories, registers, pictures |
 
 | Path | Content |
 |---|---|
 | `manuals.toml` | the list of manuals and the repository files that each one comes from |
-| `content/en/65816x.md` | the text |
+| `content/en/<id>.md` | the text of each manual |
 | `themes/<theme>.toml` | the look; `paper` is the default |
 | `shots/` | pictures (none today) |
 | `pdf/` | the finished PDFs |

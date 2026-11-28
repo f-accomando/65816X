@@ -78,6 +78,8 @@ project did not fit in either FPGA.
    formats keep width and height configurable. Thus a later version can try 512x448.
 10. **One target** (2026-11-28): drop the 45F. The base is the 85F. Size the design from the original
     SNES up to the enhanced machine without compromises (`docs/VARIANTS.md`).
+11. **Future target** (2026-11-28): develop on the 85F. Keep the Lattice Certus-N2 CT20 (135k LUT4) as
+    the target of the machine without compromises (`docs/VARIANTS.md`).
 
 ## 4. Proposals of the user (from ChatGPT chats) and results
 

@@ -20,12 +20,16 @@ The phases are in [ROADMAP.md](../ROADMAP.md). The open questions are in [HANDOF
 - **Brightness**: find the formula of the output for each value. Today the pictures use N / 15.
 - **Video timing**: check the long dots, the NMI position, and the field value after reset. Use a
   chip or a third document.
+- **Certus-N2 CT20**: before phase F9, check again the tools, the board, the price, and the data sheet
+  ([VARIANTS.md](../VARIANTS.md)).
 - From F3: see the roadmap.
 
 ## Rules (do not break)
 
 - Ask the user before you change a user decision (HANDOFF, section 3).
 - List the RTL sources only in `rtl/files.f`.
+- Put the code that belongs to one FPGA family in `rtl/board/`. Write the rest of `rtl/` as plain
+  Verilog, so that it can move to another FPGA.
 - Count the video time with the enable `mce`. The master clock is never a clock net.
 - Write `sim/ppu_ref.py` from the documented behavior, without looking at the Verilog.
 - Change the CRC lists of `tests/ppu/` only with `make ppu-update`. Then check the difference.

@@ -2,7 +2,7 @@
 
 The numbers are **estimates** (±30%), except where the text says "measured". The `make synth` results for
 the current design are in [VERIFICATION.md](VERIFICATION.md). The project has one target (HANDOFF,
-decision 10).
+decision 10). A second FPGA is a future target only (decision 11).
 
 ## Target resources
 
@@ -55,6 +55,36 @@ The chips of some cartridges (SA-1, Super FX, DSP-1, and others) add about 15,00
 - Plan for 85% of the FPGA as the practical limit: about 71,000 LUT4.
 - Without the 32-bit mode (5,000), the FPU (4,000), and the data cache (2,600): about 73,000 (87%).
 - Load the cartridge chips as an alternative bitstream.
+
+## Future target: Certus-N2 CT20
+
+The machine without compromises does not fit well in the 85F. The Lattice Certus-N2 CT20 is the future
+target for it. Checked on 2026-11-28 on a preliminary data sheet (FPGA-DS-02122, version 0.80).
+
+| Resource | ECP5 LFE5U-85F | Certus-N2 CT20 | Need (estimate) |
+|---|---|---|---|
+| LUT4 | 83,640 | 135,000 | about 85,000; 102,000 with the cartridge chips |
+| Block RAM | about 3.7 Mbit | 11.4 Mbit (306 blocks of 36 kbit) | about 4.1 Mbit |
+| 18x18 multipliers | 156 | 520 | about 45 |
+| External memory | SDRAM | DDR4 and LPDDR4, up to 2400 Mbit/s | |
+
+With the CT20, the estimate uses 63% of the LUT4 (76% with the cartridge chips). The 32-bit mode, the
+FPU, the data cache, the cartridge chips, and the full memories then fit together.
+
+Open points before a change of the base:
+
+- Tools: the Lattice license page asks for a paid subscription of Radiant for this family.
+- Open tools: no support of nextpnr or prjoxide was found for this family.
+- Board: the page of the evaluation board says "Coming Soon". No price was found.
+- Maturity: the data sheet is preliminary. The license page names the part with the suffix `ES`.
+- Memory: the memory controller must change from SDRAM to LPDDR4.
+- Video: the data sheet gives 3.3 V pins. HDMI output was not checked.
+- Not checked: prices, reachable frequency, and the free license.
+
+Sources: <https://www.latticesemi.com/Products/FPGAandCPLD/Certus-N2>,
+<https://www.latticesemi.com/api/document/download?id=54437>,
+<https://www.latticesemi.com/en/Support/Licensing>,
+<https://www.latticesemi.com/products/developmentboardsandkits/certus-n2-evaluation-board>.
 
 ## BRAM budget
 
